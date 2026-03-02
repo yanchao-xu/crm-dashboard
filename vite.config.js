@@ -11,6 +11,7 @@ export default defineConfig({
     vitePlugin(),
     //
   ],
+  //plugins: [react(), vitePlugin()],
   server: {
     cors: true,
   },

@@ -1,0 +1,158 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>销售漏斗还原 - ECharts</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+      body {
+        background-color: #fcfcfc;
+        display: flex;
+        justify-content: center;
+        padding-top: 50px;
+      }
+      #main {
+        width: 800px;
+        height: 600px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="main"></div>
+
+    <script type="text/javascript">
+      var chartDom = document.getElementById("main");
+      var myChart = echarts.init(chartDom);
+
+      // 模拟数据
+      const stages = [
+        "Closing",
+        "Negotiation",
+        "Proposal",
+        "Qualification",
+        "Discovery",
+      ];
+      const counts = [0, 0, 1, 1, 2];
+      const values = [0, 0, 85, 175, 335];
+      const conversions = ["0%", "0%", "35%", "28%", "12%"];
+      const targets = ["65%", "45%", "55%", "45%", "30%"];
+      const maxVal = 500; // 背景条的总长度参照
+
+      var option = {
+        title: {
+          text: "销售漏斗",
+          subtext: "阶段转化 vs 目标",
+          left: 30,
+          top: 20,
+          textStyle: { fontSize: 18, color: "#444" },
+        },
+        grid: {
+          left: "25%", // 为左侧文字留空间
+          right: "20%", // 为右侧胶囊留空间
+          top: 100,
+          bottom: 40,
+          containLabel: false,
+        },
+        xAxis: { type: "value", show: false },
+        yAxis: {
+          type: "category",
+          data: stages,
+          inverse: true, // 倒序，让 Discovery 在最上面
+          axisLine: { show: false },
+          axisTick: { show: false },
+          axisLabel: {
+            margin: 30,
+            align: "right",
+            formatter: function (value, index) {
+              return `{name|${value}}\n{count|${counts[index]} 个商机}`;
+            },
+            rich: {
+              name: {
+                fontSize: 15,
+                color: "#555",
+                padding: [0, 0, 5, 0],
+                fontWeight: "500",
+              },
+              count: { fontSize: 13, color: "#999" },
+            },
+          },
+        },
+        series: [
+          // 1. 底层灰色背景条
+          {
+            name: "Background",
+            type: "bar",
+            barWidth: 45,
+            data: new Array(5).fill(maxVal),
+            itemStyle: { color: "#f8f9fa", borderRadius: 10 },
+            silent: true,
+            barGap: "-100%", // 关键：让彩色条重叠在上面
+          },
+          // 2. 实际彩色进度条
+          {
+            name: "Value",
+            type: "bar",
+            barWidth: 45,
+            data: values,
+            itemStyle: {
+              borderRadius: 10,
+              // 线性渐变色 (左蓝右紫)
+              color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                { offset: 0, color: "#6699ff" },
+                { offset: 1, color: "#b388ff" },
+              ]),
+            },
+            label: {
+              show: true,
+              position: "inside",
+              formatter: function (params) {
+                return params.value > 0 ? "$" + params.value + "K" : "";
+              },
+              color: "#fff",
+              fontWeight: "bold",
+              fontSize: 14,
+            },
+          },
+          // 3. 右侧胶囊标签 (利用 label 渲染)
+          {
+            name: "Conversion",
+            type: "bar",
+            barWidth: 45,
+            data: new Array(5).fill(maxVal),
+            itemStyle: { color: "transparent" }, // 隐藏条形，只看 label
+            label: {
+              show: true,
+              position: "right",
+              offset: [20, 0],
+              formatter: function (params) {
+                let idx = params.dataIndex;
+                return `{tag| ↘ ${conversions[idx]} }  {target| / ${targets[idx]} }`;
+              },
+              rich: {
+                tag: {
+                  backgroundColor: "#fff0f0", // 浅红背景
+                  color: "#ff7875", // 红色字体
+                  padding: [5, 8],
+                  borderRadius: 15,
+                  fontSize: 12,
+                  fontWeight: "bold",
+                  borderWidth: 0,
+                },
+                target: {
+                  color: "#999",
+                  fontSize: 13,
+                },
+              },
+            },
+          },
+        ],
+      };
+
+      myChart.setOption(option);
+      window.onresize = myChart.resize;
+    </script>
+  </body>
+</html>
