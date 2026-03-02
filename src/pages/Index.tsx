@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { HealthChart } from "@/components/charts/HealthChart";
 import { StagnationChart } from "@/components/charts/StagnationChart";
+import { X } from "lucide-react";
 import { FunnelChart } from "@/components/charts/FunnelChart";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -169,7 +170,9 @@ const Index = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => setChartFilter(null)}
-                    ></Button>
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
               </motion.div>
@@ -213,7 +216,9 @@ const Index = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => setChartFilter(null)}
-                    ></Button>
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
               </motion.div>
