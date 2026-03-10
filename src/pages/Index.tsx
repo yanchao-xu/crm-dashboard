@@ -2,11 +2,11 @@ import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { HealthChart } from "@/components/charts/HealthChart";
 import { StagnationChart } from "@/components/charts/StagnationChart";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { FunnelChart } from "@/components/charts/FunnelChart";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { OrgNode, deals, productGroups, orgStructure } from "@/data/mockData";
+import type { OrgNode } from "@/types";
 import {
   filterDealsByOrg,
   filterDealsByProduct,
@@ -16,6 +16,12 @@ import {
   calculateFunnelData,
   getTeamsFromOrg,
 } from "@/utils/orgFilter";
+import {
+  useDeals,
+  useOrgStructure,
+  useProductGroups,
+  useOpportunityStages,
+} from "@/hooks/useApiData";
 
 export type ChartFilterContext = {
   type: "health" | "funnel" | "stagnation";
@@ -31,47 +37,67 @@ const Index = () => {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
 
+  // 从 API 获取数据（不使用 fallback）
+  const { data: deals, loading: dealsLoading, error: dealsError } = useDeals();
+  const { data: orgStructure, loading: orgLoading } = useOrgStructure();
+  const { data: productGroups, loading: productsLoading } = useProductGroups();
+  const { data: opportunityStages, loading: stagesLoading } =
+    useOpportunityStages();
+
   // Get team options from org structure
-  const teamOptions = useMemo(() => getTeamsFromOrg(orgStructure), []);
+  const teamOptions = useMemo(
+    () => getTeamsFromOrg(orgStructure),
+    [orgStructure],
+  );
 
   // Calculate filtered data based on selected organization and products
   const filteredDeals = useMemo(() => {
     let result = filterDealsByOrg(deals, selectedOrg);
     result = filterDealsByProduct(result, selectedProducts);
-
-    // Filter by month if health chart is active
-    if (chartFilter?.type === "health" && chartFilter.month) {
-      result = filterDealsByMonth(result, chartFilter.month);
-    }
-
     return result;
-  }, [selectedOrg, selectedProducts, chartFilter]);
+  }, [selectedOrg, selectedProducts, deals]);
 
-  // Deals for funnel chart (filtered by month if health chart is active)
-  const funnelDeals = useMemo(() => {
-    let result = filterDealsByOrg(deals, selectedOrg);
-    result = filterDealsByProduct(result, selectedProducts);
-
-    // If health chart has month selected, filter funnel data to that month
-    if (chartFilter?.type === "health" && chartFilter.month) {
-      result = filterDealsByMonth(result, chartFilter.month);
-    }
-
-    return result;
-  }, [selectedOrg, selectedProducts, chartFilter]);
-
+  // 健康度图表数据（始终显示所有月份）
   const filteredStackedHealthData = useMemo(
-    () => calculateStackedHealthData(filteredDeals, selectedOrg),
-    [filteredDeals, selectedOrg],
+    () =>
+      calculateStackedHealthData(filteredDeals, selectedOrg, opportunityStages),
+    [filteredDeals, selectedOrg, opportunityStages],
   );
-  const filteredStagnationData = useMemo(
-    () => calculateStagnationData(filteredDeals),
-    [filteredDeals],
-  );
-  const filteredFunnelData = useMemo(
-    () => calculateFunnelData(funnelDeals),
-    [funnelDeals],
-  );
+  // 销售漏斗数据（当点击健康度图表时，按月过滤）
+  const filteredFunnelData = useMemo(() => {
+    let dealsForFunnel = filterDealsByOrg(deals, selectedOrg);
+    dealsForFunnel = filterDealsByProduct(dealsForFunnel, selectedProducts);
+
+    // 如果健康度图表有选中的月份，按月过滤
+    if (chartFilter?.type === "health" && chartFilter.month) {
+      dealsForFunnel = filterDealsByMonth(dealsForFunnel, chartFilter.month);
+    }
+
+    return calculateFunnelData(dealsForFunnel, opportunityStages);
+  }, [selectedOrg, selectedProducts, chartFilter, deals, opportunityStages]);
+
+  // 商机停滞分析数据（当点击健康度图表时，按月过滤）
+  const filteredStagnationData = useMemo(() => {
+    let dealsForStagnation = filterDealsByOrg(deals, selectedOrg);
+    dealsForStagnation = filterDealsByProduct(
+      dealsForStagnation,
+      selectedProducts,
+    );
+
+    // 如果健康度图表有选中的月份，按月过滤
+    if (chartFilter?.type === "health" && chartFilter.month) {
+      dealsForStagnation = filterDealsByMonth(
+        dealsForStagnation,
+        chartFilter.month,
+      );
+    }
+
+    const result = calculateStagnationData(
+      dealsForStagnation,
+      opportunityStages,
+    );
+    return result;
+  }, [selectedOrg, selectedProducts, chartFilter, deals, opportunityStages]);
 
   const getFilterTitle = () => {
     if (!chartFilter) return "";
@@ -118,18 +144,42 @@ const Index = () => {
   return (
     <div className="bg-background">
       <div className="container mx-auto px-4 py-6 space-y-6">
+        {/* 加载状态 */}
+        {dealsLoading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <span className="ml-2 text-muted-foreground">加载数据中...</span>
+          </div>
+        )}
+
+        {/* 错误状态 */}
+        {dealsError && (
+          <div className="glass-card p-6 text-center">
+            <p className="text-destructive mb-2">数据加载失败</p>
+            <p className="text-sm text-muted-foreground">
+              {dealsError.message}
+            </p>
+          </div>
+        )}
+
+        {/* 无数据状态 */}
+        {!dealsLoading && !dealsError && deals.length === 0 && (
+          <div className="glass-card p-6 text-center">
+            <p className="text-muted-foreground">暂无数据</p>
+          </div>
+        )}
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
           className="space-y-6"
         >
-          {/* Filters Row */}
-
           {/* Top Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <HealthChart
               data={filteredStackedHealthData}
+              stages={opportunityStages}
               onSegmentClick={(month) =>
                 setChartFilter({ type: "health", month })
               }

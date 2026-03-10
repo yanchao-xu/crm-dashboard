@@ -1,6 +1,6 @@
 import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
-import type { BilingualText } from "@/data/mockData";
+import type { BilingualText } from "@/types";
 
 type Language = "zh" | "en";
 
@@ -15,7 +15,7 @@ export const translations: Translations = {
   // Navigation
   "nav.main": { zh: "主菜单", en: "Main Menu" },
   "nav.dashboard": { zh: "仪表盘", en: "Dashboard" },
-  "nav.leads": { zh: "线索管理", en: "Leads" },
+  "nav.opportunity": { zh: "线索管理", en: "opportunity" },
   "nav.customers": { zh: "客户管理", en: "Customers" },
   "nav.contacts": { zh: "联系人管理", en: "Contacts" },
   "nav.deals": { zh: "商机管理", en: "Deals" },

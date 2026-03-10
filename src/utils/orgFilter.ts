@@ -1,17 +1,12 @@
-import {
+import type {
   OrgNode,
   Deal,
-  deals,
-  healthData,
-  stagnationData,
-  funnelData,
   HealthDataPoint,
   StagnationData,
   FunnelStage,
-  stackedHealthData,
   StackedHealthDataPoint,
-  productGroups,
-} from "@/data/mockData";
+} from "@/types";
+import { OpportunityStage } from "@/services/api";
 
 // Get all person names (owners) under an organization node
 export function getOwnersInOrg(node: OrgNode): string[] {
@@ -72,62 +67,67 @@ export function filterDealsByMonth(
 export function calculateStackedHealthData(
   filteredDeals: Deal[],
   selectedOrg: OrgNode | null,
+  stages: OpportunityStage[] = [],
 ): StackedHealthDataPoint[] {
-  if (!selectedOrg) {
-    return stackedHealthData;
+  if (stages.length === 0) {
+    return [];
   }
 
-  // Calculate ratio based on org quota vs total quota
-  const orgQuota = selectedOrg.quota || 0;
-  const totalQuota = 10000000; // From mock data company node
-  const ratio = orgQuota / totalQuota || 0.1;
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
 
-  return stackedHealthData.map((point) => ({
-    ...point,
-    target: Math.round(point.target * ratio),
-    Discovery: Math.round(point.Discovery * ratio),
-    Qualification: Math.round(point.Qualification * ratio),
-    Proposal: Math.round(point.Proposal * ratio),
-    Negotiation: Math.round(point.Negotiation * ratio),
-    Closing: Math.round(point.Closing * ratio),
-  }));
-}
+  const monthlyData = new Map<string, Map<string, number>>();
 
-// Legacy: Recalculate health data based on filtered deals
-export function calculateHealthData(
-  filteredDeals: Deal[],
-  selectedOrg: OrgNode | null,
-): HealthDataPoint[] {
-  if (!selectedOrg) {
-    return healthData;
-  }
+  filteredDeals.forEach((deal) => {
+    const month = deal.createdMonth || "Jan";
 
-  // Calculate ratio based on org quota vs total quota
-  const orgQuota = selectedOrg.quota || 0;
-  const totalQuota = 10000000; // From mock data company node
-  const ratio = orgQuota / totalQuota || 0.1;
+    if (!monthlyData.has(month)) {
+      monthlyData.set(month, new Map());
+    }
 
-  return healthData.map((point) => ({
-    ...point,
-    target: Math.round(point.target * ratio),
-    actual: Math.round(point.actual * ratio),
-  }));
+    const stageData = monthlyData.get(month)!;
+    const currentValue = stageData.get(deal.stage) || 0;
+    stageData.set(deal.stage, currentValue + deal.value);
+  });
+
+  return months.map((month) => {
+    const stageData = monthlyData.get(month) || new Map();
+    const dataPoint: any = {
+      month,
+      target: 500000, // TODO: 从 API 获取目标值，而不是硬编码
+    };
+
+    stages.forEach((stage) => {
+      dataPoint[stage.code] = stageData.get(stage.code) || 0;
+    });
+
+    return dataPoint as StackedHealthDataPoint;
+  });
 }
 
 // Recalculate stagnation data based on filtered deals
 export function calculateStagnationData(
   filteredDeals: Deal[],
+  stages: OpportunityStage[] = [],
 ): StagnationData[] {
-  const stages = [
-    "Discovery",
-    "Qualification",
-    "Proposal",
-    "Negotiation",
-    "Closing",
-  ];
+  if (stages.length === 0) {
+    return [];
+  }
 
   return stages.map((stage) => {
-    const stageDeals = filteredDeals.filter((d) => d.stage === stage);
+    const stageDeals = filteredDeals.filter((d) => d.stage === stage.code);
 
     const activeDeals = stageDeals.filter((d) => d.lastActivityDays < 30);
     const over30Deals = stageDeals.filter(
@@ -139,7 +139,8 @@ export function calculateStagnationData(
     const zombieDeals = stageDeals.filter((d) => d.lastActivityDays >= 90);
 
     return {
-      stage,
+      stage: stage.code,
+      stageName: stage.name, // 直接使用 name
       active: activeDeals.length,
       over30: over30Deals.length,
       over60: over60Deals.length,
@@ -153,19 +154,18 @@ export function calculateStagnationData(
 }
 
 // Recalculate funnel data based on filtered deals (with realistic conversion rates)
-export function calculateFunnelData(filteredDeals: Deal[]): FunnelStage[] {
-  const stages = [
-    "Discovery",
-    "Qualification",
-    "Proposal",
-    "Negotiation",
-    "Closing",
-  ];
-  // Realistic target conversions (step-by-step decrease typical of real funnels)
-  const targetConversions = [30, 45, 55, 45, 65];
+export function calculateFunnelData(
+  filteredDeals: Deal[],
+  stages: OpportunityStage[] = [],
+): FunnelStage[] {
+  if (stages.length === 0) {
+    return [];
+  }
 
+  const targetConversions = [30, 45, 55, 45, 65];
+  console.log("filteredDeals", filteredDeals);
   return stages.map((stage, index) => {
-    const stageDeals = filteredDeals.filter((d) => d.stage === stage);
+    const stageDeals = filteredDeals.filter((d) => d.stage === stage.code);
     const count = stageDeals.length;
     const value = stageDeals.reduce((sum, d) => sum + d.value, 0);
 
@@ -176,10 +176,11 @@ export function calculateFunnelData(filteredDeals: Deal[]): FunnelStage[] {
         : 0;
 
     return {
-      stage,
+      stage: stage.code,
+      stageName: stage.name, // 直接使用 name
       count,
       value,
-      targetConversion: targetConversions[index],
+      targetConversion: targetConversions[index] || 50,
       actualConversion: Math.round(avgProbability),
     };
   });
