@@ -48,7 +48,7 @@ export function filterDealsByProduct(
     return allDeals;
   }
   return allDeals.filter(
-    (deal) => deal.productGroup && selectedProducts.includes(deal.productGroup),
+    (deal) => deal.productGroup && deal.productGroup.some(pg => selectedProducts.includes(pg)),
   );
 }
 

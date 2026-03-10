@@ -16,7 +16,7 @@ export interface Deal {
   probability: number;
   owner: string;
   expectedClose: string;
-  productGroup?: string;
+  productGroup?: string[];
   createdMonth?: string;
 }
 

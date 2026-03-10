@@ -70,10 +70,38 @@ export class DashboardApiService {
       );
 
       // 转换 API 数据为应用数据格式
-      return this.transformOpportunityData(response.results || response);
+      return await this.transformOpportunityData(response.results || response);
     } catch (error) {
       console.error("Failed to fetch opportunity:", error);
       throw error;
+    }
+  }
+
+  // 获取商机产品子表数据
+  async getOpportunityProducts(parentDataIds: string[]): Promise<any[]> {
+    try {
+      const response = await this.restApi.get(
+        "/form/api/v2/form-entity-data/opportunity-management/opportunity-product-management-subform-form/list",
+        {
+          params: {
+            payload: JSON.stringify({
+              filterModel: [
+                {
+                  colId: "parentDataId",
+                  filterType: "set",
+                  values: parentDataIds,
+                },
+              ],
+              needCount: false,
+            }),
+          },
+        },
+      );
+
+      return response.results || response || [];
+    } catch (error) {
+      console.error("Failed to fetch opportunity products:", error);
+      return [];
     }
   }
 
@@ -147,11 +175,35 @@ export class DashboardApiService {
   }
 
   // 转换商机数据
-  private transformOpportunityData(rawData: any[]): Deal[] {
+  private async transformOpportunityData(rawData: any[]): Promise<Deal[]> {
     if (!Array.isArray(rawData)) {
       return [];
     }
 
+    const parentDataIds = rawData.map((item) => item.id);
+    // 获取商机产品数据
+    const productData = await this.getOpportunityProducts(parentDataIds);
+
+    // 构建商机ID到产品ID数组的映射
+    const opportunityProductMap = new Map<string, string[]>();
+
+    productData.forEach((product: any) => {
+      const parentDataId = product.parentDataId;
+      if (
+        parentDataId &&
+        product.productName &&
+        Array.isArray(product.productName) &&
+        product.productName.length > 0
+      ) {
+        const productId = product.productName[0]?.id;
+        if (productId) {
+          if (!opportunityProductMap.has(parentDataId)) {
+            opportunityProductMap.set(parentDataId, []);
+          }
+          opportunityProductMap.get(parentDataId)!.push(productId);
+        }
+      }
+    });
     return rawData.map((item: LeadRawData) => {
       // 计算创建月份
       const createdDate =
@@ -166,6 +218,18 @@ export class DashboardApiService {
         item.opportunityStage?.[0]?.code ||
         "";
 
+      // 获取该商机的产品ID数组
+
+      const productIds = opportunityProductMap.get(item.id?.toString()) || [];
+
+      // 计算最后活跃天数
+      const lastActivityDays = item.lastUpdate
+        ? Math.floor(
+            (Date.now() -
+              new Date(item.lastUpdate.replace(/\//g, "-")).getTime()) /
+              (1000 * 60 * 60 * 24),
+          )
+        : 0;
       return {
         id: item.id,
         name: {
@@ -178,11 +242,11 @@ export class DashboardApiService {
         },
         value: Number(item.expectedTransactionAmount) || 0,
         stage: stageValue,
-        lastActivityDays: Number(item.lastActivityDays) || 0, // TODO: 确认 lastActivityDays 字段映射
+        lastActivityDays,
         probability: Number(item.aiWinRatePrediction) || 0,
         owner: item.opportunityOwner?.[0]?.label || "",
         expectedClose: item.expectedDealTime || "",
-        productGroup: item.productGroup, // TODO: 确认 productGroup 字段映射
+        productGroup: productIds.length > 0 ? productIds : undefined,
         createdMonth: month,
       };
     });

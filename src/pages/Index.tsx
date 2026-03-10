@@ -41,7 +41,7 @@ const Index = () => {
   const { data: deals, loading: dealsLoading, error: dealsError } = useDeals();
   const { data: orgStructure, loading: orgLoading } = useOrgStructure();
   const { data: productGroups, loading: productsLoading } = useProductGroups();
-  console.log("productGroups", productGroups);
+  console.log("deals", deals);
   const { data: opportunityStages, loading: stagesLoading } =
     useOpportunityStages();
 
