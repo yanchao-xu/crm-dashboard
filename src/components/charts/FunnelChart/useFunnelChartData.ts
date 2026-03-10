@@ -3,7 +3,7 @@ import type { FunnelStage } from "@/types";
 
 export function useFunnelChartData(data?: FunnelStage[]) {
   const funnelData = data || [];
-  console.log("funnelData", funnelData);
+
   const stats = useMemo(() => {
     const maxCount = Math.max(...funnelData.map((s) => s.count), 1);
     const totalValue = funnelData.reduce((sum, s) => sum + s.value, 0);

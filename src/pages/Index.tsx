@@ -2,6 +2,8 @@ import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { HealthChart } from "@/components/charts/HealthChart";
 import { StagnationChart } from "@/components/charts/StagnationChart";
+import { OrgFilter } from "@/components/filters/OrgFilter";
+import { ProductTeamFilter } from "@/components/filters/ProductTeamFilter";
 import { X, Loader2 } from "lucide-react";
 import { FunnelChart } from "@/components/charts/FunnelChart";
 import { Button } from "@/components/ui/button";
@@ -14,7 +16,6 @@ import {
   calculateStackedHealthData,
   calculateStagnationData,
   calculateFunnelData,
-  getTeamsFromOrg,
 } from "@/utils/orgFilter";
 import {
   useDeals,
@@ -35,20 +36,14 @@ const Index = () => {
   const [chartFilter, setChartFilter] = useState<ChartFilterContext>(null);
   const [selectedOrg, setSelectedOrg] = useState<OrgNode | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
 
   // 从 API 获取数据（不使用 fallback）
   const { data: deals, loading: dealsLoading, error: dealsError } = useDeals();
   const { data: orgStructure, loading: orgLoading } = useOrgStructure();
   const { data: productGroups, loading: productsLoading } = useProductGroups();
+  console.log("productGroups", productGroups);
   const { data: opportunityStages, loading: stagesLoading } =
     useOpportunityStages();
-
-  // Get team options from org structure
-  const teamOptions = useMemo(
-    () => getTeamsFromOrg(orgStructure),
-    [orgStructure],
-  );
 
   // Calculate filtered data based on selected organization and products
   const filteredDeals = useMemo(() => {
@@ -175,6 +170,15 @@ const Index = () => {
           transition={{ duration: 0.3 }}
           className="space-y-6"
         >
+          {/* Filters Row */}
+          <div className="flex flex-wrap items-center gap-3">
+            <OrgFilter selectedOrg={selectedOrg} onOrgChange={setSelectedOrg} />
+            <ProductTeamFilter
+              selectedProducts={selectedProducts}
+              onProductsChange={setSelectedProducts}
+              productOptions={productGroups}
+            />
+          </div>
           {/* Top Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <HealthChart

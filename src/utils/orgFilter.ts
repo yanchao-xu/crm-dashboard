@@ -163,7 +163,6 @@ export function calculateFunnelData(
   }
 
   const targetConversions = [30, 45, 55, 45, 65];
-  console.log("filteredDeals", filteredDeals);
   return stages.map((stage, index) => {
     const stageDeals = filteredDeals.filter((d) => d.stage === stage.code);
     const count = stageDeals.length;
@@ -184,23 +183,4 @@ export function calculateFunnelData(
       actualConversion: Math.round(avgProbability),
     };
   });
-}
-
-// Get teams from org structure for comparison filter
-export function getTeamsFromOrg(
-  org: OrgNode,
-): { id: string; name: { zh: string; en: string } }[] {
-  const teams: { id: string; name: { zh: string; en: string } }[] = [];
-
-  function collectTeams(node: OrgNode) {
-    if (node.type === "team") {
-      teams.push({ id: node.id, name: node.name });
-    }
-    if (node.children) {
-      node.children.forEach(collectTeams);
-    }
-  }
-
-  collectTeams(org);
-  return teams;
 }

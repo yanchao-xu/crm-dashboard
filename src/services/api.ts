@@ -85,8 +85,7 @@ export class DashboardApiService {
       );
 
       // 尝试多种可能的数据路径
-      const rawData =
-        response.results || response.data || response.list || response;
+      const rawData = response.results || response;
 
       // 转换 API 数据为组织树结构
       return this.transformOrgData(rawData);
@@ -104,7 +103,7 @@ export class DashboardApiService {
       );
 
       // 转换 API 数据为产品组格式
-      return this.transformProductsData(response.data || response);
+      return this.transformProductsData(response.results || response);
     } catch (error) {
       console.error("Failed to fetch products:", error);
       throw error;
@@ -139,7 +138,7 @@ export class DashboardApiService {
         },
       );
 
-      const rawData = response.results || response.data || response;
+      const rawData = response.results || response;
       return this.transformStagesData(rawData);
     } catch (error) {
       console.error("Failed to fetch opportunity stages:", error);
@@ -270,8 +269,8 @@ export class DashboardApiService {
     return rawData.map((item: ProductRawData) => ({
       id: item.id,
       name: {
-        zh: item.name || "",
-        en: item.name || "",
+        zh: item.productName || "",
+        en: item.productName || "",
       },
     }));
   }
