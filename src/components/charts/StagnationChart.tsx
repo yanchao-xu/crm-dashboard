@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { StagnationData } from "@/data/mockData";
+import type { StagnationData } from "@/types";
 import { ChartFilterContext } from "@/pages/Index";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -43,9 +43,14 @@ export function StagnationChart({
   const [displayMode, setDisplayMode] = useState<DisplayMode>("amount");
   const { chartData, stats } = useStagnationChartData(data, displayMode);
 
-  const isOtherChartActive = activeFilter && activeFilter.type !== "stagnation";
+  const isOtherChartActive = !!(activeFilter && activeFilter.type !== "stagnation");
   const highlightedStatus =
     activeFilter?.type === "stagnation" ? activeFilter.activityStatus : null;
+
+  // 创建阶段名称映射函数（stageName 已经是当前语言）
+  const getStageName = (stageData: any) => {
+    return stageData.stageName || stageData.stage;
+  };
 
   const handleClick = (data: any) => {
     if (data && data.stage) {
@@ -121,10 +126,10 @@ export function StagnationChart({
         </ToggleGroup>
         <div
           className={`px-3 py-1.5 rounded-full text-xs font-mono font-medium ${zombieStatusVariant === "danger"
-              ? "bg-danger/20 text-danger"
-              : zombieStatusVariant === "warning"
-                ? "bg-warning/20 text-warning"
-                : "bg-success/20 text-success"
+            ? "bg-danger/20 text-danger"
+            : zombieStatusVariant === "warning"
+              ? "bg-warning/20 text-warning"
+              : "bg-success/20 text-success"
             }`}
         >
           {formatValue(stats.totalZombie)} {t("chart.zombieDeals")} (
@@ -194,6 +199,10 @@ export function StagnationChart({
               dataKey="stage"
               {...axisConfig}
               tick={{ fill: chartTheme.tick, fontSize: axisConfig.fontSize }}
+              tickFormatter={(value) => {
+                const stageData = chartData.find(d => d.stage === value);
+                return stageData ? getStageName(stageData) : value;
+              }}
             />
             <YAxis
               {...axisConfig}

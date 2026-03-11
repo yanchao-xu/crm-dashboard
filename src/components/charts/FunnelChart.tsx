@@ -1,6 +1,6 @@
 import { ChartFilterContext } from "@/pages/Index";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { FunnelStage } from "@/data/mockData";
+import type { FunnelStage } from "@/types";
 import { ChartCard } from "./common/ChartCard";
 import { StatCard } from "./common/StatCard";
 import { ChartLegend } from "./common/ChartLegend";

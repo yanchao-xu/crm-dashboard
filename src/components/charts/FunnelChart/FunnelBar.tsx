@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { TrendingDown, TrendingUp, ArrowRight } from "lucide-react";
-import { FunnelStage } from "@/data/mockData";
+import type { FunnelStage } from "@/types";
 import { formatCurrency } from "../utils/formatters";
 
 interface FunnelBarProps {
@@ -41,7 +41,7 @@ export function FunnelBar({
                         className={`text-sm font-medium group-hover:text-primary transition-colors ${isHighlighted ? "text-primary" : ""
                             }`}
                     >
-                        {stage.stage}
+                        {stage.stageName || stage.stage}
                     </p>
                     <p className="text-xs text-muted-foreground font-mono">
                         {stage.count} {t("chart.deals")}
@@ -78,8 +78,8 @@ export function FunnelBar({
                     <div className="flex items-center gap-2">
                         <div
                             className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-mono ${isHealthy
-                                    ? "bg-success/20 text-success"
-                                    : "bg-danger/20 text-danger"
+                                ? "bg-success/20 text-success"
+                                : "bg-danger/20 text-danger"
                                 }`}
                         >
                             {isHealthy ? (
