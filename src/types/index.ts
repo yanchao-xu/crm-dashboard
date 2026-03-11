@@ -67,11 +67,23 @@ export interface ConversionSettings {
 export interface OrgNode {
   id: string;
   name: BilingualText;
-  type: "company" | "school" | "team" | "person";
+  type: "company" | "district" | "team" | "person"; //todo 来自于数据字典
   conversionSettings?: ConversionSettings;
   quota?: number;
   fiscalStart?: string;
   children?: OrgNode[];
+  janJanuary?: number;
+  febFebruary?: number;
+  marMarch?: number;
+  aprApril?: number;
+  mayMay?: number;
+  junJune?: number;
+  julJuly?: number;
+  augAugust?: number;
+  sepSeptember?: number;
+  octOctober?: number;
+  novNovember?: number;
+  decDecember?: number;
 }
 
 // 产品相关类型

@@ -223,10 +223,10 @@ export class DashboardApiService {
       const productIds = opportunityProductMap.get(item.id?.toString()) || [];
 
       // 计算最后活跃天数
-      const lastActivityDays = item.lastUpdate
+      const lastActivityDays = item.eventDate
         ? Math.floor(
             (Date.now() -
-              new Date(item.lastUpdate.replace(/\//g, "-")).getTime()) /
+              new Date(item.eventDate.replace(/\//g, "-")).getTime()) /
               (1000 * 60 * 60 * 24),
           )
         : 0;
@@ -254,6 +254,7 @@ export class DashboardApiService {
 
   // 转换组织数据为树结构
   private transformOrgData(rawData: any): OrgNode {
+    const types = ["company", "team", "person", "district"];
     // 如果不是数组，尝试提取数组
     let dataArray: any[] = [];
     if (Array.isArray(rawData)) {
@@ -279,27 +280,40 @@ export class DashboardApiService {
 
     // 第一遍：创建所有节点
     dataArray.forEach((item: OrgRawData) => {
+      const itemType = item.organizationType?.[0]?.code;
       const node: OrgNode = {
         id: item.id,
         name: {
           zh: item.name || "",
           en: item.name || "",
         },
-        type: item.type || "team",
+        type: types.includes(itemType) ? itemType : "person",
         quota: item.quota,
         fiscalStart: item.fiscalStart,
         children: [],
+        janJanuary: item.janJanuary,
+        febFebruary: item.febFebruary,
+        marMarch: item.marMarch,
+        aprApril: item.aprApril,
+        mayMay: item.mayMay,
+        junJune: item.junJune,
+        julJuly: item.julJuly,
+        augAugust: item.augAugust,
+        sepSeptember: item.sepSeptember,
+        octOctober: item.octOctober,
+        novNovember: item.novNovember,
+        decDecember: item.decDecember,
       };
-      orgMap.set(item.id, node);
+      orgMap.set(item.id?.toString(), node);
     });
 
     // 第二遍：建立父子关系
     dataArray.forEach((item: OrgRawData) => {
-      const node = orgMap.get(item.id);
+      const node = orgMap.get(item.id?.toString());
       if (!node) return;
 
-      if (item.parentId) {
-        const parent = orgMap.get(item.parentId);
+      if (item.organizationId) {
+        const parent = orgMap.get(item.organizationId);
         if (parent) {
           if (!parent.children) parent.children = [];
           parent.children.push(node);

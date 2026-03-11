@@ -48,7 +48,9 @@ export function filterDealsByProduct(
     return allDeals;
   }
   return allDeals.filter(
-    (deal) => deal.productGroup && deal.productGroup.some(pg => selectedProducts.includes(pg)),
+    (deal) =>
+      deal.productGroup &&
+      deal.productGroup.some((pg) => selectedProducts.includes(pg)),
   );
 }
 
@@ -72,7 +74,7 @@ export function calculateStackedHealthData(
   if (stages.length === 0) {
     return [];
   }
-
+  console.log("selectedOrg", selectedOrg);
   const months = [
     "Jan",
     "Feb",
@@ -87,6 +89,22 @@ export function calculateStackedHealthData(
     "Nov",
     "Dec",
   ];
+
+  // 月份缩写到 OrgNode 属性的映射
+  const monthFieldMap: Record<string, keyof OrgNode> = {
+    Jan: "janJanuary",
+    Feb: "febFebruary",
+    Mar: "marMarch",
+    Apr: "aprApril",
+    May: "mayMay",
+    Jun: "junJune",
+    Jul: "julJuly",
+    Aug: "augAugust",
+    Sep: "sepSeptember",
+    Oct: "octOctober",
+    Nov: "novNovember",
+    Dec: "decDecember",
+  };
 
   const monthlyData = new Map<string, Map<string, number>>();
 
@@ -104,9 +122,18 @@ export function calculateStackedHealthData(
 
   return months.map((month) => {
     const stageData = monthlyData.get(month) || new Map();
+    
+    // 从 selectedOrg 获取对应月份的 target 值
+    let target = 0;
+    if (selectedOrg) {
+      const monthField = monthFieldMap[month];
+      const monthValue = selectedOrg[monthField];
+      target = typeof monthValue === "number" ? monthValue : 0;
+    }
+
     const dataPoint: any = {
       month,
-      target: 500000, // TODO: 从 API 获取目标值，而不是硬编码
+      target,
     };
 
     stages.forEach((stage) => {

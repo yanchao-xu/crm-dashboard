@@ -27,14 +27,14 @@ interface OrgFilterProps {
 
 const nodeIcons = {
   company: Building2,
-  school: GraduationCap,
+  district: GraduationCap,
   team: Users,
   person: User,
 };
 
 const nodeColors = {
   company: "text-primary",
-  school: "text-warning",
+  district: "text-warning",
   team: "text-success",
   person: "text-muted-foreground",
 };

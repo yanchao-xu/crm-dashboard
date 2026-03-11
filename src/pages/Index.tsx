@@ -53,11 +53,15 @@ const Index = () => {
   }, [selectedOrg, selectedProducts, deals]);
 
   // 健康度图表数据（始终显示所有月份）
-  const filteredStackedHealthData = useMemo(
-    () =>
-      calculateStackedHealthData(filteredDeals, selectedOrg, opportunityStages),
-    [filteredDeals, selectedOrg, opportunityStages],
-  );
+  // target 数据：没有选中组织时使用根节点，选中后使用选中的组织
+  const filteredStackedHealthData = useMemo(() => {
+    const orgForTarget = selectedOrg || (orgStructure.id ? orgStructure : null);
+    return calculateStackedHealthData(
+      filteredDeals,
+      orgForTarget,
+      opportunityStages,
+    );
+  }, [filteredDeals, selectedOrg, orgStructure, opportunityStages]);
   // 销售漏斗数据（当点击健康度图表时，按月过滤）
   const filteredFunnelData = useMemo(() => {
     let dealsForFunnel = filterDealsByOrg(deals, selectedOrg);
