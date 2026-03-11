@@ -18,11 +18,12 @@ import { OrgNode } from "@/types";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useOrgStructure } from "@/hooks/useApiData";
 
 interface OrgFilterProps {
   selectedOrg: OrgNode | null;
   onOrgChange: (org: OrgNode | null) => void;
+  orgStructure: OrgNode;
+  loading?: boolean;
 }
 
 const nodeIcons = {
@@ -102,11 +103,10 @@ function OrgTreeItem({ node, level, selectedId, onSelect }: OrgTreeItemProps) {
   );
 }
 
-export function OrgFilter({ selectedOrg, onOrgChange }: OrgFilterProps) {
+export function OrgFilter({ selectedOrg, onOrgChange, orgStructure, loading }: OrgFilterProps) {
   const { t, getText } = useLanguage();
   const [open, setOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const { data: orgStructure, loading } = useOrgStructure();
 
   const handleSelect = (node: OrgNode) => {
     onOrgChange(node);

@@ -23,6 +23,7 @@ import {
   useProductGroups,
   useOpportunityStages,
 } from "@/hooks/useApiData";
+import { DealsTable } from "@/components/deals/DealsTable";
 
 export type ChartFilterContext = {
   type: "health" | "funnel" | "stagnation";
@@ -176,7 +177,12 @@ const Index = () => {
         >
           {/* Filters Row */}
           <div className="flex flex-wrap items-center gap-3">
-            <OrgFilter selectedOrg={selectedOrg} onOrgChange={setSelectedOrg} />
+            <OrgFilter
+              selectedOrg={selectedOrg}
+              onOrgChange={setSelectedOrg}
+              orgStructure={orgStructure}
+              loading={orgLoading}
+            />
             <ProductTeamFilter
               selectedProducts={selectedProducts}
               onProductsChange={setSelectedProducts}
@@ -232,6 +238,12 @@ const Index = () => {
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
+                  {/* todo table */}
+                  <DealsTable
+                    filterContext={chartFilter}
+                    deals={filteredDeals}
+                    stages={opportunityStages}
+                  />
                 </div>
               </motion.div>
             )}
@@ -278,6 +290,12 @@ const Index = () => {
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
+                  {/* todo table */}
+                  <DealsTable
+                    filterContext={chartFilter}
+                    deals={filteredDeals}
+                    stages={opportunityStages}
+                  />
                 </div>
               </motion.div>
             )}
