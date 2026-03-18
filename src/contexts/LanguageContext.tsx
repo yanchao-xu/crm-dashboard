@@ -61,10 +61,16 @@ export const translations: Translations = {
   "dashboard>chart>aboveTarget": { zh: "高于目标", en: "Above Target" },
   "dashboard>chart>belowTargetLegend": { zh: "低于目标", en: "Below Target" },
   "dashboard>chart>zombieDeals": { zh: "僵尸商机", en: "ZOMBIE DEALS" },
-  "chart.lessThan30": { zh: "<30 天 (活跃)", en: "<30 days (Active)" },
-  "chart.moreThan30": { zh: ">30 天", en: ">30 days" },
-  "chart.moreThan60": { zh: ">60 天", en: ">60 days" },
-  "chart.moreThan90": { zh: ">90 天 (僵尸)", en: ">90 days (Zombie)" },
+  "dashboard>chart>lessThan30": {
+    zh: "<30 天 (活跃)",
+    en: "<30 days (Active)",
+  },
+  "dashboard>chart>moreThan30": { zh: ">30 天", en: ">30 days" },
+  "dashboard>chart>moreThan60": { zh: ">60 天", en: ">60 days" },
+  "dashboard>chart>moreThan90": {
+    zh: ">90 天 (僵尸)",
+    en: ">90 days (Zombie)",
+  },
   "dashboard>chart>gap": { zh: "差额", en: "Gap" },
   "dashboard>chart>clickForDetails": {
     zh: "点击查看详情",
