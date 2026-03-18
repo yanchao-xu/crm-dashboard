@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import { ChartFilterContext } from "@/pages/Index";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { StackedHealthDataPoint } from "@/data/mockData";
+import type { StackedHealthDataPoint } from "@/types";
 import { ChartCard } from "./common/ChartCard";
 import { StatCard } from "./common/StatCard";
 import { formatCurrency } from "./utils/formatters";
@@ -22,6 +22,7 @@ import { useHealthChartData } from "./HealthChart/useHealthChartData";
 
 interface HealthChartProps {
   data?: StackedHealthDataPoint[];
+  stages?: { code: string; name: string }[];  // 简化类型
   onSegmentClick?: (month: string) => void;
   isActive?: boolean;
   activeFilter?: ChartFilterContext;
@@ -29,12 +30,16 @@ interface HealthChartProps {
 
 export function HealthChart({
   data,
+  stages = [],
   onSegmentClick,
   isActive,
   activeFilter,
 }: HealthChartProps) {
-  const { t, language } = useLanguage();
-  const { healthData, stats } = useHealthChartData(data);
+  const { t } = useLanguage();
+
+  // 提取阶段代码列表
+  const stageCodes = stages.map(s => s.code);
+  const { healthData, stats, stageKeys } = useHealthChartData(data, stageCodes);
 
   const handleClick = (data: any) => {
     if (data && data.activeLabel && onSegmentClick) {
@@ -42,33 +47,46 @@ export function HealthChart({
     }
   };
 
-  const isOtherChartActive = activeFilter && activeFilter.type !== "health";
+  const isOtherChartActive = !!(activeFilter && activeFilter.type !== "health");
 
-  const stageLabels: Record<string, string> =
-    language === "zh"
-      ? {
-        Discovery: "发现",
-        Qualification: "资质确认",
-        Proposal: "提案",
-        Negotiation: "谈判",
-        Closing: "成交中",
-      }
-      : {
-        Discovery: "Discovery",
-        Qualification: "Qualification",
-        Proposal: "Proposal",
-        Negotiation: "Negotiation",
-        Closing: "Closing",
-      };
+  // 动态生成阶段标签映射（name 已经是当前语言）
+  const stageLabels: Record<string, string> = {};
+  stages.forEach(stage => {
+    stageLabels[stage.code] = stage.name;
+  });
+
+  // 如果没有阶段配置，使用默认标签
+  if (stages.length === 0) {
+    const defaultLabels = {
+      Discovery: "Discovery",
+      Qualification: "Qualification",
+      Proposal: "Proposal",
+      Negotiation: "Negotiation",
+      Closing: "Closing",
+    };
+    Object.assign(stageLabels, defaultLabels);
+  }
+
+  // 动态生成颜色（如果阶段超过预定义颜色，使用默认颜色）
+  const defaultColors = [
+    "hsl(217, 91%, 60%)",
+    "hsl(252, 87%, 67%)",
+    "hsl(280, 100%, 70%)",
+    "hsl(330, 85%, 65%)",
+    "hsl(142, 76%, 45%)",
+  ];
+  const getStageColor = (index: number) => {
+    return defaultColors[index % defaultColors.length];
+  };
 
   return (
     <ChartCard
-      title={t("chart.health")}
-      description={t("chart.healthDesc")}
+      title={t("dashboard>chart>health")}
+      description={t("dashboard>chart>healthDesc")}
       status={{
         label: stats.isHealthy
-          ? t("chart.healthy")
-          : t("chart.belowTarget"),
+          ? t("dashboard>chart>healthy")
+          : t("dashboard>chart>belowTarget"),
         variant: stats.isHealthy ? "success" : "danger",
       }}
       isActive={isActive}
@@ -77,17 +95,17 @@ export function HealthChart({
     >
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard
-          label={t("chart.current")}
+          label={t("dashboard>chart>current")}
           value={formatCurrency(stats.latestActual)}
           valueColor="text-chart-actual"
         />
         <StatCard
-          label={t("chart.target")}
+          label={t("dashboard>chart>target")}
           value={formatCurrency(stats.latestTarget)}
           valueColor="text-chart-target"
         />
         <StatCard
-          label={t("chart.attainment")}
+          label={t("dashboard>chart>attainment")}
           value={`${stats.attainment}%`}
           valueColor={stats.isHealthy ? "text-success" : "text-danger"}
         />
@@ -117,38 +135,16 @@ export function HealthChart({
             />
             <Tooltip content={<HealthChartTooltip t={t} />} />
 
-            <Bar
-              dataKey="Discovery"
-              stackId="a"
-              fill={stageColors.Discovery}
-              name={stageLabels.Discovery}
-              radius={[0, 0, 0, 0]}
-            />
-            <Bar
-              dataKey="Qualification"
-              stackId="a"
-              fill={stageColors.Qualification}
-              name={stageLabels.Qualification}
-            />
-            <Bar
-              dataKey="Proposal"
-              stackId="a"
-              fill={stageColors.Proposal}
-              name={stageLabels.Proposal}
-            />
-            <Bar
-              dataKey="Negotiation"
-              stackId="a"
-              fill={stageColors.Negotiation}
-              name={stageLabels.Negotiation}
-            />
-            <Bar
-              dataKey="Closing"
-              stackId="a"
-              fill={stageColors.Closing}
-              name={stageLabels.Closing}
-              radius={[4, 4, 0, 0]}
-            />
+            {stageKeys.map((stageKey, index) => (
+              <Bar
+                key={stageKey}
+                dataKey={stageKey}
+                stackId="a"
+                fill={getStageColor(index)}
+                name={stageLabels[stageKey] || stageKey}
+                radius={index === stageKeys.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+              />
+            ))}
 
             <Line
               type="monotone"
@@ -157,7 +153,7 @@ export function HealthChart({
               strokeWidth={2}
               strokeDasharray="8 4"
               dot={{ fill: chartTheme.target, strokeWidth: 0, r: 4 }}
-              name={t("chart.target")}
+              name={t("dashboard>chart>target")}
             />
 
             <Legend
@@ -178,11 +174,11 @@ export function HealthChart({
             style={{ borderColor: chartTheme.target }}
           />
           <span className="text-xs text-muted-foreground">
-            {t("chart.theoreticalTarget")}
+            {t("dashboard>chart>theoreticalTarget")}
           </span>
         </div>
         <span className="text-xs text-primary ml-auto">
-          {t("chart.clickToView")}
+          {t("dashboard>chart>clickToView")}
         </span>
       </div>
     </ChartCard>

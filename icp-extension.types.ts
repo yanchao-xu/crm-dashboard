@@ -18,10 +18,11 @@ export interface MessageApi {
   When the request fails, the messageApi will be called internally to report an error to the user.
 */
 export interface RestApi {
-  get(url: string): Promise<any>;
-  put(url: string, payload: Object): Promise<any>;
-  post(url: string, payload: Object): Promise<any>;
-  delete(url: string): Promise<any>;
+  get(url: string, config?: any): Promise<any>;
+  getStatic(url: string, config?: any): Promise<any>;
+  put(url: string, data: any, config?: any): Promise<any>;
+  post(url: string, data: any, config?: any): Promise<any>;
+  delete(url: string, config?: any): Promise<any>;
 }
 
 // 定义 formApi 和 routerApi 的占位类型（如果需要更具体的类型，可以根据实际需求补充）

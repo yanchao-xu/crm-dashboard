@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { StagnationData } from "@/data/mockData";
+import type { StagnationData } from "@/types";
 import { ChartFilterContext } from "@/pages/Index";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -43,9 +43,14 @@ export function StagnationChart({
   const [displayMode, setDisplayMode] = useState<DisplayMode>("amount");
   const { chartData, stats } = useStagnationChartData(data, displayMode);
 
-  const isOtherChartActive = activeFilter && activeFilter.type !== "stagnation";
+  const isOtherChartActive = !!(activeFilter && activeFilter.type !== "stagnation");
   const highlightedStatus =
     activeFilter?.type === "stagnation" ? activeFilter.activityStatus : null;
+
+  // 创建阶段名称映射函数（stageName 已经是当前语言）
+  const getStageName = (stageData: any) => {
+    return stageData.stageName || stageData.stage;
+  };
 
   const handleClick = (data: any) => {
     if (data && data.stage) {
@@ -73,10 +78,10 @@ export function StagnationChart({
   };
 
   const legendItems = [
-    { color: activityColors.active, label: t("chart.lessThan30") },
-    { color: activityColors.over30, label: t("chart.moreThan30") },
-    { color: activityColors.over60, label: t("chart.moreThan60") },
-    { color: activityColors.zombie, label: t("chart.moreThan90") },
+    { color: activityColors.active, label: t("dashboard>chart>lessThan30") },
+    { color: activityColors.over30, label: t("dashboard>chart>moreThan30") },
+    { color: activityColors.over60, label: t("dashboard>chart>moreThan60") },
+    { color: activityColors.zombie, label: t("dashboard>chart>moreThan90") },
   ];
 
   const zombieStatusVariant =
@@ -88,8 +93,8 @@ export function StagnationChart({
 
   return (
     <ChartCard
-      title={t("chart.stagnation")}
-      description={t("chart.stagnationDesc")}
+      title={t("dashboard>chart>stagnation")}
+      description={t("dashboard>chart>stagnationDesc")}
       isActive={isActive}
       isOtherChartActive={isOtherChartActive}
     >
@@ -104,58 +109,58 @@ export function StagnationChart({
         >
           <ToggleGroupItem
             value="amount"
-            aria-label={t("chart.amount")}
+            aria-label={t("dashboard>chart>amount")}
             className="text-xs px-3 py-1.5 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
           >
             <DollarSign className="w-3.5 h-3.5 mr-1" />
-            {t("chart.amount")}
+            {t("dashboard>chart>amount")}
           </ToggleGroupItem>
           <ToggleGroupItem
             value="count"
-            aria-label={t("chart.count")}
+            aria-label={t("dashboard>chart>count")}
             className="text-xs px-3 py-1.5 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
           >
             <Hash className="w-3.5 h-3.5 mr-1" />
-            {t("chart.count")}
+            {t("dashboard>chart>count")}
           </ToggleGroupItem>
         </ToggleGroup>
         <div
           className={`px-3 py-1.5 rounded-full text-xs font-mono font-medium ${zombieStatusVariant === "danger"
-              ? "bg-danger/20 text-danger"
-              : zombieStatusVariant === "warning"
-                ? "bg-warning/20 text-warning"
-                : "bg-success/20 text-success"
+            ? "bg-danger/20 text-danger"
+            : zombieStatusVariant === "warning"
+              ? "bg-warning/20 text-warning"
+              : "bg-success/20 text-success"
             }`}
         >
-          {formatValue(stats.totalZombie)} {t("chart.zombieDeals")} (
+          {formatValue(stats.totalZombie)} {t("dashboard>chart>zombieDeals")} (
           {stats.zombiePercentage}%)
         </div>
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-6">
         <StatCard
-          label={t("status.active")}
+          label={t("dashboard>status>active")}
           value={formatValue(stats.totalActive)}
           onClick={() => handleStatClick("active")}
           isHighlighted={highlightedStatus === "active"}
           variant="success"
         />
         <StatCard
-          label={t("status.over30")}
+          label={t("dashboard>status>over30")}
           value={formatValue(stats.totalOver30)}
           onClick={() => handleStatClick("over30")}
           isHighlighted={highlightedStatus === "over30"}
           variant="warning"
         />
         <StatCard
-          label={t("status.over60")}
+          label={t("dashboard>status>over60")}
           value={formatValue(stats.totalOver60)}
           onClick={() => handleStatClick("over60")}
           isHighlighted={highlightedStatus === "over60"}
           variant="danger"
         />
         <StatCard
-          label={t("status.zombie")}
+          label={t("dashboard>status>zombie")}
           value={formatValue(stats.totalZombie)}
           onClick={() => handleStatClick("zombie")}
           isHighlighted={highlightedStatus === "zombie"}
@@ -194,6 +199,10 @@ export function StagnationChart({
               dataKey="stage"
               {...axisConfig}
               tick={{ fill: chartTheme.tick, fontSize: axisConfig.fontSize }}
+              tickFormatter={(value) => {
+                const stageData = chartData.find(d => d.stage === value);
+                return stageData ? getStageName(stageData) : value;
+              }}
             />
             <YAxis
               {...axisConfig}
@@ -211,7 +220,7 @@ export function StagnationChart({
 
             <Bar
               dataKey="active"
-              name={t("chart.lessThan30")}
+              name={t("dashboard>chart>lessThan30")}
               stackId="a"
               radius={[0, 0, 0, 0]}
             >
@@ -233,7 +242,7 @@ export function StagnationChart({
             </Bar>
             <Bar
               dataKey="over30"
-              name={t("chart.moreThan30")}
+              name={t("dashboard>chart>moreThan30")}
               stackId="a"
               radius={[0, 0, 0, 0]}
             >
@@ -255,7 +264,7 @@ export function StagnationChart({
             </Bar>
             <Bar
               dataKey="over60"
-              name={t("chart.moreThan60")}
+              name={t("dashboard>chart>moreThan60")}
               stackId="a"
               radius={[0, 0, 0, 0]}
             >
@@ -277,7 +286,7 @@ export function StagnationChart({
             </Bar>
             <Bar
               dataKey="zombie"
-              name={t("chart.moreThan90")}
+              name={t("dashboard>chart>moreThan90")}
               stackId="a"
               radius={[4, 4, 0, 0]}
             >
@@ -303,7 +312,7 @@ export function StagnationChart({
 
       <ChartLegend
         items={legendItems}
-        actionText={t("chart.clickOrCardToView")}
+        actionText={t("dashboard>chart>clickOrCardToView")}
       />
     </ChartCard>
   );

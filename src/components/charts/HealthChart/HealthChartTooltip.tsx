@@ -51,7 +51,7 @@ export function HealthChartTooltip({
             <div className="pt-2 border-t border-border space-y-1">
                 <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">
-                        {t("chart.total")}:
+                        {t("dashboard>chart>total")}:
                     </span>
                     <span className="font-mono text-sm font-semibold">
                         {formatCurrency(actual)}
@@ -60,13 +60,13 @@ export function HealthChartTooltip({
                 <div className="flex items-center gap-2">
                     <div className="w-2 h-0.5 border-t-2 border-dashed border-chart-target" />
                     <span className="text-xs text-muted-foreground">
-                        {t("chart.target")}:
+                        {t("dashboard>chart>target")}:
                     </span>
                     <span className="font-mono text-sm">{formatCurrency(target)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">
-                        {t("chart.gap")}:
+                        {t("dashboard>chart>gap")}:
                     </span>
                     <span
                         className={`font-mono text-sm font-semibold ${isHealthy ? "text-success" : "text-danger"}`}
@@ -77,7 +77,7 @@ export function HealthChartTooltip({
                 </div>
             </div>
             <p className="text-xs text-primary mt-2 pt-2 border-t border-border">
-                {t("chart.clickForDetails")}
+                {t("dashboard>chart>clickForDetails")}
             </p>
         </div>
     );

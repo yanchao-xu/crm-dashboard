@@ -1,2 +1,2 @@
-// Re-export types from mockData for convenience
-export type { StackedHealthDataPoint, FunnelStage, StagnationData } from "@/data/mockData";
+// Re-export types for convenience
+export type { StackedHealthDataPoint, FunnelStage, StagnationData } from "@/types";

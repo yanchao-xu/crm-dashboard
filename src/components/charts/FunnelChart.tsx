@@ -1,6 +1,6 @@
 import { ChartFilterContext } from "@/pages/Index";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { FunnelStage } from "@/data/mockData";
+import type { FunnelStage } from "@/types";
 import { ChartCard } from "./common/ChartCard";
 import { StatCard } from "./common/StatCard";
 import { ChartLegend } from "./common/ChartLegend";
@@ -24,7 +24,7 @@ export function FunnelChart({
   const { t } = useLanguage();
   const { funnelData, stats } = useFunnelChartData(data);
 
-  const isOtherChartActive = activeFilter && activeFilter.type !== "funnel";
+  const isOtherChartActive = !!activeFilter && activeFilter.type !== "funnel";
 
   const highlightedStage =
     activeFilter?.type === "funnel"
@@ -34,18 +34,18 @@ export function FunnelChart({
         : null;
 
   const legendItems = [
-    { color: "hsl(142, 76%, 45%)", label: t("chart.aboveTarget") },
-    { color: "hsl(0, 84%, 60%)", label: t("chart.belowTargetLegend") },
+    { color: "hsl(142, 76%, 45%)", label: t("dashboard>chart>aboveTarget") },
+    { color: "hsl(0, 84%, 60%)", label: t("dashboard>chart>belowTargetLegend") },
   ];
 
   return (
     <ChartCard
-      title={t("chart.funnel")}
-      description={t("chart.funnelDesc")}
+      title={t("dashboard>chart>funnel")}
+      description={t("dashboard>chart>funnelDesc")}
       status={{
         label: stats.isOverallHealthy
-          ? t("chart.onTrack")
-          : t("chart.needsAttention"),
+          ? t("dashboard>chart>onTrack")
+          : t("dashboard>chart>needsAttention"),
         variant: stats.isOverallHealthy ? "success" : "warning",
       }}
       isActive={isActive}
@@ -53,16 +53,16 @@ export function FunnelChart({
     >
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard
-          label={t("chart.totalPipeline")}
+          label={t("dashboard>chart>totalPipeline")}
           value={formatCurrency(stats.totalValue)}
           valueColor="text-primary"
         />
         <StatCard
-          label={t("chart.activeDeals")}
+          label={t("dashboard>chart>activeDeals")}
           value={stats.totalDeals}
         />
         <StatCard
-          label={t("chart.avgConversion")}
+          label={t("dashboard>chart>avgConversion")}
           value={`${stats.avgConversion}%`}
           valueColor={stats.isOverallHealthy ? "text-success" : "text-warning"}
         />
@@ -83,7 +83,7 @@ export function FunnelChart({
         ))}
       </div>
 
-      <ChartLegend items={legendItems} actionText={t("chart.clickStageToView")} />
+      <ChartLegend items={legendItems} actionText={t("dashboard>chart>clickStageToView")} />
     </ChartCard>
   );
 }

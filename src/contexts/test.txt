@@ -1,0 +1,361 @@
+  // Navigation
+  "dashboard>nav>main": { zh: "主菜单", en: "Main Menu" },
+  "dashboard>nav>dashboard": { zh: "仪表盘", en: "Dashboard" },
+  "dashboard>nav>opportunity": { zh: "线索管理", en: "opportunity" },
+  "dashboard>nav>customers": { zh: "客户管理", en: "Customers" },
+  "dashboard>nav>contacts": { zh: "联系人管理", en: "Contacts" },
+  "dashboard>nav>deals": { zh: "商机管理", en: "Deals" },
+  "dashboard>nav>products": { zh: "产品管理", en: "Products" },
+  "dashboard>nav>quotes": { zh: "报价管理", en: "Quotes" },
+
+  // Header
+  "dashboard>header>dashboard": { zh: "仪表盘", en: "Dashboard" },
+  "dashboard>header>orgStructure": { zh: "销售组织架构", en: "Sales Organization" },
+  "dashboard>header>subtitle": { zh: "智能销售管理", en: "Smart Sales Management" },
+  "dashboard>header>daysRemaining": { zh: "天剩余", en: "days remaining" },
+
+  // Organization
+  "dashboard>org>title": { zh: "销售组织架构", en: "Sales Organization" },
+  "dashboard>org>subtitle": {
+    zh: "配置各层级指标与转化率目标",
+    en: "Configure targets and conversion goals",
+  },
+  "dashboard>org>addOrg": { zh: "添加组织", en: "Add Organization" },
+  "dashboard>org>company": { zh: "公司", en: "Company" },
+  "dashboard>org>region": { zh: "区域", en: "Region" },
+  "dashboard>org>team": { zh: "团队", en: "Team" },
+  "dashboard>org>sales": { zh: "销售", en: "Sales" },
+  "dashboard>org>selectNode": {
+    zh: "选择节点进行配置",
+    en: "Select a node to configure",
+  },
+  "dashboard>org>selectNodeDesc": {
+    zh: "在任意层级设置指标与转化率目标",
+    en: "Set targets and conversion goals at any level",
+  },
+
+    // Tabs
+  "dashboard>tab>basicInfo": { zh: "基础信息", en: "Basic Info" },
+  "dashboard>tab>deals": { zh: "商机", en: "Deals" },
+  "dashboard>tab>customers": { zh: "客户", en: "Customers" },
+  "dashboard>tab>target": { zh: "指标", en: "Target" },
+  "dashboard>tab>conversion": { zh: "转化率", en: "Conversion" },
+
+  // Basic Info
+  "dashboard>info>name": { zh: "名称", en: "Name" },
+  "dashboard>info>type": { zh: "类型", en: "Type" },
+  "dashboard>info>levelId": { zh: "层级 ID", en: "Level ID" },
+  "dashboard>info>subOrgs": { zh: "下级组织", en: "Sub Organizations" },
+  "dashboard>info>fiscalYear": { zh: "财年设置", en: "Fiscal Year Settings" },
+  "dashboard>info>fiscalStart": { zh: "财年开始日期", en: "Fiscal Start Date" },
+  "dashboard>info>fiscalEnd": { zh: "财年结束日期", en: "Fiscal End Date" },
+  "dashboard>info>fiscalPeriod": { zh: "财年周期", en: "Fiscal Period" },
+  "dashboard>info>totalDays": { zh: "共 {days} 天", en: "{days} days total" },
+  "dashboard>info>config": { zh: "配置", en: "Configuration" },
+
+    // Deals
+  "dashboard>deals>responsible": {
+    zh: "{name} 负责的商机",
+    en: "Deals owned by {name}",
+  },
+  "dashboard>deals>relatedList": {
+    zh: "相关商机列表",
+    en: "Related deals list",
+  },
+  "dashboard>deals>count": { zh: "{count} 个商机", en: "{count} deals" },
+  "dashboard>deals>totalValue": { zh: "商机总价值", en: "Total Deal Value" },
+  "dashboard>deals>avgProbability": { zh: "平均概率", en: "Avg Probability" },
+  "dashboard>deals>deal": { zh: "商机", en: "Deal" },
+  "dashboard>deals>amount": { zh: "金额", en: "Amount" },
+  "dashboard>deals>stage": { zh: "阶段", en: "Stage" },
+  "dashboard>deals>activityStatus": { zh: "活动状态", en: "Activity" },
+  "dashboard>deals>successRate": { zh: "成功率", en: "Probability" },
+  "dashboard>deals>owner": { zh: "负责人", en: "Owner" },
+  "dashboard>deals>noDeals": {
+    zh: "没有符合筛选条件的商机",
+    en: "No deals match the filter criteria",
+  },
+
+  // Activity Status
+  "dashboard>status>active": { zh: "活跃", en: "Active" },
+  "status.over7": { zh: ">7天", en: ">7 days" },
+  "status.over30": { zh: ">30天", en: ">30 days" },
+  "status.over60": { zh: ">60天", en: ">60 days" },
+  "dashboard>status>zombie": { zh: "僵尸", en: "Zombie" },
+
+  // Customers
+  "dashboard>customers>list": { zh: "客户列表", en: "Customer List" },
+  "dashboard>customers>count": {
+    zh: "{count} 个客户",
+    en: "{count} customers",
+  },
+  "dashboard>customers>totalValue": {
+    zh: "客户总价值",
+    en: "Total Customer Value",
+  },
+  "dashboard>customers>historyValue": {
+    zh: "历史价值",
+    en: "Historical Value",
+  },
+  "dashboard>customers>active": { zh: "活跃", en: "Active" },
+  "dashboard>customers>key": { zh: "重点", en: "Key" },
+  "dashboard>customers>new": { zh: "新客户", en: "New" },
+
+  // Target (formerly Quota)
+  "dashboard>target>annual": { zh: "年度指标", en: "Annual Target" },
+  "dashboard>target>inputPlaceholder": {
+    zh: "输入年度指标金额",
+    en: "Enter annual target amount",
+  },
+  "dashboard>target>perYear": { zh: "/ 年", en: "/ year" },
+  "dashboard>target>quarterly": { zh: "季度指标", en: "Quarterly Target" },
+  "dashboard>target>monthly": { zh: "月度指标", en: "Monthly Target" },
+  "dashboard>target>breakdown": { zh: "指标分解", en: "Target Breakdown" },
+  "dashboard>target>seasonality": {
+    zh: "季节性分配",
+    en: "Seasonality Distribution",
+  },
+  "dashboard>target>seasonalityDesc": {
+    zh: "业务有季节性波动，请根据实际情况分配各季度/月度占比",
+    en: "Business has seasonal fluctuations, allocate quarterly/monthly percentages accordingly",
+  },
+  "dashboard>target>distributionMode": {
+    zh: "分配模式",
+    en: "Distribution Mode",
+  },
+  "dashboard>target>byQuarter": { zh: "按季度", en: "By Quarter" },
+  "dashboard>target>byMonth": { zh: "按月度", en: "By Month" },
+  "dashboard>target>inputMode": { zh: "输入方式", en: "Input Mode" },
+  "dashboard>target>percentage": { zh: "百分比", en: "Percentage" },
+  "dashboard>target>absolute": { zh: "绝对值", en: "Absolute" },
+  "dashboard>target>percentageMode": {
+    zh: "按百分比分配",
+    en: "Percentage Mode",
+  },
+  "dashboard>target>absoluteMode": { zh: "按金额分配", en: "Absolute Mode" },
+  "dashboard>target>total": { zh: "合计", en: "Total" },
+  "dashboard>target>percentageError": {
+    zh: "百分比总和必须等于 100%",
+    en: "Percentages must sum to 100%",
+  },
+  "dashboard>target>absoluteError": {
+    zh: "数值总和必须等于年度指标",
+    en: "Values must sum to annual target",
+  },
+  "dashboard>target>validationSuccess": {
+    zh: "✓ 分配校验通过",
+    en: "✓ Distribution validated",
+  },
+
+  // Conversion
+  "dashboard>conversion>description": {
+    zh: "设置各销售阶段的目标转化率，用于计算理论商机曲线",
+    en: "Set target conversion rates for each sales stage",
+  },
+  "dashboard>conversion>overall": {
+    zh: "理论整体转化率",
+    en: "Overall Theoretical Conversion",
+  },
+  "dashboard>conversion>expectedConversion": {
+    zh: "从 Discovery 到 Won 的预期转化",
+    en: "Expected conversion from Discovery to Won",
+  },
+  "dashboard>conversion>targetRate": { zh: "目标转化率", en: "Target Rate" },
+  "dashboard>conversion>historicalRate": {
+    zh: "历史转化率",
+    en: "Historical Rate",
+  },
+  "dashboard>conversion>historicalDesc": {
+    zh: "基于历史数据计算的实际转化率",
+    en: "Actual rate calculated from historical data",
+  },
+  "dashboard>conversion>noHistory": {
+    zh: "暂无历史数据",
+    en: "No historical data",
+  },
+  "dashboard>conversion>newCustomer": {
+    zh: "新客户，暂无历史记录",
+    en: "New customer, no history yet",
+  },
+  "dashboard>conversion>unrealistic": {
+    zh: "⚠️ 目标与历史差距较大",
+    en: "⚠️ Target differs significantly from history",
+  },
+
+  // Actions
+  "dashboard>action>save": { zh: "保存配置", en: "Save Configuration" },
+  "dashboard>action>saved": { zh: "配置已保存", en: "Configuration saved" },
+  "dashboard>action>savedDesc": {
+    zh: "{name} 的设置已更新",
+    en: "{name} settings updated",
+  },
+  "dashboard>action>cancel": { zh: "取消", en: "Cancel" },
+  "dashboard>action>add": { zh: "添加", en: "Add" },
+  "dashboard>action>planExecution": { zh: "计划执行", en: "Plan Execution" },
+  "dashboard>action>modify": { zh: "修改", en: "Modify" },
+  "dashboard>action>doNotExecute": { zh: "不执行", en: "Skip" },
+
+  // Add Organization Dialog
+  "dashboard>addOrg>title": {
+    zh: "添加组织层级",
+    en: "Add Organization Level",
+  },
+  "dashboard>addOrg>description": {
+    zh: "选择组织类型和上级，配置基础信息",
+    en: "Select type and parent, configure basic info",
+  },
+  "dashboard>addOrg>type": { zh: "组织类型", en: "Organization Type" },
+  "dashboard>addOrg>parent": { zh: "上级组织", en: "Parent Organization" },
+  "dashboard>addOrg>name": { zh: "名称", en: "Name" },
+  "dashboard>addOrg>namePlaceholder": {
+    zh: "输入{type}名称",
+    en: "Enter {type} name",
+  },
+  "dashboard>addOrg>noParent": {
+    zh: "没有可用的上级组织",
+    en: "No available parent organizations",
+  },
+  "dashboard>addOrg>success": {
+    zh: "组织添加成功",
+    en: "Organization added successfully",
+  },
+  "dashboard>addOrg>successDesc": {
+    zh: "已添加 {type}: {name}",
+    en: "Added {type}: {name}",
+  },
+  "dashboard>addOrg>enterName": {
+    zh: "请输入组织名称",
+    en: "Please enter organization name",
+  },
+  "dashboard>addOrg>selectParent": {
+    zh: "请选择上级组织",
+    en: "Please select parent organization",
+  },
+
+
+
+  // AI Action Card
+  "dashboard>ai>suggestedAction": {
+    zh: "AI 建议下一步行动",
+    en: "AI Suggested Next Action",
+  },
+  "dashboard>ai>zombieWarning": {
+    zh: "僵尸商机警告: {days} 天无活动",
+    en: "Zombie deal warning: {days} days inactive",
+  },
+  "dashboard>ai>suggestedActionLabel": {
+    zh: "建议行动",
+    en: "Suggested Action",
+  },
+  "dashboard>ai>eta": {
+    zh: "预计完成时间 (ETA)",
+    en: "Expected Completion (ETA)",
+  },
+  "dashboard>ai>reasoning": { zh: "AI 推理依据", en: "AI Reasoning" },
+  "dashboard>ai>managerCollab": {
+    zh: "Manager 协同",
+    en: "Manager Collaboration",
+  },
+  "dashboard>ai>addComment": { zh: "添加评论", en: "Add Comment" },
+  "dashboard>ai>inputComment": {
+    zh: "输入修改建议或评论...",
+    en: "Enter suggestions or comments...",
+  },
+  "dashboard>ai>concur": { zh: "同意 (Concur)", en: "Concur" },
+  "dashboard>ai>sendComment": { zh: "发送评论", en: "Send Comment" },
+  "dashboard>ai>collabHistory": { zh: "协作历史", en: "Collaboration History" },
+  "dashboard>ai>noCollab": {
+    zh: "暂无协作记录",
+    en: "No collaboration history",
+  },
+  "dashboard>ai>planned": { zh: "已计划执行", en: "Planned for execution" },
+  "dashboard>ai>managerConcurred": {
+    zh: "Manager 已同意",
+    en: "Manager approved",
+  },
+  "dashboard>ai>collabUpdated": {
+    zh: "协同记录已更新",
+    en: "Collaboration updated",
+  },
+  "dashboard>ai>commentAdded": {
+    zh: "Manager 评论已添加",
+    en: "Manager comment added",
+  },
+  "dashboard>ai>salesNotified": {
+    zh: "销售将收到通知",
+    en: "Sales will be notified",
+  },
+  "dashboard>ai>agreedSuggestion": {
+    zh: "✓ 同意此建议",
+    en: "✓ Approved this suggestion",
+  },
+
+
+  // Roles
+  "dashboard>role>ai": { zh: "AI", en: "AI" },
+  "dashboard>role>sales": { zh: "销售", en: "Sales" },
+  "dashboard>role>manager": { zh: "经理", en: "Manager" },
+
+  // Deal Detail Panel
+  "dashboard>detail>aiSuggestion": { zh: "AI建议", en: "AI Suggestion" },
+  "dashboard>detail>activities": { zh: "活动", en: "Activities" },
+  "dashboard>detail>contacts": { zh: "联系人", en: "Contacts" },
+  "dashboard>detail>collaboration": { zh: "协作", en: "Collaboration" },
+  "dashboard>detail>details": { zh: "详情", en: "Details" },
+  "dashboard>detail>zombie": { zh: "僵尸", en: "Zombie" },
+  "dashboard>detail>zombieDeal": {
+    zh: "僵尸商机: {days}天无活动",
+    en: "Zombie deal: {days} days inactive",
+  },
+  "dashboard>detail>aiReasoning": { zh: "AI推理", en: "AI Reasoning" },
+  "dashboard>detail>comment": { zh: "评论", en: "Comment" },
+  "dashboard>detail>inputComment": {
+    zh: "输入评论...",
+    en: "Enter comment...",
+  },
+  "dashboard>detail>agree": { zh: "同意", en: "Agree" },
+  "dashboard>detail>send": { zh: "发送", en: "Send" },
+  "dashboard>detail>noCollabHistory": {
+    zh: "暂无协作历史",
+    en: "No collaboration history",
+  },
+  "dashboard>detail>dealValue": { zh: "商机价值", en: "Deal Value" },
+  "dashboard>detail>currentStage": { zh: "当前阶段", en: "Current Stage" },
+  "dashboard>detail>probability": { zh: "成功概率", en: "Probability" },
+  "dashboard>detail>lastActivity": { zh: "最近活动", en: "Last Activity" },
+  "dashboard>detail>daysAgo": { zh: "天前", en: "days ago" },
+  "dashboard>detail>expectedClose": { zh: "预计成交", en: "Expected Close" },
+  "dashboard>detail>decisionMaker": { zh: "决策者", en: "Decision Maker" },
+  "dashboard>detail>attendees": { zh: "人", en: "attendees" },
+  "dashboard>detail>noActivities": {
+    zh: "暂无活动记录",
+    en: "No activities recorded",
+  },
+  "dashboard>detail>noContacts": { zh: "暂无联系人", en: "No contacts" },
+
+  // Activity AI Summary
+  "dashboard>activity>aiSummary": { zh: "AI 总结", en: "AI Summary" },
+  "dashboard>activity>keyInsights": { zh: "关键洞察", en: "Key Insights" },
+  "dashboard>activity>positive": { zh: "积极", en: "Positive" },
+  "dashboard>activity>neutral": { zh: "中性", en: "Neutral" },
+  "dashboard>activity>negative": { zh: "消极", en: "Negative" },
+
+  // Contact details
+  "dashboard>contact>influence": { zh: "影响力", en: "Influence" },
+  "dashboard>contact>relationship": { zh: "关系", en: "Relationship" },
+  "dashboard>contact>champion": { zh: "拥护者", en: "Champion" },
+  "dashboard>contact>supporter": { zh: "支持者", en: "Supporter" },
+  "dashboard>contact>neutral": { zh: "中立", en: "Neutral" },
+  "dashboard>contact>blocker": { zh: "阻碍者", en: "Blocker" },
+  "dashboard>contact>lastContact": { zh: "最近联系", en: "Last Contact" },
+  "dashboard>contact>notes": { zh: "备注", en: "Notes" },
+
+  // Toast messages
+  "dashboard>toast>executionPlanned": {
+    zh: "已计划执行!",
+    en: "Execution planned!",
+  },
+  "dashboard>toast>nextActionScheduled": {
+    zh: "{name} 的下一步行动已安排于 {date}",
+    en: "Next action for {name} scheduled for {date}",
+  },

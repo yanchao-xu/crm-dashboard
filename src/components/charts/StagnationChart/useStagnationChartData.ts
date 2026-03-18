@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { StagnationData } from "@/data/mockData";
+import type { StagnationData } from "@/types";
 
 export type DisplayMode = "amount" | "count";
 
@@ -7,68 +7,7 @@ export function useStagnationChartData(
   data?: StagnationData[],
   displayMode: DisplayMode = "amount",
 ) {
-  const defaultData: StagnationData[] = useMemo(
-    () => [
-      {
-        stage: "Discovery",
-        active: 12,
-        over30: 5,
-        over60: 3,
-        zombie: 2,
-        activeAmount: 1800000,
-        over30Amount: 750000,
-        over60Amount: 450000,
-        zombieAmount: 300000,
-      },
-      {
-        stage: "Qualification",
-        active: 18,
-        over30: 8,
-        over60: 4,
-        zombie: 3,
-        activeAmount: 2700000,
-        over30Amount: 1200000,
-        over60Amount: 600000,
-        zombieAmount: 450000,
-      },
-      {
-        stage: "Proposal",
-        active: 15,
-        over30: 6,
-        over60: 5,
-        zombie: 4,
-        activeAmount: 2250000,
-        over30Amount: 900000,
-        over60Amount: 750000,
-        zombieAmount: 600000,
-      },
-      {
-        stage: "Negotiation",
-        active: 10,
-        over30: 4,
-        over60: 2,
-        zombie: 1,
-        activeAmount: 1500000,
-        over30Amount: 600000,
-        over60Amount: 300000,
-        zombieAmount: 150000,
-      },
-      {
-        stage: "Closing",
-        active: 8,
-        over30: 2,
-        over60: 1,
-        zombie: 0,
-        activeAmount: 1200000,
-        over30Amount: 300000,
-        over60Amount: 150000,
-        zombieAmount: 0,
-      },
-    ],
-    [],
-  );
-
-  const stagnationData = data || defaultData;
+  const stagnationData = data || [];
 
   const stats = useMemo(() => {
     const totalZombie =
