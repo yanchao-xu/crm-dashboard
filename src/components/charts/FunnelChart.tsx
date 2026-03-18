@@ -24,7 +24,7 @@ export function FunnelChart({
   const { t } = useLanguage();
   const { funnelData, stats } = useFunnelChartData(data);
 
-  const isOtherChartActive = activeFilter && activeFilter.type !== "funnel";
+  const isOtherChartActive = !!activeFilter && activeFilter.type !== "funnel";
 
   const highlightedStage =
     activeFilter?.type === "funnel"
