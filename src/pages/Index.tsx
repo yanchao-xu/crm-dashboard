@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, use } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { HealthChart } from "@/components/charts/HealthChart";
 import { StagnationChart } from "@/components/charts/StagnationChart";
@@ -98,45 +98,47 @@ const Index = () => {
     );
     return result;
   }, [selectedOrg, selectedProducts, chartFilter, deals, opportunityStages]);
-
   const getFilterTitle = () => {
     if (!chartFilter) return "";
     switch (chartFilter.type) {
       case "health":
         return chartFilter.month
-          ? t("filter.healthMonth", { month: chartFilter.month })
-          : t("filter.healthDefault");
+          ? t("dashboard>filter>healthMonth", { month: chartFilter.month })
+          : t("dashboard>filter>healthDefault");
       case "funnel":
         return chartFilter.stage
-          ? t("filter.funnelStage", { stage: chartFilter.stage })
-          : t("filter.funnelDefault");
+          ? t("dashboard>filter>funnelStage", { stage: chartFilter.stage })
+          : t("dashboard>filter>funnelDefault");
       case "stagnation":
         if (chartFilter.stage && chartFilter.activityStatus) {
           const statusLabel = t(
-            `status.${chartFilter.activityStatus === "over30"
-              ? "over30"
-              : chartFilter.activityStatus === "over60"
-                ? "over60"
-                : chartFilter.activityStatus === "zombie"
-                  ? "zombie"
-                  : "active"
+            `dashboard>status>${
+              chartFilter.activityStatus === "over30"
+                ? "over30"
+                : chartFilter.activityStatus === "over60"
+                  ? "over60"
+                  : chartFilter.activityStatus === "zombie"
+                    ? "zombie"
+                    : "active"
             }`,
           );
-          return t("filter.stagnationStageStatus", {
+          return t("dashboard>filter>stagnationStageStatus", {
             stage: chartFilter.stage,
             status: statusLabel,
           });
         }
         if (chartFilter.activityStatus) {
-          const statusLabel = t(`status.${chartFilter.activityStatus}`);
-          return t("filter.stagnationStageStatus", {
+          const statusLabel = t(
+            `dashboard>status>${chartFilter.activityStatus}`,
+          );
+          return t("dashboard>filter>stagnationStageStatus", {
             stage: "",
             status: statusLabel,
           }).replace(" - ", "");
         }
-        return t("filter.stagnationDefault");
+        return t("dashboard>filter>stagnationDefault");
       default:
-        return t("filter.dealList");
+        return t("dashboard>filter>dealList");
     }
   };
 
@@ -213,39 +215,39 @@ const Index = () => {
           <AnimatePresence>
             {(chartFilter?.type === "health" ||
               chartFilter?.type === "funnel") && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="glass-card overflow-hidden">
-                    <div className="flex items-center justify-between p-4 border-b border-border">
-                      <div>
-                        <h3 className="text-lg font-semibold">
-                          {getFilterTitle()}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {t("filter.clickToSwitch")}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setChartFilter(null)}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="glass-card overflow-hidden">
+                  <div className="flex items-center justify-between p-4 border-b border-border">
+                    <div>
+                      <h3 className="text-lg font-semibold">
+                        {getFilterTitle()}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {t("dashboard>filter>clickToSwitch")}
+                      </p>
                     </div>
-                    {/* todo table */}
-                    <DealsTable
-                      filterContext={chartFilter}
-                      deals={filteredDeals}
-                      stages={opportunityStages}
-                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setChartFilter(null)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
                   </div>
-                </motion.div>
-              )}
+                  {/* todo table */}
+                  <DealsTable
+                    filterContext={chartFilter}
+                    deals={filteredDeals}
+                    stages={opportunityStages}
+                  />
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
 
           {/* Stagnation Chart - Full Width */}
@@ -278,7 +280,7 @@ const Index = () => {
                         {getFilterTitle()}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        {t("filter.clickToSwitch")}
+                        {t("dashboard>filter>clickToSwitch")}
                       </p>
                     </div>
                     <Button

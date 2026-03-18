@@ -140,11 +140,11 @@ export function OrgFilter({ selectedOrg, onOrgChange, orgStructure, loading }: O
               )}
             />
             <span className="truncate flex-1 text-left">
-              {selectedOrg ? getText(selectedOrg.name) : t("filter.allOrgs")}
+              {selectedOrg ? getText(selectedOrg.name) : t("dashboard>filter>allOrgs")}
             </span>
             {selectedOrg && (
               <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                {t(`org.${selectedOrg.type}`)}
+                {t(`dashboard>org>${selectedOrg.type}`)}
               </Badge>
             )}
             <ChevronDown className="w-4 h-4 ml-auto shrink-0" />
@@ -165,7 +165,7 @@ export function OrgFilter({ selectedOrg, onOrgChange, orgStructure, loading }: O
               )}
             >
               <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
-              <span>{t("filter.allOrgs")}</span>
+              <span>{t("dashboard>filter>allOrgs")}</span>
             </button>
           </div>
           <div className="max-h-[300px] overflow-y-auto">

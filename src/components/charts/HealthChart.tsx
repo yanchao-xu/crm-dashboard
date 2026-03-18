@@ -81,12 +81,12 @@ export function HealthChart({
 
   return (
     <ChartCard
-      title={t("chart.health")}
-      description={t("chart.healthDesc")}
+      title={t("dashboard>chart>health")}
+      description={t("dashboard>chart>healthDesc")}
       status={{
         label: stats.isHealthy
-          ? t("chart.healthy")
-          : t("chart.belowTarget"),
+          ? t("dashboard>chart>healthy")
+          : t("dashboard>chart>belowTarget"),
         variant: stats.isHealthy ? "success" : "danger",
       }}
       isActive={isActive}
@@ -95,17 +95,17 @@ export function HealthChart({
     >
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard
-          label={t("chart.current")}
+          label={t("dashboard>chart>current")}
           value={formatCurrency(stats.latestActual)}
           valueColor="text-chart-actual"
         />
         <StatCard
-          label={t("chart.target")}
+          label={t("dashboard>chart>target")}
           value={formatCurrency(stats.latestTarget)}
           valueColor="text-chart-target"
         />
         <StatCard
-          label={t("chart.attainment")}
+          label={t("dashboard>chart>attainment")}
           value={`${stats.attainment}%`}
           valueColor={stats.isHealthy ? "text-success" : "text-danger"}
         />
@@ -153,7 +153,7 @@ export function HealthChart({
               strokeWidth={2}
               strokeDasharray="8 4"
               dot={{ fill: chartTheme.target, strokeWidth: 0, r: 4 }}
-              name={t("chart.target")}
+              name={t("dashboard>chart>target")}
             />
 
             <Legend
@@ -174,11 +174,11 @@ export function HealthChart({
             style={{ borderColor: chartTheme.target }}
           />
           <span className="text-xs text-muted-foreground">
-            {t("chart.theoreticalTarget")}
+            {t("dashboard>chart>theoreticalTarget")}
           </span>
         </div>
         <span className="text-xs text-primary ml-auto">
-          {t("chart.clickToView")}
+          {t("dashboard>chart>clickToView")}
         </span>
       </div>
     </ChartCard>

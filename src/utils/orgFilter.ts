@@ -74,7 +74,6 @@ export function calculateStackedHealthData(
   if (stages.length === 0) {
     return [];
   }
-  console.log("selectedOrg", selectedOrg);
   const months = [
     "Jan",
     "Feb",
@@ -122,7 +121,7 @@ export function calculateStackedHealthData(
 
   return months.map((month) => {
     const stageData = monthlyData.get(month) || new Map();
-    
+
     // 从 selectedOrg 获取对应月份的 target 值
     let target = 0;
     if (selectedOrg) {

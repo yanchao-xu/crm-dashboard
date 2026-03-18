@@ -24,7 +24,7 @@ export function StagnationTooltip({
         (sum: number, p: any) => sum + (p.value || 0),
         0,
     );
-    const unit = displayMode === "amount" ? "" : ` ${t("chart.deals")}`;
+    const unit = displayMode === "amount" ? "" : ` ${t("dashboard>chart>deals")}`;
 
     return (
         <div className="glass-card p-3 border border-border">
@@ -49,7 +49,7 @@ export function StagnationTooltip({
                 ))}
                 <div className="pt-1 border-t border-border mt-2">
                     <span className="text-xs text-muted-foreground">
-                        {t("chart.total")}:{" "}
+                        {t("dashboard>chart>total")}:{" "}
                     </span>
                     <span className="font-mono text-sm font-semibold">
                         {displayMode === "amount"
@@ -60,7 +60,7 @@ export function StagnationTooltip({
                 </div>
             </div>
             <p className="text-xs text-primary mt-2 pt-2 border-t border-border">
-                {t("chart.clickForDetails")}
+                {t("dashboard>chart>clickForDetails")}
             </p>
         </div>
     );

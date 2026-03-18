@@ -60,24 +60,24 @@ export function DealsTable({
   const getActivityStatus = (days: number) => {
     if (days >= 90)
       return {
-        label: t("status.zombie"),
+        label: t("dashboard>status>zombie"),
         color: "bg-danger/20 text-danger border-danger/30",
         key: "zombie",
       };
     if (days >= 60)
       return {
-        label: t("status.over60"),
+        label: t("dashboard>status>over60"),
         color: "bg-danger/20 text-danger border-danger/30",
         key: "over60",
       };
     if (days >= 30)
       return {
-        label: t("status.over30"),
+        label: t("dashboard>status>over30"),
         color: "bg-warning/20 text-warning border-warning/30",
         key: "over30",
       };
     return {
-      label: t("status.active"),
+      label: t("dashboard>status>active"),
       color: "bg-success/20 text-success border-success/30",
       key: "active",
     };
@@ -164,8 +164,8 @@ export function DealsTable({
   }, [filters, filterContext, getText]);
 
   const handleApprove = (action: string, eta: string) => {
-    toast.success(t("toast.executionPlanned"), {
-      description: t("toast.nextActionScheduled", {
+    toast.success(t("dashboard>toast>executionPlanned"), {
+      description: t("dashboard>toast>nextActionScheduled", {
         name: getText(selectedDeal?.name || ""),
         date: eta,
       }),
@@ -192,22 +192,22 @@ export function DealsTable({
             <TableHeader>
               <TableRow className="hover:bg-transparent border-border">
                 <TableHead className="text-muted-foreground font-mono text-xs">
-                  {t("deals.deal")}
+                  {t("dashboard>deals>deal")}
                 </TableHead>
                 <TableHead className="text-muted-foreground font-mono text-xs">
-                  {t("deals.amount")}
+                  {t("dashboard>deals>amount")}
                 </TableHead>
                 <TableHead className="text-muted-foreground font-mono text-xs">
-                  {t("deals.stage")}
+                  {t("dashboard>deals>stage")}
                 </TableHead>
                 <TableHead className="text-muted-foreground font-mono text-xs">
-                  {t("deals.activityStatus")}
+                  {t("dashboard>deals>activityStatus")}
                 </TableHead>
                 <TableHead className="text-muted-foreground font-mono text-xs">
-                  {t("deals.successRate")}
+                  {t("dashboard>deals>successRate")}
                 </TableHead>
                 <TableHead className="text-muted-foreground font-mono text-xs">
-                  {t("deals.owner")}
+                  {t("dashboard>deals>owner")}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -283,7 +283,7 @@ export function DealsTable({
 
           {filteredDeals.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
-              {t("deals.noDeals")}
+              {t("dashboard>deals>noDeals")}
             </div>
           )}
         </div>

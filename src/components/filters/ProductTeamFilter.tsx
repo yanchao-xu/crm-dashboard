@@ -108,7 +108,7 @@ export function ProductTeamFilter({
   return (
     <div className="flex items-center gap-2">
       <FilterPopover
-        label={t("filter.productGroup")}
+        label={t("dashboard>filter>productGroup")}
         icon={Package}
         options={productOptions}
         selectedValues={selectedProducts}

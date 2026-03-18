@@ -7,13 +7,14 @@ import Index from "./pages/Index";
 
 interface AppProps {
   restApi?: RestApi | null;
+  i18nApi?: any;
 }
 
-function App({ restApi = null }: AppProps) {
+function App({ restApi = null, i18nApi = null }: AppProps) {
   return (
     <ShadowRootProvider>
       <ApiProvider restApi={restApi}>
-        <LanguageProvider>
+        <LanguageProvider i18nApi={i18nApi}>
           <Index />
         </LanguageProvider>
       </ApiProvider>

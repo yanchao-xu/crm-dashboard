@@ -36,10 +36,10 @@ interface DealFiltersProps {
 const getActivityStatusOptions = (
   t: (key: string) => string,
 ): FilterOption[] => [
-  { value: "active", label: t("filter.activeRange") },
-  { value: "over30", label: t("filter.stagnantRange") },
-  { value: "over60", label: t("filter.riskRange") },
-  { value: "zombie", label: t("filter.zombieRange") },
+  { value: "active", label: t("dashboard>filter>activeRange") },
+  { value: "over30", label: t("dashboard>filter>stagnantRange") },
+  { value: "over60", label: t("dashboard>filter>riskRange") },
+  { value: "zombie", label: t("dashboard>filter>zombieRange") },
 ];
 
 const probabilityRanges: FilterOption[] = [
@@ -158,7 +158,7 @@ export function DealFilters({
       <div className="relative flex-1 min-w-[200px] max-w-[300px]">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder={t("filter.searchPlaceholder")}
+          placeholder={t("dashboard>filter>searchPlaceholder")}
           value={filters.searchQuery}
           onChange={(e) =>
             onFiltersChange({ ...filters, searchQuery: e.target.value })
@@ -169,7 +169,7 @@ export function DealFilters({
 
       {/* Stage Filter */}
       <FilterPopover
-        label={t("filter.stage")}
+        label={t("dashboard>filter>stage")}
         icon={Filter}
         options={stageOptions}
         selectedValues={filters.stages}
@@ -178,7 +178,7 @@ export function DealFilters({
 
       {/* Owner Filter */}
       <FilterPopover
-        label={t("filter.owner")}
+        label={t("dashboard>filter>owner")}
         icon={Filter}
         options={ownerOptions}
         selectedValues={filters.owners}
@@ -187,7 +187,7 @@ export function DealFilters({
 
       {/* Activity Status Filter */}
       <FilterPopover
-        label={t("filter.activity")}
+        label={t("dashboard>filter>activity")}
         icon={Filter}
         options={activityStatusOptions}
         selectedValues={filters.activityStatus}
@@ -198,7 +198,7 @@ export function DealFilters({
 
       {/* Probability Filter */}
       <FilterPopover
-        label={t("filter.probability")}
+        label={t("dashboard>filter>probability")}
         icon={Filter}
         options={probabilityRanges}
         selectedValues={
@@ -233,7 +233,7 @@ export function DealFilters({
               className="h-8 text-muted-foreground hover:text-foreground"
             >
               <X className="w-3.5 h-3.5 mr-1" />
-              {t("filter.clear")} ({activeFilterCount})
+              {t("dashboard>filter>clear")} ({activeFilterCount})
             </Button>
           </motion.div>
         )}

@@ -44,7 +44,7 @@ export function FunnelBar({
                         {stage.stageName || stage.stage}
                     </p>
                     <p className="text-xs text-muted-foreground font-mono">
-                        {stage.count} {t("chart.deals")}
+                        {stage.count} {t("dashboard>chart>deals")}
                     </p>
                 </div>
 
