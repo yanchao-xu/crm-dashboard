@@ -1,4 +1,4 @@
-import { formatCurrencyWithSymbol } from "../utils/formatters";
+import { formatCurrencyWithSymbol, type Language } from "../utils/formatters";
 import { DisplayMode } from "./useStagnationChartData";
 
 interface StagnationTooltipProps {
@@ -7,6 +7,7 @@ interface StagnationTooltipProps {
     label?: string;
     t: (key: string, params?: Record<string, string | number>) => string;
     displayMode: DisplayMode;
+    language: Language;
 }
 
 export function StagnationTooltip({
@@ -15,6 +16,7 @@ export function StagnationTooltip({
     label,
     t,
     displayMode,
+    language,
 }: StagnationTooltipProps) {
     if (!active || !payload || payload.length === 0) {
         return null;
@@ -41,7 +43,7 @@ export function StagnationTooltip({
                         </span>
                         <span className="font-mono text-sm">
                             {displayMode === "amount"
-                                ? formatCurrencyWithSymbol(entry.value)
+                                ? formatCurrencyWithSymbol(entry.value, language)
                                 : entry.value}
                             {unit}
                         </span>
@@ -53,7 +55,7 @@ export function StagnationTooltip({
                     </span>
                     <span className="font-mono text-sm font-semibold">
                         {displayMode === "amount"
-                            ? formatCurrencyWithSymbol(total)
+                            ? formatCurrencyWithSymbol(total, language)
                             : total}
                         {unit}
                     </span>

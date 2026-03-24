@@ -63,41 +63,26 @@ const Index = () => {
       opportunityStages,
     );
   }, [filteredDeals, selectedOrg, orgStructure, opportunityStages]);
-  // 销售漏斗数据（当点击健康度图表时，按月过滤）
-  const filteredFunnelData = useMemo(() => {
-    let dealsForFunnel = filterDealsByOrg(deals, selectedOrg);
-    dealsForFunnel = filterDealsByProduct(dealsForFunnel, selectedProducts);
 
-    // 如果健康度图表有选中的月份，按月过滤
+  // 当健康度图表有选中月份时，在 filteredDeals 基础上按月过滤
+  const monthFilteredDeals = useMemo(() => {
     if (chartFilter?.type === "health" && chartFilter.month) {
-      dealsForFunnel = filterDealsByMonth(dealsForFunnel, chartFilter.month);
+      return filterDealsByMonth(filteredDeals, chartFilter.month);
     }
+    return filteredDeals;
+  }, [filteredDeals, chartFilter]);
 
-    return calculateFunnelData(dealsForFunnel, opportunityStages);
-  }, [selectedOrg, selectedProducts, chartFilter, deals, opportunityStages]);
+  // 销售漏斗数据
+  const filteredFunnelData = useMemo(
+    () => calculateFunnelData(monthFilteredDeals, opportunityStages),
+    [monthFilteredDeals, opportunityStages],
+  );
 
-  // 商机停滞分析数据（当点击健康度图表时，按月过滤）
-  const filteredStagnationData = useMemo(() => {
-    let dealsForStagnation = filterDealsByOrg(deals, selectedOrg);
-    dealsForStagnation = filterDealsByProduct(
-      dealsForStagnation,
-      selectedProducts,
-    );
-
-    // 如果健康度图表有选中的月份，按月过滤
-    if (chartFilter?.type === "health" && chartFilter.month) {
-      dealsForStagnation = filterDealsByMonth(
-        dealsForStagnation,
-        chartFilter.month,
-      );
-    }
-
-    const result = calculateStagnationData(
-      dealsForStagnation,
-      opportunityStages,
-    );
-    return result;
-  }, [selectedOrg, selectedProducts, chartFilter, deals, opportunityStages]);
+  // 商机停滞分析数据
+  const filteredStagnationData = useMemo(
+    () => calculateStagnationData(monthFilteredDeals, opportunityStages),
+    [monthFilteredDeals, opportunityStages],
+  );
   const getFilterTitle = () => {
     if (!chartFilter) return "";
     switch (chartFilter.type) {
@@ -143,7 +128,7 @@ const Index = () => {
   };
 
   return (
-    <div className="bg-background">
+    <div>
       <div className="container mx-auto px-4 py-6 space-y-6">
         {/* 加载状态 */}
         {dealsLoading && (
@@ -239,10 +224,10 @@ const Index = () => {
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
-                  {/* todo table */}
+
                   <DealsTable
                     filterContext={chartFilter}
-                    deals={filteredDeals}
+                    deals={monthFilteredDeals}
                     stages={opportunityStages}
                   />
                 </div>
@@ -291,10 +276,9 @@ const Index = () => {
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
-                  {/* todo table */}
                   <DealsTable
                     filterContext={chartFilter}
-                    deals={filteredDeals}
+                    deals={monthFilteredDeals}
                     stages={opportunityStages}
                   />
                 </div>

@@ -39,15 +39,14 @@ export function StatCard({
     custom: "",
   };
 
-  const baseClasses = `p-3 rounded-lg ${variantClasses[variant]} ${
-    onClick ? "cursor-pointer hover:ring-2 transition-all" : ""
-  } ${isHighlighted ? "ring-2 ring-primary scale-105" : ""}`;
+  const baseClasses = `p-3 rounded-xl ${variantClasses[variant]} ${onClick ? "cursor-pointer hover:ring-2 transition-all" : ""
+    } ${isHighlighted ? "ring-2 ring-primary scale-105" : ""}`;
 
   const style = customColors
     ? {
-        backgroundColor: customColors.bg,
-        borderColor: customColors.border,
-      }
+      backgroundColor: customColors.bg,
+      borderColor: customColors.border,
+    }
     : undefined;
 
   const textColor =

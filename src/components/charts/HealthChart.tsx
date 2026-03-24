@@ -35,7 +35,7 @@ export function HealthChart({
   isActive,
   activeFilter,
 }: HealthChartProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   // 提取阶段代码列表
   const stageCodes = stages.map(s => s.code);
@@ -96,12 +96,12 @@ export function HealthChart({
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard
           label={t("dashboard>chart>current")}
-          value={formatCurrency(stats.latestActual)}
+          value={formatCurrency(stats.latestActual, language)}
           valueColor="text-chart-actual"
         />
         <StatCard
           label={t("dashboard>chart>target")}
-          value={formatCurrency(stats.latestTarget)}
+          value={formatCurrency(stats.latestTarget, language)}
           valueColor="text-chart-target"
         />
         <StatCard
@@ -131,9 +131,9 @@ export function HealthChart({
             <YAxis
               {...axisConfig}
               tick={{ fill: chartTheme.tick, fontSize: axisConfig.fontSize }}
-              tickFormatter={formatCurrency}
+              tickFormatter={(value) => formatCurrency(value, language)}
             />
-            <Tooltip content={<HealthChartTooltip t={t} />} />
+            <Tooltip content={<HealthChartTooltip t={t} language={language} />} />
 
             {stageKeys.map((stageKey, index) => (
               <Bar
@@ -142,7 +142,7 @@ export function HealthChart({
                 stackId="a"
                 fill={getStageColor(index)}
                 name={stageLabels[stageKey] || stageKey}
-                radius={index === stageKeys.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                radius={index === stageKeys.length - 1 ? [8, 8, 0, 0] : [0, 0, 0, 0]}
               />
             ))}
 

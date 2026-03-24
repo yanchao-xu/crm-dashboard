@@ -1,10 +1,11 @@
-import { formatCurrency } from "../utils/formatters";
+import { formatCurrency, type Language } from "../utils/formatters";
 
 interface HealthChartTooltipProps {
     active?: boolean;
     payload?: any[];
     label?: string;
     t: (key: string, params?: Record<string, string | number>) => string;
+    language: Language;
 }
 
 export function HealthChartTooltip({
@@ -12,6 +13,7 @@ export function HealthChartTooltip({
     payload,
     label,
     t,
+    language,
 }: HealthChartTooltipProps) {
     if (!active || !payload || payload.length === 0) {
         return null;
@@ -42,7 +44,7 @@ export function HealthChartTooltip({
                             {entry.dataKey}:
                         </span>
                         <span className="font-mono text-xs">
-                            {formatCurrency(entry.value)}
+                            {formatCurrency(entry.value, language)}
                         </span>
                     </div>
                 ))}
@@ -54,7 +56,7 @@ export function HealthChartTooltip({
                         {t("dashboard>chart>total")}:
                     </span>
                     <span className="font-mono text-sm font-semibold">
-                        {formatCurrency(actual)}
+                        {formatCurrency(actual, language)}
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -62,7 +64,7 @@ export function HealthChartTooltip({
                     <span className="text-xs text-muted-foreground">
                         {t("dashboard>chart>target")}:
                     </span>
-                    <span className="font-mono text-sm">{formatCurrency(target)}</span>
+                    <span className="font-mono text-sm">{formatCurrency(target, language)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">
@@ -72,7 +74,7 @@ export function HealthChartTooltip({
                         className={`font-mono text-sm font-semibold ${isHealthy ? "text-success" : "text-danger"}`}
                     >
                         {gap >= 0 ? "+" : ""}
-                        {formatCurrency(gap)}
+                        {formatCurrency(gap, language)}
                     </span>
                 </div>
             </div>

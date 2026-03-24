@@ -14,16 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ChartFilterContext } from "@/pages/Index";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { formatCurrency } from "@/components/charts/utils/formatters";
 import type { OpportunityStage } from "@/services/api";
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
 interface DealsTableProps {
   filterContext?: ChartFilterContext;
@@ -229,7 +221,7 @@ export function DealsTable({
                   >
                     <TableCell>
                       <div>
-                        <p className="font-medium text-sm">
+                        <p className="font-medium text-sm text-foreground">
                           {getText(deal.name)}
                         </p>
                         <p className="text-xs text-muted-foreground">
@@ -239,7 +231,7 @@ export function DealsTable({
                     </TableCell>
                     <TableCell>
                       <span className="font-mono text-sm">
-                        {formatCurrency(deal.value)}
+                        {formatCurrency(deal.value, language)}
                       </span>
                     </TableCell>
                     <TableCell>

@@ -39,7 +39,7 @@ export function StagnationChart({
   isActive,
   activeFilter,
 }: StagnationChartProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [displayMode, setDisplayMode] = useState<DisplayMode>("amount");
   const { chartData, stats } = useStagnationChartData(data, displayMode);
 
@@ -73,7 +73,7 @@ export function StagnationChart({
 
   const formatValue = (value: number): string => {
     return displayMode === "amount"
-      ? formatCurrencyWithSymbol(value)
+      ? formatCurrencyWithSymbol(value, language)
       : String(value);
   };
 
@@ -209,12 +209,12 @@ export function StagnationChart({
               tick={{ fill: chartTheme.tick, fontSize: axisConfig.fontSize }}
               tickFormatter={(value) =>
                 displayMode === "amount"
-                  ? formatCurrencyWithSymbol(value)
+                  ? formatCurrencyWithSymbol(value, language)
                   : String(value)
               }
             />
             <Tooltip
-              content={<StagnationTooltip t={t} displayMode={displayMode} />}
+              content={<StagnationTooltip t={t} displayMode={displayMode} language={language} />}
               cursor={{ fill: chartTheme.cursor }}
             />
 
@@ -288,7 +288,7 @@ export function StagnationChart({
               dataKey="zombie"
               name={t("dashboard>chart>moreThan90")}
               stackId="a"
-              radius={[4, 4, 0, 0]}
+              radius={[8, 8, 0, 0]}
             >
               {chartData.map((entry, index) => (
                 <Cell

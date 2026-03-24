@@ -64,18 +64,34 @@ export class DashboardApiService {
 
   // 获取商机数据（所有图表的数据源头）
   async getOpportunity(): Promise<Deal[]> {
-    try {
-      const response = await this.restApi.get(
-        "/form/api/v2/form-entity-data/opportunity-management/opportunity-management-form/list",
-      );
+      try {
+        const currentYear = new Date().getFullYear();
+        const response = await this.restApi.get(
+          "/form/api/v2/form-entity-data/opportunity-management/opportunity-management-form/list",
+          {
+            params: {
+              payload: JSON.stringify({
+                filterModel: [
+                  {
+                    colId: "expectedDealTime",
+                    filterType: "date",
+                    type: "inRange",
+                    dateFrom: `${currentYear}-01-01`,
+                    dateTo: `${currentYear}-12-31`,
+                  },
+                ],
+              }),
+            },
+          },
+        );
 
-      // 转换 API 数据为应用数据格式
-      return await this.transformOpportunityData(response.results || response);
-    } catch (error) {
-      console.error("Failed to fetch opportunity:", error);
-      throw error;
+        // 转换 API 数据为应用数据格式
+        return await this.transformOpportunityData(response.results || response);
+      } catch (error) {
+        console.error("Failed to fetch opportunity:", error);
+        throw error;
+      }
     }
-  }
 
   // 获取商机产品子表数据
   async getOpportunityProducts(parentDataIds: string[]): Promise<any[]> {

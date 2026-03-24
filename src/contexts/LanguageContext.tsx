@@ -2,7 +2,7 @@ import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 import type { BilingualText } from "@/types";
 
-type Language = "zh" | "en";
+type Language = "zh" | "en" | "ja";
 
 interface Translations {
   [key: string]: {
@@ -170,7 +170,6 @@ export const translations: Translations = {
 
 interface LanguageContextType {
   language: Language;
-  setLanguage: (lang: Language) => void;
   t: (key: string, params?: Record<string, string | number>) => string;
   getText: (text: BilingualText | string) => string;
 }
@@ -191,8 +190,6 @@ export function LanguageProvider({
   children: ReactNode;
   i18nApi: I18nApi;
 }) {
-  const [language, setLanguage] = useState<Language>("zh");
-
   // const t = (key: string, params?: Record<string, string | number>): string => {
   //   const translation = translations[key];
   //   if (!translation) return key;
@@ -209,15 +206,21 @@ export function LanguageProvider({
   // };
 
   const t = i18nApi.t.bind(i18nApi);
+  const language: Language = i18nApi.language.startsWith("ja")
+    ? "ja"
+    : i18nApi.language.startsWith("en")
+      ? "en"
+      : "zh";
 
   // Helper to get bilingual text value
   const getText = (text: BilingualText | string): string => {
     if (typeof text === "string") return text;
+    if (language === "ja") return text.ja || text.en || text.zh || "";
     return text[language] || text.zh || "";
   };
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, getText }}>
+    <LanguageContext.Provider value={{ language, t, getText }}>
       {children}
     </LanguageContext.Provider>
   );

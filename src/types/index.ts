@@ -3,6 +3,7 @@
 export interface BilingualText {
   zh: string;
   en: string;
+  ja?: string;
 }
 
 // 商机相关类型
