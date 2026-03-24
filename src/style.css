@@ -8,6 +8,7 @@
 
   :host,
   :root {
+    --radius: 0.5rem;
     --background: 0 0% 98%;
     --foreground: 222 47% 11%;
 

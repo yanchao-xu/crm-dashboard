@@ -1,8 +1,8 @@
 import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 import type { BilingualText } from "@/types";
-
-type Language = "zh" | "en" | "ja";
+import { toLanguage } from "@/lib/language";
+import type { Language } from "@/lib/language";
 
 interface Translations {
   [key: string]: {
@@ -206,11 +206,7 @@ export function LanguageProvider({
   // };
 
   const t = i18nApi.t.bind(i18nApi);
-  const language: Language = i18nApi.language.startsWith("ja")
-    ? "ja"
-    : i18nApi.language.startsWith("en")
-      ? "en"
-      : "zh";
+  const language = toLanguage(i18nApi.language);
 
   // Helper to get bilingual text value
   const getText = (text: BilingualText | string): string => {

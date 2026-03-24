@@ -28,7 +28,6 @@ export function formatCurrencyWithSymbol(
   value: number,
   language: Language = "zh",
 ): string {
-  console.log("formatCurrencyWithSymbol", language);
   return formatCurrency(value, language);
 }
 

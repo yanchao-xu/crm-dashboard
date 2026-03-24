@@ -1,5 +1,7 @@
 import type { RestApi } from "../../icp-extension.types";
 import type { Deal, OrgNode, ProductGroup } from "@/types";
+import { toLocale } from "@/lib/language";
+import type { Language } from "@/lib/language";
 
 // 商机原始数据类型（从 API 返回）
 interface LeadRawData {
@@ -57,41 +59,51 @@ export interface OpportunityStage {
 // API 服务类
 export class DashboardApiService {
   private restApi: RestApi;
+  private language: Language;
 
-  constructor(restApi: RestApi) {
+  constructor(restApi: RestApi, language: string = "zh") {
     this.restApi = restApi;
+    this.language = language as Language;
+  }
+
+  // 根据当前语言获取 i18n 字段值
+  // API 返回的字段格式: fieldName_i18n_zh-CN, fieldName_i18n_en-US, fieldName_i18n_ja-JP
+  private getI18nValue(item: Record<string, any>, fieldName: string): string {
+    const locale = toLocale(this.language);
+    const i18nKey = `${fieldName}_i18n_${locale}`;
+    return item[i18nKey] || item[fieldName] || "";
   }
 
   // 获取商机数据（所有图表的数据源头）
   async getOpportunity(): Promise<Deal[]> {
-      try {
-        const currentYear = new Date().getFullYear();
-        const response = await this.restApi.get(
-          "/form/api/v2/form-entity-data/opportunity-management/opportunity-management-form/list",
-          {
-            params: {
-              payload: JSON.stringify({
-                filterModel: [
-                  {
-                    colId: "expectedDealTime",
-                    filterType: "date",
-                    type: "inRange",
-                    dateFrom: `${currentYear}-01-01`,
-                    dateTo: `${currentYear}-12-31`,
-                  },
-                ],
-              }),
-            },
+    try {
+      const currentYear = new Date().getFullYear();
+      const response = await this.restApi.get(
+        "/form/api/v2/form-entity-data/opportunity-management/opportunity-management-form/list",
+        {
+          params: {
+            payload: JSON.stringify({
+              filterModel: [
+                {
+                  colId: "expectedDealTime",
+                  filterType: "date",
+                  type: "inRange",
+                  dateFrom: `${currentYear}-01-01`,
+                  dateTo: `${currentYear}-12-31`,
+                },
+              ],
+            }),
           },
-        );
+        },
+      );
 
-        // 转换 API 数据为应用数据格式
-        return await this.transformOpportunityData(response.results || response);
-      } catch (error) {
-        console.error("Failed to fetch opportunity:", error);
-        throw error;
-      }
+      // 转换 API 数据为应用数据格式
+      return await this.transformOpportunityData(response.results || response);
+    } catch (error) {
+      console.error("Failed to fetch opportunity:", error);
+      throw error;
     }
+  }
 
   // 获取商机产品子表数据
   async getOpportunityProducts(parentDataIds: string[]): Promise<any[]> {
@@ -229,10 +241,8 @@ export class DashboardApiService {
         : undefined;
 
       // 使用 code 字段（用于数据聚合），如果没有则使用 label
-      const stageValue =
-        item.opportunityStage?.[0]?.label ||
-        item.opportunityStage?.[0]?.code ||
-        "";
+      const stageValue = this.getI18nValue(item.opportunityStage?.[0], "label");
+      this.getI18nValue(item.opportunityStage?.[0], "code") || "";
 
       // 获取该商机的产品ID数组
 
@@ -370,6 +380,7 @@ export class DashboardApiService {
   }
 
   // 转换商机阶段数据
+  // 转换商机阶段数据
   private transformStagesData(
     rawData: DataDictionaryRawData[],
   ): OpportunityStage[] {
@@ -378,11 +389,14 @@ export class DashboardApiService {
     }
 
     return rawData
-      .map((item) => ({
-        code: item.codeName || item.code,
-        name: item.codeName, // codeName 已经是当前语言的值
-        rank: item.rank || 0,
-      }))
+      .map((item) => {
+        const name = this.getI18nValue(item, "codeName");
+        return {
+          code: name || item.code,
+          name,
+          rank: item.rank || 0,
+        };
+      })
       .sort((a, b) => a.rank - b.rank);
   }
 

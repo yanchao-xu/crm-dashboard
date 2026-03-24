@@ -134,14 +134,18 @@ const Index = () => {
         {dealsLoading && (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <span className="ml-2 text-muted-foreground">加载数据中...</span>
+            <span className="ml-2 text-muted-foreground">
+              {t("dashboard>status>loading")}
+            </span>
           </div>
         )}
 
         {/* 错误状态 */}
         {dealsError && (
           <div className="glass-card p-6 text-center">
-            <p className="text-destructive mb-2">数据加载失败</p>
+            <p className="text-destructive mb-2">
+              {t("dashboard>status>loadFailed")}
+            </p>
             <p className="text-sm text-muted-foreground">
               {dealsError.message}
             </p>
@@ -151,7 +155,9 @@ const Index = () => {
         {/* 无数据状态 */}
         {!dealsLoading && !dealsError && deals.length === 0 && (
           <div className="glass-card p-6 text-center">
-            <p className="text-muted-foreground">暂无数据</p>
+            <p className="text-muted-foreground">
+              {t("dashboard>status>noData")}
+            </p>
           </div>
         )}
 
