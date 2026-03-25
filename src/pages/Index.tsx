@@ -63,7 +63,6 @@ const Index = () => {
       opportunityStages,
     );
   }, [filteredDeals, selectedOrg, orgStructure, opportunityStages]);
-
   // 当健康度图表有选中月份时，在 filteredDeals 基础上按月过滤
   const monthFilteredDeals = useMemo(() => {
     if (chartFilter?.type === "health" && chartFilter.month) {
@@ -73,10 +72,16 @@ const Index = () => {
   }, [filteredDeals, chartFilter]);
 
   // 销售漏斗数据
-  const filteredFunnelData = useMemo(
-    () => calculateFunnelData(monthFilteredDeals, opportunityStages),
-    [monthFilteredDeals, opportunityStages],
-  );
+  // target conversion 来自选中的组织节点，未选中时使用根节点
+  const filteredFunnelData = useMemo(() => {
+    const orgForConversion =
+      selectedOrg || (orgStructure.id ? orgStructure : null);
+    return calculateFunnelData(
+      monthFilteredDeals,
+      opportunityStages,
+      orgForConversion,
+    );
+  }, [monthFilteredDeals, opportunityStages, selectedOrg, orgStructure]);
 
   // 商机停滞分析数据
   const filteredStagnationData = useMemo(

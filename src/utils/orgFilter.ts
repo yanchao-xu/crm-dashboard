@@ -179,17 +179,26 @@ export function calculateStagnationData(
   });
 }
 
+// Stage code 到 OrgNode 转化率字段的映射
+const stageToConversionField: Record<string, keyof OrgNode> = {
+  "Intentional Communication": "leadToQualification",
+  "Requirements Determination": "qualificationToDiscovery",
+  proposal: "discoveryToProposal",
+  negotiation: "proposalToNegotiation",
+  "Winning Orders": "negotiationToWin",
+  "Single Loss": "negotiationToLoss",
+};
+
 // Recalculate funnel data based on filtered deals (with realistic conversion rates)
 export function calculateFunnelData(
   filteredDeals: Deal[],
   stages: OpportunityStage[] = [],
+  selectedOrg: OrgNode | null = null,
 ): FunnelStage[] {
   if (stages.length === 0) {
     return [];
   }
-
-  const targetConversions = [30, 45, 55, 45, 65];
-  return stages.map((stage, index) => {
+  return stages.map((stage) => {
     const stageDeals = filteredDeals.filter((d) => d.stage === stage.code);
     const count = stageDeals.length;
     const value = stageDeals.reduce((sum, d) => sum + d.value, 0);
@@ -200,12 +209,23 @@ export function calculateFunnelData(
         ? stageDeals.reduce((sum, d) => sum + d.probability, 0) / count
         : 0;
 
+    // 从选中的组织节点获取 targetConversion
+    let targetConversion = 0;
+
+    if (selectedOrg) {
+      const field = stageToConversionField[stage.code];
+      if (field) {
+        const val = selectedOrg[field];
+        targetConversion = typeof val === "number" ? val : 0;
+      }
+    }
+
     return {
       stage: stage.code,
       stageName: stage.name, // 直接使用 name
       count,
       value,
-      targetConversion: targetConversions[index] || 50,
+      targetConversion,
       actualConversion: Math.round(avgProbability),
     };
   });

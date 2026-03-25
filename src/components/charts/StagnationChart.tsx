@@ -43,10 +43,12 @@ export function StagnationChart({
   const [displayMode, setDisplayMode] = useState<DisplayMode>("amount");
   const { chartData, stats } = useStagnationChartData(data, displayMode);
 
-  const isOtherChartActive = !!(activeFilter && activeFilter.type !== "stagnation");
+  const isOtherChartActive = !!(
+    activeFilter && activeFilter.type !== "stagnation"
+  );
   const highlightedStatus =
     activeFilter?.type === "stagnation" ? activeFilter.activityStatus : null;
-
+  console.log("data", data);
   // 创建阶段名称映射函数（stageName 已经是当前语言）
   const getStageName = (stageData: any) => {
     return stageData.stageName || stageData.stage;
@@ -125,12 +127,13 @@ export function StagnationChart({
           </ToggleGroupItem>
         </ToggleGroup>
         <div
-          className={`px-3 py-1.5 rounded-full text-xs font-mono font-medium ${zombieStatusVariant === "danger"
-            ? "bg-danger/20 text-danger"
-            : zombieStatusVariant === "warning"
-              ? "bg-warning/20 text-warning"
-              : "bg-success/20 text-success"
-            }`}
+          className={`px-3 py-1.5 rounded-full text-xs font-mono font-medium ${
+            zombieStatusVariant === "danger"
+              ? "bg-danger/20 text-danger"
+              : zombieStatusVariant === "warning"
+                ? "bg-warning/20 text-warning"
+                : "bg-success/20 text-success"
+          }`}
         >
           {formatValue(stats.totalZombie)} {t("dashboard>chart>zombieDeals")} (
           {stats.zombiePercentage}%)
@@ -200,7 +203,7 @@ export function StagnationChart({
               {...axisConfig}
               tick={{ fill: chartTheme.tick, fontSize: axisConfig.fontSize }}
               tickFormatter={(value) => {
-                const stageData = chartData.find(d => d.stage === value);
+                const stageData = chartData.find((d) => d.stage === value);
                 return stageData ? getStageName(stageData) : value;
               }}
             />
@@ -214,7 +217,13 @@ export function StagnationChart({
               }
             />
             <Tooltip
-              content={<StagnationTooltip t={t} displayMode={displayMode} language={language} />}
+              content={
+                <StagnationTooltip
+                  t={t}
+                  displayMode={displayMode}
+                  language={language}
+                />
+              }
               cursor={{ fill: chartTheme.cursor }}
             />
 

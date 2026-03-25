@@ -85,6 +85,12 @@ export interface OrgNode {
   octOctober?: number;
   novNovember?: number;
   decDecember?: number;
+  leadToQualification?: number;
+  qualificationToDiscovery?: number;
+  discoveryToProposal?: number;
+  proposalToNegotiation?: number;
+  negotiationToWin?: number;
+  negotiationToLoss?: number;
 }
 
 // 产品相关类型

@@ -30,7 +30,7 @@ export function StagnationTooltip({
 
     return (
         <div className="glass-card p-3 border border-border">
-            <p className="font-mono text-sm text-foreground mb-2">{label}</p>
+            <p className="font-mono text-sm text-foreground mb-2">{payload[0]?.payload?.stageName || label}</p>
             <div className="space-y-1">
                 {payload.map((entry: any, index: number) => (
                     <div key={index} className="flex items-center gap-2">

@@ -5,7 +5,6 @@
 @tailwind utilities;
 
 @layer base {
-
   :host,
   :root {
     --radius: 0.5rem;
@@ -160,15 +159,19 @@
   }
 
   .gradient-primary {
-    background: linear-gradient(135deg,
-        hsl(217 91% 60%) 0%,
-        hsl(280 100% 70%) 100%);
+    background: linear-gradient(
+      135deg,
+      hsl(217 91% 60%) 0%,
+      hsl(280 100% 70%) 100%
+    );
   }
 
   .gradient-danger {
-    background: linear-gradient(135deg,
-        hsl(0 84% 60%) 0%,
-        hsl(45 93% 47%) 100%);
+    background: linear-gradient(
+      135deg,
+      hsl(0 84% 60%) 0%,
+      hsl(45 93% 47%) 100%
+    );
   }
 
   .data-label {

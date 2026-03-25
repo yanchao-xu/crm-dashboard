@@ -43,7 +43,6 @@ interface DataDictionaryRawData {
   code: string;
   codeName: string;
   enable: string;
-  rank: number;
   handle: string;
   parentHandle: string;
   [key: string]: any;
@@ -53,7 +52,6 @@ interface DataDictionaryRawData {
 export interface OpportunityStage {
   code: string;
   name: string; // 直接使用 codeName，已经是当前语言的值
-  rank: number;
 }
 
 // API 服务类
@@ -241,8 +239,7 @@ export class DashboardApiService {
         : undefined;
 
       // 使用 code 字段（用于数据聚合），如果没有则使用 label
-      const stageValue = this.getI18nValue(item.opportunityStage?.[0], "label");
-      this.getI18nValue(item.opportunityStage?.[0], "code") || "";
+      //const stageValue = this.getI18nValue(item.opportunityStage?.[0], "label");
 
       // 获取该商机的产品ID数组
 
@@ -267,7 +264,7 @@ export class DashboardApiService {
           en: item.customerName?.[0]?.label || "",
         },
         value: Number(item.expectedTransactionAmount) || 0,
-        stage: stageValue,
+        stage: item.opportunityStage?.[0].code,
         lastActivityDays,
         probability: Number(item.aiWinRatePrediction) || 0,
         owner: item.opportunityOwner?.[0]?.label || "",
@@ -329,6 +326,12 @@ export class DashboardApiService {
         octOctober: item.octOctober,
         novNovember: item.novNovember,
         decDecember: item.decDecember,
+        leadToQualification: item.leadToQualification,
+        qualificationToDiscovery: item.qualificationToDiscovery,
+        discoveryToProposal: item.discoveryToProposal,
+        proposalToNegotiation: item.proposalToNegotiation,
+        negotiationToWin: item.negotiationToWin,
+        negotiationToLoss: item.negotiationToLoss,
       };
       orgMap.set(item.id?.toString(), node);
     });
@@ -387,17 +390,16 @@ export class DashboardApiService {
     if (!Array.isArray(rawData)) {
       return [];
     }
-
+    console.log("rawData", rawData);
     return rawData
       .map((item) => {
         const name = this.getI18nValue(item, "codeName");
         return {
-          code: name || item.code,
+          code: item.code,
           name,
-          rank: item.rank || 0,
         };
       })
-      .sort((a, b) => a.rank - b.rank);
+      .reverse();
   }
 
   // 从日期字符串获取月份
