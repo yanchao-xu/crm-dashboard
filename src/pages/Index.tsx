@@ -22,6 +22,7 @@ import {
   useOrgStructure,
   useProductGroups,
   useOpportunityStages,
+  useLeadCount,
 } from "@/hooks/useApiData";
 import { DealsTable } from "@/components/deals/DealsTable";
 
@@ -42,9 +43,9 @@ const Index = () => {
   const { data: deals, loading: dealsLoading, error: dealsError } = useDeals();
   const { data: orgStructure, loading: orgLoading } = useOrgStructure();
   const { data: productGroups, loading: productsLoading } = useProductGroups();
-  console.log("deals", deals);
   const { data: opportunityStages, loading: stagesLoading } =
     useOpportunityStages();
+  const { data: leadCount } = useLeadCount();
 
   // Calculate filtered data based on selected organization and products
   const filteredDeals = useMemo(() => {
@@ -80,8 +81,15 @@ const Index = () => {
       monthFilteredDeals,
       opportunityStages,
       orgForConversion,
+      leadCount,
     );
-  }, [monthFilteredDeals, opportunityStages, selectedOrg, orgStructure]);
+  }, [
+    monthFilteredDeals,
+    opportunityStages,
+    selectedOrg,
+    orgStructure,
+    leadCount,
+  ]);
 
   // 商机停滞分析数据
   const filteredStagnationData = useMemo(

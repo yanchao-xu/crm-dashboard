@@ -48,7 +48,6 @@ export function StagnationChart({
   );
   const highlightedStatus =
     activeFilter?.type === "stagnation" ? activeFilter.activityStatus : null;
-  console.log("data", data);
   // 创建阶段名称映射函数（stageName 已经是当前语言）
   const getStageName = (stageData: any) => {
     return stageData.stageName || stageData.stage;

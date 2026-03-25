@@ -151,3 +151,20 @@ export function useOpportunityStages() {
 
   return useApiData(apiService ? fetchFn : null, []);
 }
+// 获取线索总数
+export function useLeadCount() {
+  const restApi = useOptionalRestApi();
+  const { language } = useLanguage();
+
+  const apiService = useMemo(
+    () => (restApi ? new DashboardApiService(restApi, language) : null),
+    [restApi, language],
+  );
+
+  const fetchFn = useCallback(
+    () => (apiService ? apiService.getLeadCount() : Promise.resolve(0)),
+    [apiService],
+  );
+
+  return useApiData(apiService ? fetchFn : null, 0);
+}

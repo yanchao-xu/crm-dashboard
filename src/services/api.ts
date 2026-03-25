@@ -89,6 +89,12 @@ export class DashboardApiService {
                   dateFrom: `${currentYear}-01-01`,
                   dateTo: `${currentYear}-12-31`,
                 },
+                {
+                  colId: "Status",
+                  filterType: "set",
+                  type: "notIn",
+                  values: ["草稿"],
+                },
               ],
             }),
           },
@@ -197,6 +203,35 @@ export class DashboardApiService {
     } catch (error) {
       console.error("Failed to fetch opportunity stages:", error);
       throw error;
+    }
+  }
+  // 获取线索总数（用于漏斗图第一阶段转化率计算）
+  async getLeadCount(): Promise<number> {
+    try {
+      const currentYear = new Date().getFullYear();
+      const response = await this.restApi.get(
+        "/form/api/v2/form-entity-data/lead-management/lead-management-form/list",
+        {
+          params: {
+            payload: JSON.stringify({
+              filterModel: [
+                {
+                  colId: "expectedDealTime",
+                  filterType: "date",
+                  type: "inRange",
+                  dateFrom: `${currentYear}-01-01`,
+                  dateTo: `${currentYear}-12-31`,
+                },
+              ],
+            }),
+          },
+        },
+      );
+      const result = response.count || 0;
+      return result;
+    } catch (error) {
+      console.error("Failed to fetch lead count:", error);
+      return 0;
     }
   }
 
@@ -381,8 +416,6 @@ export class DashboardApiService {
       },
     }));
   }
-
-  // 转换商机阶段数据
   // 转换商机阶段数据
   private transformStagesData(
     rawData: DataDictionaryRawData[],
@@ -390,7 +423,6 @@ export class DashboardApiService {
     if (!Array.isArray(rawData)) {
       return [];
     }
-    console.log("rawData", rawData);
     return rawData
       .map((item) => {
         const name = this.getI18nValue(item, "codeName");

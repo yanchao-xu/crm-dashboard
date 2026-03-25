@@ -194,39 +194,67 @@ export function calculateFunnelData(
   filteredDeals: Deal[],
   stages: OpportunityStage[] = [],
   selectedOrg: OrgNode | null = null,
+  leadCount: number = 0,
 ): FunnelStage[] {
   if (stages.length === 0) {
     return [];
   }
-  return stages.map((stage) => {
+
+  // 先计算每个 stage 的 count
+  const stageCounts = stages.map((stage) => {
     const stageDeals = filteredDeals.filter((d) => d.stage === stage.code);
-    const count = stageDeals.length;
-    const value = stageDeals.reduce((sum, d) => sum + d.value, 0);
+    return {
+      stage,
+      count: stageDeals.length,
+      value: stageDeals.reduce((sum, d) => sum + d.value, 0),
+    };
+  });
 
-    // Calculate actual conversion (simplified - based on probability)
-    const avgProbability =
-      count > 0
-        ? stageDeals.reduce((sum, d) => sum + d.probability, 0) / count
-        : 0;
-
+  return stageCounts.map((item, index) => {
     // 从选中的组织节点获取 targetConversion
     let targetConversion = 0;
-
     if (selectedOrg) {
-      const field = stageToConversionField[stage.code];
+      const field = stageToConversionField[item.stage.code];
       if (field) {
         const val = selectedOrg[field];
         targetConversion = typeof val === "number" ? val : 0;
       }
     }
 
+    // actualConversion 计算逻辑：
+    // 第一个 stage 固定 100%
+    // 从第二个到倒数第二个：当前 count / 前面所有 stage count 之和
+    // 最后两个（Winning Orders 和 Single Loss）：Winning Orders count / 前面所有 count 之和
+    let actualConversion = 100;
+
+    if (index === 0) {
+      // 第一个 stage：分子是当前 count，分母是线索总数（leadCount）
+      actualConversion = leadCount > 0
+        ? Math.round((item.count / leadCount) * 100)
+        : 0;
+    } else if (index < stageCounts.length - 2) {
+      // 第二个到倒数第三个：分子是当前 count，分母是从第一个到当前（含）的 count 之和
+      const denominator = stageCounts
+        .slice(0, index + 1)
+        .reduce((sum, s) => sum + s.count, 0);
+      actualConversion = denominator > 0
+        ? Math.round((item.count / denominator) * 100)
+        : 0;
+    } else {
+      // 倒数第二个（Winning Orders）和倒数第一个（Single Loss）：分子是各自的 count，分母是全部 count 之和
+      const denominator = stageCounts.reduce((sum, s) => sum + s.count, 0);
+      actualConversion = denominator > 0
+        ? Math.round((item.count / denominator) * 100)
+        : 0;
+    }
+
     return {
-      stage: stage.code,
-      stageName: stage.name, // 直接使用 name
-      count,
-      value,
+      stage: item.stage.code,
+      stageName: item.stage.name,
+      count: item.count,
+      value: item.value,
       targetConversion,
-      actualConversion: Math.round(avgProbability),
+      actualConversion,
     };
   });
 }
