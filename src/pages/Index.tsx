@@ -22,6 +22,7 @@ import {
   useOrgStructure,
   useProductGroups,
   useOpportunityStages,
+  useLeadCount,
 } from "@/hooks/useApiData";
 import { DealsTable } from "@/components/deals/DealsTable";
 
@@ -42,9 +43,9 @@ const Index = () => {
   const { data: deals, loading: dealsLoading, error: dealsError } = useDeals();
   const { data: orgStructure, loading: orgLoading } = useOrgStructure();
   const { data: productGroups, loading: productsLoading } = useProductGroups();
-  console.log("deals", deals);
   const { data: opportunityStages, loading: stagesLoading } =
     useOpportunityStages();
+  const { data: leadCount } = useLeadCount();
 
   // Calculate filtered data based on selected organization and products
   const filteredDeals = useMemo(() => {
@@ -63,41 +64,38 @@ const Index = () => {
       opportunityStages,
     );
   }, [filteredDeals, selectedOrg, orgStructure, opportunityStages]);
-  // 销售漏斗数据（当点击健康度图表时，按月过滤）
+  // 当健康度图表有选中月份时，在 filteredDeals 基础上按月过滤
+  const monthFilteredDeals = useMemo(() => {
+    if (chartFilter?.type === "health" && chartFilter.month) {
+      return filterDealsByMonth(filteredDeals, chartFilter.month);
+    }
+    return filteredDeals;
+  }, [filteredDeals, chartFilter]);
+
+  // 销售漏斗数据
+  // target conversion 来自选中的组织节点，未选中时使用根节点
   const filteredFunnelData = useMemo(() => {
-    let dealsForFunnel = filterDealsByOrg(deals, selectedOrg);
-    dealsForFunnel = filterDealsByProduct(dealsForFunnel, selectedProducts);
-
-    // 如果健康度图表有选中的月份，按月过滤
-    if (chartFilter?.type === "health" && chartFilter.month) {
-      dealsForFunnel = filterDealsByMonth(dealsForFunnel, chartFilter.month);
-    }
-
-    return calculateFunnelData(dealsForFunnel, opportunityStages);
-  }, [selectedOrg, selectedProducts, chartFilter, deals, opportunityStages]);
-
-  // 商机停滞分析数据（当点击健康度图表时，按月过滤）
-  const filteredStagnationData = useMemo(() => {
-    let dealsForStagnation = filterDealsByOrg(deals, selectedOrg);
-    dealsForStagnation = filterDealsByProduct(
-      dealsForStagnation,
-      selectedProducts,
-    );
-
-    // 如果健康度图表有选中的月份，按月过滤
-    if (chartFilter?.type === "health" && chartFilter.month) {
-      dealsForStagnation = filterDealsByMonth(
-        dealsForStagnation,
-        chartFilter.month,
-      );
-    }
-
-    const result = calculateStagnationData(
-      dealsForStagnation,
+    const orgForConversion =
+      selectedOrg || (orgStructure.id ? orgStructure : null);
+    return calculateFunnelData(
+      monthFilteredDeals,
       opportunityStages,
+      orgForConversion,
+      leadCount,
     );
-    return result;
-  }, [selectedOrg, selectedProducts, chartFilter, deals, opportunityStages]);
+  }, [
+    monthFilteredDeals,
+    opportunityStages,
+    selectedOrg,
+    orgStructure,
+    leadCount,
+  ]);
+
+  // 商机停滞分析数据
+  const filteredStagnationData = useMemo(
+    () => calculateStagnationData(monthFilteredDeals, opportunityStages),
+    [monthFilteredDeals, opportunityStages],
+  );
   const getFilterTitle = () => {
     if (!chartFilter) return "";
     switch (chartFilter.type) {
@@ -143,20 +141,24 @@ const Index = () => {
   };
 
   return (
-    <div className="bg-background">
+    <div>
       <div className="container mx-auto px-4 py-6 space-y-6">
         {/* 加载状态 */}
         {dealsLoading && (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <span className="ml-2 text-muted-foreground">加载数据中...</span>
+            <span className="ml-2 text-muted-foreground">
+              {t("dashboard>status>loading")}
+            </span>
           </div>
         )}
 
         {/* 错误状态 */}
         {dealsError && (
           <div className="glass-card p-6 text-center">
-            <p className="text-destructive mb-2">数据加载失败</p>
+            <p className="text-destructive mb-2">
+              {t("dashboard>status>loadFailed")}
+            </p>
             <p className="text-sm text-muted-foreground">
               {dealsError.message}
             </p>
@@ -166,7 +168,9 @@ const Index = () => {
         {/* 无数据状态 */}
         {!dealsLoading && !dealsError && deals.length === 0 && (
           <div className="glass-card p-6 text-center">
-            <p className="text-muted-foreground">暂无数据</p>
+            <p className="text-muted-foreground">
+              {t("dashboard>status>noData")}
+            </p>
           </div>
         )}
 
@@ -239,10 +243,10 @@ const Index = () => {
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
-                  {/* todo table */}
+
                   <DealsTable
                     filterContext={chartFilter}
-                    deals={filteredDeals}
+                    deals={monthFilteredDeals}
                     stages={opportunityStages}
                   />
                 </div>
@@ -291,10 +295,9 @@ const Index = () => {
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
-                  {/* todo table */}
                   <DealsTable
                     filterContext={chartFilter}
-                    deals={filteredDeals}
+                    deals={monthFilteredDeals}
                     stages={opportunityStages}
                   />
                 </div>

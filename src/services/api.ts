@@ -1,5 +1,7 @@
 import type { RestApi } from "../../icp-extension.types";
 import type { Deal, OrgNode, ProductGroup } from "@/types";
+import { toLocale } from "@/lib/language";
+import type { Language } from "@/lib/language";
 
 // 商机原始数据类型（从 API 返回）
 interface LeadRawData {
@@ -41,7 +43,6 @@ interface DataDictionaryRawData {
   code: string;
   codeName: string;
   enable: string;
-  rank: number;
   handle: string;
   parentHandle: string;
   [key: string]: any;
@@ -51,22 +52,53 @@ interface DataDictionaryRawData {
 export interface OpportunityStage {
   code: string;
   name: string; // 直接使用 codeName，已经是当前语言的值
-  rank: number;
 }
 
 // API 服务类
 export class DashboardApiService {
   private restApi: RestApi;
+  private language: Language;
 
-  constructor(restApi: RestApi) {
+  constructor(restApi: RestApi, language: string = "zh") {
     this.restApi = restApi;
+    this.language = language as Language;
+  }
+
+  // 根据当前语言获取 i18n 字段值
+  // API 返回的字段格式: fieldName_i18n_zh-CN, fieldName_i18n_en-US, fieldName_i18n_ja-JP
+  private getI18nValue(item: Record<string, any>, fieldName: string): string {
+    const locale = toLocale(this.language);
+    const i18nKey = `${fieldName}_i18n_${locale}`;
+    return item[i18nKey] || item[fieldName] || "";
   }
 
   // 获取商机数据（所有图表的数据源头）
   async getOpportunity(): Promise<Deal[]> {
     try {
+      const currentYear = new Date().getFullYear();
       const response = await this.restApi.get(
         "/form/api/v2/form-entity-data/opportunity-management/opportunity-management-form/list",
+        {
+          params: {
+            payload: JSON.stringify({
+              filterModel: [
+                {
+                  colId: "expectedDealTime",
+                  filterType: "date",
+                  type: "inRange",
+                  dateFrom: `${currentYear}-01-01`,
+                  dateTo: `${currentYear}-12-31`,
+                },
+                {
+                  colId: "Status",
+                  filterType: "set",
+                  type: "notIn",
+                  values: ["草稿"],
+                },
+              ],
+            }),
+          },
+        },
       );
 
       // 转换 API 数据为应用数据格式
@@ -173,6 +205,35 @@ export class DashboardApiService {
       throw error;
     }
   }
+  // 获取线索总数（用于漏斗图第一阶段转化率计算）
+  async getLeadCount(): Promise<number> {
+    try {
+      const currentYear = new Date().getFullYear();
+      const response = await this.restApi.get(
+        "/form/api/v2/form-entity-data/lead-management/lead-management-form/list",
+        {
+          params: {
+            payload: JSON.stringify({
+              filterModel: [
+                {
+                  colId: "expectedDealTime",
+                  filterType: "date",
+                  type: "inRange",
+                  dateFrom: `${currentYear}-01-01`,
+                  dateTo: `${currentYear}-12-31`,
+                },
+              ],
+            }),
+          },
+        },
+      );
+      const result = response.count || 0;
+      return result;
+    } catch (error) {
+      console.error("Failed to fetch lead count:", error);
+      return 0;
+    }
+  }
 
   // 转换商机数据
   private async transformOpportunityData(rawData: any[]): Promise<Deal[]> {
@@ -213,10 +274,7 @@ export class DashboardApiService {
         : undefined;
 
       // 使用 code 字段（用于数据聚合），如果没有则使用 label
-      const stageValue =
-        item.opportunityStage?.[0]?.label ||
-        item.opportunityStage?.[0]?.code ||
-        "";
+      //const stageValue = this.getI18nValue(item.opportunityStage?.[0], "label");
 
       // 获取该商机的产品ID数组
 
@@ -241,7 +299,7 @@ export class DashboardApiService {
           en: item.customerName?.[0]?.label || "",
         },
         value: Number(item.expectedTransactionAmount) || 0,
-        stage: stageValue,
+        stage: item.opportunityStage?.[0].code,
         lastActivityDays,
         probability: Number(item.aiWinRatePrediction) || 0,
         owner: item.opportunityOwner?.[0]?.label || "",
@@ -303,6 +361,12 @@ export class DashboardApiService {
         octOctober: item.octOctober,
         novNovember: item.novNovember,
         decDecember: item.decDecember,
+        leadToQualification: item.leadToQualification,
+        qualificationToDiscovery: item.qualificationToDiscovery,
+        discoveryToProposal: item.discoveryToProposal,
+        proposalToNegotiation: item.proposalToNegotiation,
+        negotiationToWin: item.negotiationToWin,
+        negotiationToLoss: item.negotiationToLoss,
       };
       orgMap.set(item.id?.toString(), node);
     });
@@ -352,7 +416,6 @@ export class DashboardApiService {
       },
     }));
   }
-
   // 转换商机阶段数据
   private transformStagesData(
     rawData: DataDictionaryRawData[],
@@ -360,14 +423,15 @@ export class DashboardApiService {
     if (!Array.isArray(rawData)) {
       return [];
     }
-
     return rawData
-      .map((item) => ({
-        code: item.codeName || item.code,
-        name: item.codeName, // codeName 已经是当前语言的值
-        rank: item.rank || 0,
-      }))
-      .sort((a, b) => a.rank - b.rank);
+      .map((item) => {
+        const name = this.getI18nValue(item, "codeName");
+        return {
+          code: item.code,
+          name,
+        };
+      })
+      .reverse();
   }
 
   // 从日期字符串获取月份

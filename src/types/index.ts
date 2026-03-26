@@ -3,6 +3,7 @@
 export interface BilingualText {
   zh: string;
   en: string;
+  ja?: string;
 }
 
 // 商机相关类型
@@ -84,6 +85,12 @@ export interface OrgNode {
   octOctober?: number;
   novNovember?: number;
   decDecember?: number;
+  leadToQualification?: number;
+  qualificationToDiscovery?: number;
+  discoveryToProposal?: number;
+  proposalToNegotiation?: number;
+  negotiationToWin?: number;
+  negotiationToLoss?: number;
 }
 
 // 产品相关类型

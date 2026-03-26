@@ -39,14 +39,15 @@ export function StagnationChart({
   isActive,
   activeFilter,
 }: StagnationChartProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [displayMode, setDisplayMode] = useState<DisplayMode>("amount");
   const { chartData, stats } = useStagnationChartData(data, displayMode);
 
-  const isOtherChartActive = !!(activeFilter && activeFilter.type !== "stagnation");
+  const isOtherChartActive = !!(
+    activeFilter && activeFilter.type !== "stagnation"
+  );
   const highlightedStatus =
     activeFilter?.type === "stagnation" ? activeFilter.activityStatus : null;
-
   // 创建阶段名称映射函数（stageName 已经是当前语言）
   const getStageName = (stageData: any) => {
     return stageData.stageName || stageData.stage;
@@ -73,7 +74,7 @@ export function StagnationChart({
 
   const formatValue = (value: number): string => {
     return displayMode === "amount"
-      ? formatCurrencyWithSymbol(value)
+      ? formatCurrencyWithSymbol(value, language)
       : String(value);
   };
 
@@ -125,12 +126,13 @@ export function StagnationChart({
           </ToggleGroupItem>
         </ToggleGroup>
         <div
-          className={`px-3 py-1.5 rounded-full text-xs font-mono font-medium ${zombieStatusVariant === "danger"
-            ? "bg-danger/20 text-danger"
-            : zombieStatusVariant === "warning"
-              ? "bg-warning/20 text-warning"
-              : "bg-success/20 text-success"
-            }`}
+          className={`px-3 py-1.5 rounded-full text-xs font-mono font-medium ${
+            zombieStatusVariant === "danger"
+              ? "bg-danger/20 text-danger"
+              : zombieStatusVariant === "warning"
+                ? "bg-warning/20 text-warning"
+                : "bg-success/20 text-success"
+          }`}
         >
           {formatValue(stats.totalZombie)} {t("dashboard>chart>zombieDeals")} (
           {stats.zombiePercentage}%)
@@ -200,7 +202,7 @@ export function StagnationChart({
               {...axisConfig}
               tick={{ fill: chartTheme.tick, fontSize: axisConfig.fontSize }}
               tickFormatter={(value) => {
-                const stageData = chartData.find(d => d.stage === value);
+                const stageData = chartData.find((d) => d.stage === value);
                 return stageData ? getStageName(stageData) : value;
               }}
             />
@@ -209,12 +211,18 @@ export function StagnationChart({
               tick={{ fill: chartTheme.tick, fontSize: axisConfig.fontSize }}
               tickFormatter={(value) =>
                 displayMode === "amount"
-                  ? formatCurrencyWithSymbol(value)
+                  ? formatCurrencyWithSymbol(value, language)
                   : String(value)
               }
             />
             <Tooltip
-              content={<StagnationTooltip t={t} displayMode={displayMode} />}
+              content={
+                <StagnationTooltip
+                  t={t}
+                  displayMode={displayMode}
+                  language={language}
+                />
+              }
               cursor={{ fill: chartTheme.cursor }}
             />
 
@@ -288,7 +296,7 @@ export function StagnationChart({
               dataKey="zombie"
               name={t("dashboard>chart>moreThan90")}
               stackId="a"
-              radius={[4, 4, 0, 0]}
+              radius={[8, 8, 0, 0]}
             >
               {chartData.map((entry, index) => (
                 <Cell
@@ -310,10 +318,7 @@ export function StagnationChart({
         </ResponsiveContainer>
       </div>
 
-      <ChartLegend
-        items={legendItems}
-        actionText={t("dashboard>chart>clickOrCardToView")}
-      />
+      <ChartLegend items={legendItems} />
     </ChartCard>
   );
 }

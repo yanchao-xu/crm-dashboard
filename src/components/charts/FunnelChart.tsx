@@ -21,7 +21,7 @@ export function FunnelChart({
   isActive,
   activeFilter,
 }: FunnelChartProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { funnelData, stats } = useFunnelChartData(data);
 
   const isOtherChartActive = !!activeFilter && activeFilter.type !== "funnel";
@@ -35,7 +35,10 @@ export function FunnelChart({
 
   const legendItems = [
     { color: "hsl(142, 76%, 45%)", label: t("dashboard>chart>aboveTarget") },
-    { color: "hsl(0, 84%, 60%)", label: t("dashboard>chart>belowTargetLegend") },
+    {
+      color: "hsl(0, 84%, 60%)",
+      label: t("dashboard>chart>belowTargetLegend"),
+    },
   ];
 
   return (
@@ -54,7 +57,7 @@ export function FunnelChart({
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard
           label={t("dashboard>chart>totalPipeline")}
-          value={formatCurrency(stats.totalValue)}
+          value={formatCurrency(stats.totalValue, language)}
           valueColor="text-primary"
         />
         <StatCard
@@ -79,11 +82,12 @@ export function FunnelChart({
             onClick={() => onStageClick?.(stage.stage)}
             isHighlighted={highlightedStage === stage.stage}
             t={t}
+            language={language}
           />
         ))}
       </div>
 
-      <ChartLegend items={legendItems} actionText={t("dashboard>chart>clickStageToView")} />
+      <ChartLegend items={legendItems} />
     </ChartCard>
   );
 }

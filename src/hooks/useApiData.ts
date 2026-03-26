@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useOptionalRestApi } from "@/contexts/ApiContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { DashboardApiService, OpportunityStage } from "@/services/api";
 import type { OrgNode } from "@/types";
 
@@ -70,10 +71,11 @@ function useApiData<T>(fetchFn: (() => Promise<T>) | null, emptyData: T) {
 // 获取商机数据（唯一的数据源）
 export function useDeals() {
   const restApi = useOptionalRestApi();
+  const { language } = useLanguage();
 
   const apiService = useMemo(
-    () => (restApi ? new DashboardApiService(restApi) : null),
-    [restApi],
+    () => (restApi ? new DashboardApiService(restApi, language) : null),
+    [restApi, language],
   );
 
   const fetchFn = useCallback(
@@ -87,6 +89,7 @@ export function useDeals() {
 // 获取组织结构
 export function useOrgStructure() {
   const restApi = useOptionalRestApi();
+  const { language } = useLanguage();
 
   const emptyOrg: OrgNode = useMemo(
     () => ({
@@ -99,8 +102,8 @@ export function useOrgStructure() {
   );
 
   const apiService = useMemo(
-    () => (restApi ? new DashboardApiService(restApi) : null),
-    [restApi],
+    () => (restApi ? new DashboardApiService(restApi, language) : null),
+    [restApi, language],
   );
 
   const fetchFn = useCallback(
@@ -115,10 +118,11 @@ export function useOrgStructure() {
 // 获取产品组
 export function useProductGroups() {
   const restApi = useOptionalRestApi();
+  const { language } = useLanguage();
 
   const apiService = useMemo(
-    () => (restApi ? new DashboardApiService(restApi) : null),
-    [restApi],
+    () => (restApi ? new DashboardApiService(restApi, language) : null),
+    [restApi, language],
   );
 
   const fetchFn = useCallback(
@@ -132,10 +136,11 @@ export function useProductGroups() {
 // 获取商机阶段配置（数据字典）
 export function useOpportunityStages() {
   const restApi = useOptionalRestApi();
+  const { language } = useLanguage();
 
   const apiService = useMemo(
-    () => (restApi ? new DashboardApiService(restApi) : null),
-    [restApi],
+    () => (restApi ? new DashboardApiService(restApi, language) : null),
+    [restApi, language],
   );
 
   const fetchFn = useCallback(
@@ -145,4 +150,21 @@ export function useOpportunityStages() {
   );
 
   return useApiData(apiService ? fetchFn : null, []);
+}
+// 获取线索总数
+export function useLeadCount() {
+  const restApi = useOptionalRestApi();
+  const { language } = useLanguage();
+
+  const apiService = useMemo(
+    () => (restApi ? new DashboardApiService(restApi, language) : null),
+    [restApi, language],
+  );
+
+  const fetchFn = useCallback(
+    () => (apiService ? apiService.getLeadCount() : Promise.resolve(0)),
+    [apiService],
+  );
+
+  return useApiData(apiService ? fetchFn : null, 0);
 }

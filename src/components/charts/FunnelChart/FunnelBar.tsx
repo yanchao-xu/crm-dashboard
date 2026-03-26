@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { TrendingDown, TrendingUp, ArrowRight } from "lucide-react";
 import type { FunnelStage } from "@/types";
-import { formatCurrency } from "../utils/formatters";
+import { formatCurrency, type Language } from "../utils/formatters";
 
 interface FunnelBarProps {
     stage: FunnelStage;
@@ -11,6 +11,7 @@ interface FunnelBarProps {
     onClick?: () => void;
     isHighlighted?: boolean;
     t: (key: string, params?: Record<string, string | number>) => string;
+    language: Language;
 }
 
 export function FunnelBar({
@@ -21,6 +22,7 @@ export function FunnelBar({
     onClick,
     isHighlighted,
     t,
+    language,
 }: FunnelBarProps) {
     const widthPercent = (stage.count / maxCount) * 100;
     const conversionGap = stage.actualConversion - stage.targetConversion;
@@ -50,14 +52,14 @@ export function FunnelBar({
 
                 <div className="flex-1 relative">
                     <div
-                        className={`h-12 bg-secondary/30 rounded-lg overflow-hidden group-hover:ring-2 group-hover:ring-primary/30 transition-all ${isHighlighted ? "ring-2 ring-primary" : ""
+                        className={`h-12 bg-secondary/30 rounded-xl overflow-hidden group-hover:ring-2 group-hover:ring-primary/30 transition-all ${isHighlighted ? "ring-2 ring-primary" : ""
                             }`}
                     >
                         <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${widthPercent}%` }}
                             transition={{ delay: index * 0.1 + 0.2, duration: 0.5 }}
-                            className={`h-full rounded-lg relative overflow-hidden group-hover:brightness-110 transition-all ${isHighlighted ? "brightness-125" : ""
+                            className={`h-full rounded-xl relative overflow-hidden group-hover:brightness-110 transition-all ${isHighlighted ? "brightness-125" : ""
                                 }`}
                             style={{
                                 background: `linear-gradient(90deg, 
@@ -67,7 +69,7 @@ export function FunnelBar({
                         >
                             <div className="absolute inset-0 flex items-center justify-center">
                                 <span className="text-sm font-mono font-semibold text-primary-foreground drop-shadow">
-                                    {formatCurrency(stage.value)}
+                                    {formatCurrency(stage.value, language)}
                                 </span>
                             </div>
                         </motion.div>

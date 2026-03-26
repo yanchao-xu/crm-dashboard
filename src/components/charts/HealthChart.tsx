@@ -22,7 +22,7 @@ import { useHealthChartData } from "./HealthChart/useHealthChartData";
 
 interface HealthChartProps {
   data?: StackedHealthDataPoint[];
-  stages?: { code: string; name: string }[];  // 简化类型
+  stages?: { code: string; name: string }[]; // 简化类型
   onSegmentClick?: (month: string) => void;
   isActive?: boolean;
   activeFilter?: ChartFilterContext;
@@ -35,10 +35,10 @@ export function HealthChart({
   isActive,
   activeFilter,
 }: HealthChartProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   // 提取阶段代码列表
-  const stageCodes = stages.map(s => s.code);
+  const stageCodes = stages.map((s) => s.code);
   const { healthData, stats, stageKeys } = useHealthChartData(data, stageCodes);
 
   const handleClick = (data: any) => {
@@ -51,7 +51,7 @@ export function HealthChart({
 
   // 动态生成阶段标签映射（name 已经是当前语言）
   const stageLabels: Record<string, string> = {};
-  stages.forEach(stage => {
+  stages.forEach((stage) => {
     stageLabels[stage.code] = stage.name;
   });
 
@@ -96,12 +96,12 @@ export function HealthChart({
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard
           label={t("dashboard>chart>current")}
-          value={formatCurrency(stats.latestActual)}
+          value={formatCurrency(stats.latestActual, language)}
           valueColor="text-chart-actual"
         />
         <StatCard
           label={t("dashboard>chart>target")}
-          value={formatCurrency(stats.latestTarget)}
+          value={formatCurrency(stats.latestTarget, language)}
           valueColor="text-chart-target"
         />
         <StatCard
@@ -131,9 +131,11 @@ export function HealthChart({
             <YAxis
               {...axisConfig}
               tick={{ fill: chartTheme.tick, fontSize: axisConfig.fontSize }}
-              tickFormatter={formatCurrency}
+              tickFormatter={(value) => formatCurrency(value, language)}
             />
-            <Tooltip content={<HealthChartTooltip t={t} />} />
+            <Tooltip
+              content={<HealthChartTooltip t={t} language={language} />}
+            />
 
             {stageKeys.map((stageKey, index) => (
               <Bar
@@ -142,7 +144,9 @@ export function HealthChart({
                 stackId="a"
                 fill={getStageColor(index)}
                 name={stageLabels[stageKey] || stageKey}
-                radius={index === stageKeys.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                radius={
+                  index === stageKeys.length - 1 ? [8, 8, 0, 0] : [0, 0, 0, 0]
+                }
               />
             ))}
 
@@ -177,9 +181,6 @@ export function HealthChart({
             {t("dashboard>chart>theoreticalTarget")}
           </span>
         </div>
-        <span className="text-xs text-primary ml-auto">
-          {t("dashboard>chart>clickToView")}
-        </span>
       </div>
     </ChartCard>
   );

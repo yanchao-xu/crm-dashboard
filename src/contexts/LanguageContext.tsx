@@ -1,8 +1,8 @@
 import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 import type { BilingualText } from "@/types";
-
-type Language = "zh" | "en";
+import { toLanguage } from "@/lib/language";
+import type { Language } from "@/lib/language";
 
 interface Translations {
   [key: string]: {
@@ -28,18 +28,18 @@ export const translations: Translations = {
     zh: "按最近活动时间分析",
     en: "Deals by Last Activity Age",
   },
-  "dashboard>chart>clickToView": {
-    zh: "点击图表查看商机",
-    en: "Click chart to view deals",
-  },
-  "dashboard>chart>clickStageToView": {
-    zh: "点击阶段查看商机",
-    en: "Click stage to view deals",
-  },
-  "dashboard>chart>clickOrCardToView": {
-    zh: "点击图表或状态卡片查看商机",
-    en: "Click chart or status cards to view deals",
-  },
+  // "dashboard>chart>clickToView": {
+  //   zh: "点击图表查看商机",
+  //   en: "Click chart to view deals",
+  // },
+  // "dashboard>chart>clickStageToView": {
+  //   zh: "点击阶段查看商机",
+  //   en: "Click stage to view deals",
+  // },
+  // "dashboard>chart>clickOrCardToView": {
+  //   zh: "点击图表或状态卡片查看商机",
+  //   en: "Click chart or status cards to view deals",
+  // },
   "dashboard>chart>healthy": { zh: "健康", en: "HEALTHY" },
   "dashboard>chart>belowTarget": { zh: "低于目标", en: "BELOW TARGET" },
   "dashboard>chart>onTrack": { zh: "正常", en: "ON TRACK" },
@@ -72,10 +72,10 @@ export const translations: Translations = {
     en: ">90 days (Zombie)",
   },
   "dashboard>chart>gap": { zh: "差额", en: "Gap" },
-  "dashboard>chart>clickForDetails": {
-    zh: "点击查看详情",
-    en: "Click for details",
-  },
+  // "dashboard>chart>clickForDetails": {
+  //   zh: "点击查看详情",
+  //   en: "Click for details",
+  // },
   "dashboard>chart>deals": { zh: "个商机", en: "deals" },
   "dashboard>chart>total": { zh: "总计", en: "Total" },
   "dashboard>chart>amount": { zh: "金额", en: "Amount" },
@@ -170,7 +170,6 @@ export const translations: Translations = {
 
 interface LanguageContextType {
   language: Language;
-  setLanguage: (lang: Language) => void;
   t: (key: string, params?: Record<string, string | number>) => string;
   getText: (text: BilingualText | string) => string;
 }
@@ -191,8 +190,6 @@ export function LanguageProvider({
   children: ReactNode;
   i18nApi: I18nApi;
 }) {
-  const [language, setLanguage] = useState<Language>("zh");
-
   // const t = (key: string, params?: Record<string, string | number>): string => {
   //   const translation = translations[key];
   //   if (!translation) return key;
@@ -209,15 +206,17 @@ export function LanguageProvider({
   // };
 
   const t = i18nApi.t.bind(i18nApi);
+  const language = toLanguage(i18nApi.language);
 
   // Helper to get bilingual text value
   const getText = (text: BilingualText | string): string => {
     if (typeof text === "string") return text;
+    if (language === "ja") return text.ja || text.en || text.zh || "";
     return text[language] || text.zh || "";
   };
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, getText }}>
+    <LanguageContext.Provider value={{ language, t, getText }}>
       {children}
     </LanguageContext.Provider>
   );

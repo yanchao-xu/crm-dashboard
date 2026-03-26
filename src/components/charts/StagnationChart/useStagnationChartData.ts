@@ -59,6 +59,7 @@ export function useStagnationChartData(
     () =>
       stagnationData.map((d) => ({
         stage: d.stage,
+        stageName: d.stageName,
         active: displayMode === "amount" ? d.activeAmount : d.active,
         over30: displayMode === "amount" ? d.over30Amount : d.over30,
         over60: displayMode === "amount" ? d.over60Amount : d.over60,
