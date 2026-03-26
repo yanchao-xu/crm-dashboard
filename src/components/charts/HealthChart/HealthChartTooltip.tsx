@@ -80,9 +80,6 @@ export function HealthChartTooltip({
           </span>
         </div>
       </div>
-      <p className="text-xs text-primary mt-2 pt-2 border-t border-border">
-        {t("dashboard>chart>clickForDetails")}
-      </p>
     </div>
   );
 }

@@ -35,7 +35,10 @@ export function FunnelChart({
 
   const legendItems = [
     { color: "hsl(142, 76%, 45%)", label: t("dashboard>chart>aboveTarget") },
-    { color: "hsl(0, 84%, 60%)", label: t("dashboard>chart>belowTargetLegend") },
+    {
+      color: "hsl(0, 84%, 60%)",
+      label: t("dashboard>chart>belowTargetLegend"),
+    },
   ];
 
   return (
@@ -84,7 +87,7 @@ export function FunnelChart({
         ))}
       </div>
 
-      <ChartLegend items={legendItems} actionText={t("dashboard>chart>clickStageToView")} />
+      <ChartLegend items={legendItems} />
     </ChartCard>
   );
 }

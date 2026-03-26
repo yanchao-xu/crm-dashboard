@@ -28,18 +28,18 @@ export const translations: Translations = {
     zh: "按最近活动时间分析",
     en: "Deals by Last Activity Age",
   },
-  "dashboard>chart>clickToView": {
-    zh: "点击图表查看商机",
-    en: "Click chart to view deals",
-  },
-  "dashboard>chart>clickStageToView": {
-    zh: "点击阶段查看商机",
-    en: "Click stage to view deals",
-  },
-  "dashboard>chart>clickOrCardToView": {
-    zh: "点击图表或状态卡片查看商机",
-    en: "Click chart or status cards to view deals",
-  },
+  // "dashboard>chart>clickToView": {
+  //   zh: "点击图表查看商机",
+  //   en: "Click chart to view deals",
+  // },
+  // "dashboard>chart>clickStageToView": {
+  //   zh: "点击阶段查看商机",
+  //   en: "Click stage to view deals",
+  // },
+  // "dashboard>chart>clickOrCardToView": {
+  //   zh: "点击图表或状态卡片查看商机",
+  //   en: "Click chart or status cards to view deals",
+  // },
   "dashboard>chart>healthy": { zh: "健康", en: "HEALTHY" },
   "dashboard>chart>belowTarget": { zh: "低于目标", en: "BELOW TARGET" },
   "dashboard>chart>onTrack": { zh: "正常", en: "ON TRACK" },
@@ -72,10 +72,10 @@ export const translations: Translations = {
     en: ">90 days (Zombie)",
   },
   "dashboard>chart>gap": { zh: "差额", en: "Gap" },
-  "dashboard>chart>clickForDetails": {
-    zh: "点击查看详情",
-    en: "Click for details",
-  },
+  // "dashboard>chart>clickForDetails": {
+  //   zh: "点击查看详情",
+  //   en: "Click for details",
+  // },
   "dashboard>chart>deals": { zh: "个商机", en: "deals" },
   "dashboard>chart>total": { zh: "总计", en: "Total" },
   "dashboard>chart>amount": { zh: "金额", en: "Amount" },

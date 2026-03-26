@@ -318,10 +318,7 @@ export function StagnationChart({
         </ResponsiveContainer>
       </div>
 
-      <ChartLegend
-        items={legendItems}
-        actionText={t("dashboard>chart>clickOrCardToView")}
-      />
+      <ChartLegend items={legendItems} />
     </ChartCard>
   );
 }
