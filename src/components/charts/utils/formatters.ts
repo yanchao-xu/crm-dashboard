@@ -15,13 +15,15 @@ export function formatCurrency(
   language: Language = "zh",
 ): string {
   const symbol = getCurrencySymbol(language);
-  if (value >= 1000000) {
-    return `${symbol}${(value / 1000000).toFixed(2)}M`;
+  const abs = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+  if (abs >= 1000000) {
+    return `${sign}${symbol}${(abs / 1000000).toFixed(2)}M`;
   }
-  if (value >= 1000) {
-    return `${symbol}${(value / 1000).toFixed(2)}K`;
+  if (abs >= 1000) {
+    return `${sign}${symbol}${(abs / 1000).toFixed(2)}K`;
   }
-  return `${symbol}${value}`;
+  return `${sign}${symbol}${Math.round(abs * 100) / 100}`;
 }
 
 export function formatCurrencyWithSymbol(
