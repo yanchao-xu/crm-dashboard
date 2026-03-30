@@ -110,13 +110,14 @@ const Index = () => {
       case "stagnation":
         if (chartFilter.stage && chartFilter.activityStatus) {
           const statusLabel = t(
-            `dashboard>status>${chartFilter.activityStatus === "over30"
-              ? "over30"
-              : chartFilter.activityStatus === "over60"
-                ? "over60"
-                : chartFilter.activityStatus === "zombie"
-                  ? "zombie"
-                  : "active"
+            `dashboard>status>${
+              chartFilter.activityStatus === "over30"
+                ? "over30"
+                : chartFilter.activityStatus === "over60"
+                  ? "over60"
+                  : chartFilter.activityStatus === "zombie"
+                    ? "zombie"
+                    : "active"
             }`,
           );
           const stageObj = opportunityStages.find(
@@ -222,39 +223,39 @@ const Index = () => {
           <AnimatePresence>
             {(chartFilter?.type === "health" ||
               chartFilter?.type === "funnel") && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="glass-card overflow-hidden">
-                    <div className="flex items-center justify-between p-4 border-b border-border">
-                      <div>
-                        <h3 className="text-lg font-semibold">
-                          {getFilterTitle()}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {t("dashboard>filter>clickToSwitch")}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setChartFilter(null)}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="bot-dashboard-bg glass-card overflow-hidden">
+                  <div className="flex items-center justify-between p-4 border-b border-border">
+                    <div>
+                      <h3 className="text-lg font-semibold">
+                        {getFilterTitle()}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {t("dashboard>filter>clickToSwitch")}
+                      </p>
                     </div>
-
-                    <DealsTable
-                      filterContext={chartFilter}
-                      deals={monthFilteredDeals}
-                      stages={opportunityStages}
-                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setChartFilter(null)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
                   </div>
-                </motion.div>
-              )}
+
+                  <DealsTable
+                    filterContext={chartFilter}
+                    deals={monthFilteredDeals}
+                    stages={opportunityStages}
+                  />
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
 
           {/* Stagnation Chart - Full Width */}
@@ -280,7 +281,7 @@ const Index = () => {
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <div className="glass-card overflow-hidden">
+                <div className="bot-dashboard-bg glass-card overflow-hidden">
                   <div className="flex items-center justify-between p-4 border-b border-border">
                     <div>
                       <h3 className="text-lg font-semibold">

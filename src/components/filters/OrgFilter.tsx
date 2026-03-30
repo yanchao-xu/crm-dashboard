@@ -103,7 +103,12 @@ function OrgTreeItem({ node, level, selectedId, onSelect }: OrgTreeItemProps) {
   );
 }
 
-export function OrgFilter({ selectedOrg, onOrgChange, orgStructure, loading }: OrgFilterProps) {
+export function OrgFilter({
+  selectedOrg,
+  onOrgChange,
+  orgStructure,
+  loading,
+}: OrgFilterProps) {
   const { t, getText } = useLanguage();
   const [open, setOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -127,8 +132,8 @@ export function OrgFilter({ selectedOrg, onOrgChange, orgStructure, loading }: O
           <Button
             variant="outline"
             className={cn(
-              "h-9 gap-2 min-w-[180px] justify-start",
-              selectedOrg && "border-primary bg-primary/10",
+              "bot-dashboard-bg h-9 gap-2 min-w-[180px] justify-start",
+              selectedOrg && "border-primary ",
             )}
           >
             <Icon
@@ -140,7 +145,9 @@ export function OrgFilter({ selectedOrg, onOrgChange, orgStructure, loading }: O
               )}
             />
             <span className="truncate flex-1 text-left">
-              {selectedOrg ? getText(selectedOrg.name) : t("dashboard>filter>allOrgs")}
+              {selectedOrg
+                ? getText(selectedOrg.name)
+                : t("dashboard>filter>allOrgs")}
             </span>
             {selectedOrg && (
               <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">

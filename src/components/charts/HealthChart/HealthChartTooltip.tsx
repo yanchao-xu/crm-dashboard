@@ -30,7 +30,7 @@ export function HealthChartTooltip({
   const isHealthy = gap >= 0;
 
   return (
-    <div className="glass-card p-3 border border-border min-w-[200px]">
+    <div className="bot-dashboard-bg glass-card p-3 border border-border min-w-[200px]">
       <p className="font-mono text-sm text-muted-foreground mb-2">{label}</p>
 
       <div className="space-y-1 mb-2">
