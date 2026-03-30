@@ -12,6 +12,7 @@
     --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
+    --card-background: rgba(255, 255, 255, 0.5);
     --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
@@ -71,6 +72,7 @@
     --foreground: 210 40% 98%;
 
     --card: 222 47% 8%;
+    --card-background: rgba(30, 34, 50, 0.5);
     --card-foreground: 210 40% 98%;
 
     --popover: 222 47% 10%;
@@ -144,6 +146,10 @@
 @layer components {
   .glass-card {
     @apply bg-card/80 backdrop-blur-sm border border-border/50 rounded-2xl;
+  }
+
+  .bot-dashboard-bg {
+    background-color: var(--card-background);
   }
 
   .glow-primary {

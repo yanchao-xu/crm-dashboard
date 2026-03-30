@@ -120,8 +120,12 @@ const Index = () => {
                     : "active"
             }`,
           );
+          const stageObj = opportunityStages.find(
+            (s) => s.code === chartFilter.stage,
+          );
+          const stageName = stageObj ? stageObj.name : chartFilter.stage;
           return t("dashboard>filter>stagnationStageStatus", {
-            stage: chartFilter.stage,
+            stage: stageName,
             status: statusLabel,
           });
         }
@@ -142,7 +146,7 @@ const Index = () => {
 
   return (
     <div>
-      <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="container ">
         {/* 加载状态 */}
         {dealsLoading && (
           <div className="flex items-center justify-center py-12">
@@ -225,7 +229,7 @@ const Index = () => {
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <div className="glass-card overflow-hidden">
+                <div className="bot-dashboard-bg glass-card overflow-hidden">
                   <div className="flex items-center justify-between p-4 border-b border-border">
                     <div>
                       <h3 className="text-lg font-semibold">
@@ -277,7 +281,7 @@ const Index = () => {
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <div className="glass-card overflow-hidden">
+                <div className="bot-dashboard-bg glass-card overflow-hidden">
                   <div className="flex items-center justify-between p-4 border-b border-border">
                     <div>
                       <h3 className="text-lg font-semibold">

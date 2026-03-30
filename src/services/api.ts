@@ -301,7 +301,7 @@ export class DashboardApiService {
         value: Number(item.expectedTransactionAmount) || 0,
         stage: item.opportunityStage?.[0].code,
         lastActivityDays,
-        probability: Number(item.aiWinRatePrediction) || 0,
+        probability: Number(item.winRate) || 0,
         owner: item.opportunityOwner?.[0]?.label || "",
         expectedClose: item.expectedDealTime || "",
         productGroup: productIds.length > 0 ? productIds : undefined,
