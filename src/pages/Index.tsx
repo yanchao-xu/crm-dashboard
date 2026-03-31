@@ -1,4 +1,4 @@
-import { useState, useMemo, use } from "react";
+import { useState, useMemo, use, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { HealthChart } from "@/components/charts/HealthChart";
 import { StagnationChart } from "@/components/charts/StagnationChart";
@@ -9,6 +9,7 @@ import { FunnelChart } from "@/components/charts/FunnelChart";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { OrgNode } from "@/types";
+import type { FilterTag } from "@/components/charts/common/ChartCard";
 import {
   filterDealsByOrg,
   filterDealsByProduct,
@@ -34,7 +35,7 @@ export type ChartFilterContext = {
 } | null;
 
 const Index = () => {
-  const { t } = useLanguage();
+  const { t, getText } = useLanguage();
   const [chartFilter, setChartFilter] = useState<ChartFilterContext>(null);
   const [selectedOrg, setSelectedOrg] = useState<OrgNode | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
@@ -96,6 +97,102 @@ const Index = () => {
     () => calculateStagnationData(monthFilteredDeals, opportunityStages),
     [monthFilteredDeals, opportunityStages],
   );
+  const getStageName = (code?: string) => {
+    if (!code) return "";
+    return opportunityStages.find((s) => s.code === code)?.name ?? code;
+  };
+
+  // 构建每个图表的筛选条件标签
+  const currentYear = String(new Date().getFullYear());
+
+  const buildCommonTags = useCallback((): FilterTag[] => {
+    const tags: FilterTag[] = [{ label: currentYear }];
+    if (selectedOrg) {
+      tags.push({
+        label: getText(selectedOrg.name),
+        onRemove: () => setSelectedOrg(null),
+      });
+    }
+    if (selectedProducts.length > 0) {
+      const names = selectedProducts
+        .map((id) => {
+          const pg = productGroups.find((p) => p.id === id);
+          return pg ? getText(pg.name) : id;
+        })
+        .join(", ");
+      tags.push({
+        label: `${t("dashboard>filter>productGroup")}: ${names}`,
+        onRemove: () => setSelectedProducts([]),
+      });
+    }
+    return tags;
+  }, [selectedOrg, selectedProducts, productGroups, getText, t]);
+
+  const healthFilterTags = useMemo((): FilterTag[] => {
+    const tags = buildCommonTags();
+    if (chartFilter?.type === "health" && chartFilter.month) {
+      tags.push({
+        label: chartFilter.month,
+        onRemove: () => setChartFilter(null),
+      });
+    }
+    return tags;
+  }, [buildCommonTags, chartFilter]);
+
+  const funnelFilterTags = useMemo((): FilterTag[] => {
+    const tags = buildCommonTags();
+    if (chartFilter?.type === "health" && chartFilter.month) {
+      tags.push({
+        label: chartFilter.month,
+        onRemove: () => setChartFilter(null),
+      });
+    }
+    if (chartFilter?.type === "funnel" && chartFilter.stage) {
+      tags.push({
+        label: `${t("dashboard>filter>stage")}: ${getStageName(chartFilter.stage)}`,
+        onRemove: () => setChartFilter(null),
+      });
+    }
+    return tags;
+  }, [buildCommonTags, chartFilter, t, opportunityStages]);
+
+  const stagnationFilterTags = useMemo((): FilterTag[] => {
+    const tags = buildCommonTags();
+    if (chartFilter?.type === "health" && chartFilter.month) {
+      tags.push({
+        label: chartFilter.month,
+        onRemove: () => setChartFilter(null),
+      });
+    }
+    if (chartFilter?.type === "stagnation") {
+      if (chartFilter.stage) {
+        tags.push({
+          label: `${t("dashboard>filter>stage")}: ${getStageName(chartFilter.stage)}`,
+          onRemove: () => {
+            if (chartFilter.activityStatus) {
+              setChartFilter({ ...chartFilter, stage: undefined });
+            } else {
+              setChartFilter(null);
+            }
+          },
+        });
+      }
+      if (chartFilter.activityStatus) {
+        tags.push({
+          label: t(`dashboard>status>${chartFilter.activityStatus}`),
+          onRemove: () => {
+            if (chartFilter.stage) {
+              setChartFilter({ ...chartFilter, activityStatus: undefined });
+            } else {
+              setChartFilter(null);
+            }
+          },
+        });
+      }
+    }
+    return tags;
+  }, [buildCommonTags, chartFilter, t, opportunityStages]);
+
   const getFilterTitle = () => {
     if (!chartFilter) return "";
     switch (chartFilter.type) {
@@ -105,40 +202,19 @@ const Index = () => {
           : t("dashboard>filter>healthDefault");
       case "funnel":
         return chartFilter.stage
-          ? t("dashboard>filter>funnelStage", { stage: chartFilter.stage })
+          ? t("dashboard>filter>funnelStage", { stage: getStageName(chartFilter.stage) })
           : t("dashboard>filter>funnelDefault");
-      case "stagnation":
-        if (chartFilter.stage && chartFilter.activityStatus) {
-          const statusLabel = t(
-            `dashboard>status>${
-              chartFilter.activityStatus === "over30"
-                ? "over30"
-                : chartFilter.activityStatus === "over60"
-                  ? "over60"
-                  : chartFilter.activityStatus === "zombie"
-                    ? "zombie"
-                    : "active"
-            }`,
-          );
-          const stageObj = opportunityStages.find(
-            (s) => s.code === chartFilter.stage,
-          );
-          const stageName = stageObj ? stageObj.name : chartFilter.stage;
+      case "stagnation": {
+        if (!chartFilter.activityStatus) return t("dashboard>filter>stagnationDefault");
+        const statusLabel = t(`dashboard>status>${chartFilter.activityStatus}`);
+        if (chartFilter.stage) {
           return t("dashboard>filter>stagnationStageStatus", {
-            stage: stageName,
+            stage: getStageName(chartFilter.stage),
             status: statusLabel,
           });
         }
-        if (chartFilter.activityStatus) {
-          const statusLabel = t(
-            `dashboard>status>${chartFilter.activityStatus}`,
-          );
-          return t("dashboard>filter>stagnationStageStatus", {
-            stage: "",
-            status: statusLabel,
-          }).replace(" - ", "");
-        }
-        return t("dashboard>filter>stagnationDefault");
+        return t("dashboard>filter>stagnationStatus", { status: statusLabel });
+      }
       default:
         return t("dashboard>filter>dealList");
     }
@@ -208,6 +284,7 @@ const Index = () => {
               }
               isActive={chartFilter?.type === "health"}
               activeFilter={chartFilter}
+              filterTags={healthFilterTags}
             />
             <FunnelChart
               data={filteredFunnelData}
@@ -216,6 +293,7 @@ const Index = () => {
               }
               isActive={chartFilter?.type === "funnel"}
               activeFilter={chartFilter}
+              filterTags={funnelFilterTags}
             />
           </div>
 
@@ -223,39 +301,39 @@ const Index = () => {
           <AnimatePresence>
             {(chartFilter?.type === "health" ||
               chartFilter?.type === "funnel") && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="bot-dashboard-bg glass-card overflow-hidden">
-                  <div className="flex items-center justify-between p-4 border-b border-border">
-                    <div>
-                      <h3 className="text-lg font-semibold">
-                        {getFilterTitle()}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {t("dashboard>filter>clickToSwitch")}
-                      </p>
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="bot-dashboard-bg glass-card overflow-hidden">
+                    <div className="flex items-center justify-between p-4 border-b border-border">
+                      <div>
+                        <h3 className="text-lg font-semibold">
+                          {getFilterTitle()}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {t("dashboard>filter>clickToSwitch")}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setChartFilter(null)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setChartFilter(null)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
 
-                  <DealsTable
-                    filterContext={chartFilter}
-                    deals={monthFilteredDeals}
-                    stages={opportunityStages}
-                  />
-                </div>
-              </motion.div>
-            )}
+                    <DealsTable
+                      filterContext={chartFilter}
+                      deals={monthFilteredDeals}
+                      stages={opportunityStages}
+                    />
+                  </div>
+                </motion.div>
+              )}
           </AnimatePresence>
 
           {/* Stagnation Chart - Full Width */}
@@ -270,6 +348,7 @@ const Index = () => {
             }
             isActive={chartFilter?.type === "stagnation"}
             activeFilter={chartFilter}
+            filterTags={stagnationFilterTags}
           />
 
           {/* Deals Table for Stagnation - Full Width */}

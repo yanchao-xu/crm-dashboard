@@ -14,7 +14,7 @@ import { ChartFilterContext } from "@/pages/Index";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { DollarSign, Hash } from "lucide-react";
-import { ChartCard } from "./common/ChartCard";
+import { ChartCard, FilterTag } from "./common/ChartCard";
 import { StatCard } from "./common/StatCard";
 import { ChartLegend } from "./common/ChartLegend";
 import { formatCurrencyWithSymbol } from "./utils/formatters";
@@ -31,6 +31,7 @@ interface StagnationChartProps {
   onBarClick?: (stage: string, activityStatus: string) => void;
   isActive?: boolean;
   activeFilter?: ChartFilterContext;
+  filterTags?: FilterTag[];
 }
 
 export function StagnationChart({
@@ -38,6 +39,7 @@ export function StagnationChart({
   onBarClick,
   isActive,
   activeFilter,
+  filterTags,
 }: StagnationChartProps) {
   const { t, language } = useLanguage();
   const [displayMode, setDisplayMode] = useState<DisplayMode>("amount");
@@ -96,6 +98,7 @@ export function StagnationChart({
     <ChartCard
       title={t("dashboard>chart>stagnation")}
       description={t("dashboard>chart>stagnationDesc")}
+      filterTags={filterTags}
       isActive={isActive}
       isOtherChartActive={isOtherChartActive}
     >
@@ -126,13 +129,12 @@ export function StagnationChart({
           </ToggleGroupItem>
         </ToggleGroup>
         <div
-          className={`px-3 py-1.5 rounded-full text-xs font-mono font-medium ${
-            zombieStatusVariant === "danger"
-              ? "bg-danger/20 text-danger"
-              : zombieStatusVariant === "warning"
-                ? "bg-warning/20 text-warning"
-                : "bg-success/20 text-success"
-          }`}
+          className={`px-3 py-1.5 rounded-full text-xs font-mono font-medium ${zombieStatusVariant === "danger"
+            ? "bg-danger/20 text-danger"
+            : zombieStatusVariant === "warning"
+              ? "bg-warning/20 text-warning"
+              : "bg-success/20 text-success"
+            }`}
         >
           {formatValue(stats.totalZombie)} {t("dashboard>chart>zombieDeals")} (
           {stats.zombiePercentage}%)

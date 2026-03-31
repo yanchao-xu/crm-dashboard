@@ -148,7 +148,7 @@
     @apply bg-card/80 backdrop-blur-sm border border-border/50 rounded-2xl;
   }
 
-  .bot-dashboard-bg {
+  .bot-dashboard-bg1 {
     background-color: var(--card-background);
   }
 

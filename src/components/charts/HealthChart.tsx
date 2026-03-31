@@ -12,7 +12,7 @@ import {
 import { ChartFilterContext } from "@/pages/Index";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { StackedHealthDataPoint } from "@/types";
-import { ChartCard } from "./common/ChartCard";
+import { ChartCard, FilterTag } from "./common/ChartCard";
 import { StatCard } from "./common/StatCard";
 import { formatCurrency } from "./utils/formatters";
 import { stageColors, chartTheme } from "./config/chartColors";
@@ -26,6 +26,7 @@ interface HealthChartProps {
   onSegmentClick?: (month: string) => void;
   isActive?: boolean;
   activeFilter?: ChartFilterContext;
+  filterTags?: FilterTag[];
 }
 
 export function HealthChart({
@@ -34,6 +35,7 @@ export function HealthChart({
   onSegmentClick,
   isActive,
   activeFilter,
+  filterTags,
 }: HealthChartProps) {
   const { t, language } = useLanguage();
 
@@ -89,6 +91,7 @@ export function HealthChart({
           : t("dashboard>chart>belowTarget"),
         variant: stats.isHealthy ? "success" : "danger",
       }}
+      filterTags={filterTags}
       isActive={isActive}
       isOtherChartActive={isOtherChartActive}
       className="cursor-pointer"
