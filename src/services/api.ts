@@ -13,7 +13,6 @@ interface LeadRawData {
   lastActivityDays: number;
   probability: number;
   owner: string;
-  expectedClose: string;
   productGroup?: string;
   createdMonth?: string;
   createdDate?: string;
@@ -265,10 +264,12 @@ export class DashboardApiService {
         }
       }
     });
+    console.log("rawData", rawData);
     return rawData.map((item: LeadRawData) => {
       // 计算创建月份
+      // important: 我们按照了expectedDealTime 而没有按照创建时间
       const createdDate =
-        item.creationTime || item.createdDate || item.expectedClose;
+        item.expectedDealTime || item.creationTime || item.createdDate;
       const month = createdDate
         ? this.getMonthFromDate(createdDate)
         : undefined;
@@ -303,7 +304,6 @@ export class DashboardApiService {
         lastActivityDays,
         probability: Number(item.winRate) || 0,
         owner: item.opportunityOwner?.[0]?.label || "",
-        expectedClose: item.expectedDealTime || "",
         productGroup: productIds.length > 0 ? productIds : undefined,
         createdMonth: month,
       };
@@ -367,6 +367,8 @@ export class DashboardApiService {
         proposalToNegotiation: item.proposalToNegotiation,
         negotiationToWin: item.negotiationToWin,
         negotiationToLoss: item.negotiationToLoss,
+        theStartDateOfTheFiscalYear: item.theStartDateOfTheFiscalYear,
+        theEndDateOfTheFiscalYear: item.theEndDateOfTheFiscalYear,
       };
       orgMap.set(item.id?.toString(), node);
     });

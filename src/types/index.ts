@@ -16,7 +16,6 @@ export interface Deal {
   lastActivityDays: number;
   probability: number;
   owner: string;
-  expectedClose: string;
   productGroup?: string[];
   createdMonth?: string;
 }
@@ -91,6 +90,8 @@ export interface OrgNode {
   proposalToNegotiation?: number;
   negotiationToWin?: number;
   negotiationToLoss?: number;
+  theStartDateOfTheFiscalYear?: string;
+  theEndDateOfTheFiscalYear?: string;
 }
 
 // 产品相关类型

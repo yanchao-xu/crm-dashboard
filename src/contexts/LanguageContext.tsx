@@ -136,6 +136,8 @@ export const translations: Translations = {
   },
   "dashboard>filter>productGroup": { zh: "产品组", en: "Product Group" },
   "dashboard>filter>teamComparison": { zh: "团队对比", en: "Team Comparison" },
+  "dashboard>filter>byMonth": { zh: "按月", en: "By Month" },
+  "dashboard>filter>byQuarter": { zh: "按季度", en: "By Quarter" },
 
   // Deals
   "dashboard>deals>responsible": {

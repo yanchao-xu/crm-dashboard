@@ -33,6 +33,7 @@ function FilterPopover({
   selectedValues,
   onSelectionChange,
   getText,
+  t,
 }: {
   label: string;
   icon: React.ElementType;
@@ -40,6 +41,7 @@ function FilterPopover({
   selectedValues: string[];
   onSelectionChange: (values: string[]) => void;
   getText: (text: { zh: string; en: string }) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -74,6 +76,14 @@ function FilterPopover({
         align="start"
       >
         <div className="space-y-1">
+          {selectedValues.length > 0 && (
+            <div
+              onClick={() => onSelectionChange([])}
+              className="flex items-center justify-center px-2 py-1.5 mb-1 rounded cursor-pointer text-xs text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-colors border-b border-border"
+            >
+              {t("dashboard>filter>clearAll")}
+            </div>
+          )}
           {options.map((option) => (
             <div
               key={option.id}
@@ -114,6 +124,7 @@ export function ProductTeamFilter({
         selectedValues={selectedProducts}
         onSelectionChange={onProductsChange}
         getText={getText}
+        t={t}
       />
     </div>
   );

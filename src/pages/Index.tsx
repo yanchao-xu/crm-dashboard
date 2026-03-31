@@ -14,9 +14,11 @@ import {
   filterDealsByOrg,
   filterDealsByProduct,
   filterDealsByMonth,
+  filterDealsByQuarter,
   calculateStackedHealthData,
   calculateStagnationData,
   calculateFunnelData,
+  aggregateHealthDataByQuarter,
 } from "@/utils/orgFilter";
 import {
   useDeals,
@@ -26,6 +28,7 @@ import {
   useLeadCount,
 } from "@/hooks/useApiData";
 import { DealsTable } from "@/components/deals/DealsTable";
+import { PeriodFilter, type PeriodMode } from "@/components/filters/PeriodFilter";
 
 export type ChartFilterContext = {
   type: "health" | "funnel" | "stagnation";
@@ -39,6 +42,7 @@ const Index = () => {
   const [chartFilter, setChartFilter] = useState<ChartFilterContext>(null);
   const [selectedOrg, setSelectedOrg] = useState<OrgNode | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [periodMode, setPeriodMode] = useState<PeriodMode>("month");
 
   // 从 API 获取数据（不使用 fallback）
   const { data: deals, loading: dealsLoading, error: dealsError } = useDeals();
@@ -55,23 +59,32 @@ const Index = () => {
     return result;
   }, [selectedOrg, selectedProducts, deals]);
 
-  // 健康度图表数据（始终显示所有月份）
-  // target 数据：没有选中组织时使用根节点，选中后使用选中的组织
+  // 健康度图表数据
   const filteredStackedHealthData = useMemo(() => {
     const orgForTarget = selectedOrg || (orgStructure.id ? orgStructure : null);
-    return calculateStackedHealthData(
+    const monthlyData = calculateStackedHealthData(
       filteredDeals,
       orgForTarget,
       opportunityStages,
     );
-  }, [filteredDeals, selectedOrg, orgStructure, opportunityStages]);
-  // 当健康度图表有选中月份时，在 filteredDeals 基础上按月过滤
+    if (periodMode === "quarter") {
+      return aggregateHealthDataByQuarter(monthlyData, orgForTarget);
+    }
+    return monthlyData;
+  }, [filteredDeals, selectedOrg, orgStructure, opportunityStages, periodMode]);
+
+  // 点击柱子后过滤 deals（月或季度标签）
   const monthFilteredDeals = useMemo(() => {
     if (chartFilter?.type === "health" && chartFilter.month) {
-      return filterDealsByMonth(filteredDeals, chartFilter.month);
+      const clickedLabel = chartFilter.month;
+      if (clickedLabel.startsWith("Q")) {
+        const orgForQuarters = selectedOrg || (orgStructure.id ? orgStructure : null);
+        return filterDealsByQuarter(filteredDeals, orgForQuarters, clickedLabel);
+      }
+      return filterDealsByMonth(filteredDeals, clickedLabel);
     }
     return filteredDeals;
-  }, [filteredDeals, chartFilter]);
+  }, [filteredDeals, chartFilter, selectedOrg, orgStructure]);
 
   // 销售漏斗数据
   // target conversion 来自选中的组织节点，未选中时使用根节点
@@ -272,6 +285,13 @@ const Index = () => {
               selectedProducts={selectedProducts}
               onProductsChange={setSelectedProducts}
               productOptions={productGroups}
+            />
+            <PeriodFilter
+              value={periodMode}
+              onChange={(mode) => {
+                setPeriodMode(mode);
+                setChartFilter(null);
+              }}
             />
           </div>
           {/* Top Charts Row */}

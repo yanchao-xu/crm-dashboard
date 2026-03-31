@@ -65,16 +65,12 @@ export function filterDealsByMonth(
   return allDeals.filter((deal) => deal.createdMonth === month);
 }
 
-// Recalculate stacked health data based on filtered deals
-export function calculateStackedHealthData(
-  filteredDeals: Deal[],
-  selectedOrg: OrgNode | null,
-  stages: OpportunityStage[] = [],
-): StackedHealthDataPoint[] {
-  if (stages.length === 0) {
-    return [];
-  }
-  const months = [
+// 根据财年起止日期生成月份列表
+// 有开始时间：从开始月起 12 个月
+// 只有结束时间：结束月往前推 12 个月
+// 都没有：自然年 Jan-Dec
+function getFiscalMonths(orgNode: OrgNode | null): string[] {
+  const allMonths = [
     "Jan",
     "Feb",
     "Mar",
@@ -88,6 +84,45 @@ export function calculateStackedHealthData(
     "Nov",
     "Dec",
   ];
+
+  const hasStart = !!orgNode?.theStartDateOfTheFiscalYear;
+  const hasEnd = !!orgNode?.theEndDateOfTheFiscalYear;
+
+  if (!hasStart && !hasEnd) {
+    return allMonths;
+  }
+
+  try {
+    let startMonth: number; // 0-11
+
+    if (hasStart) {
+      startMonth = new Date(orgNode!.theStartDateOfTheFiscalYear!).getMonth();
+    } else {
+      // 只有结束时间，往前推 12 个月（结束月 - 11）
+      const endMonth = new Date(orgNode!.theEndDateOfTheFiscalYear!).getMonth();
+      startMonth = (endMonth - 11 + 12) % 12;
+    }
+
+    const result: string[] = [];
+    for (let i = 0; i < 12; i++) {
+      result.push(allMonths[(startMonth + i) % 12]);
+    }
+    return result;
+  } catch {
+    return allMonths;
+  }
+}
+
+// Recalculate stacked health data based on filtered deals
+export function calculateStackedHealthData(
+  filteredDeals: Deal[],
+  selectedOrg: OrgNode | null,
+  stages: OpportunityStage[] = [],
+): StackedHealthDataPoint[] {
+  if (stages.length === 0) {
+    return [];
+  }
+  const months = getFiscalMonths(selectedOrg);
 
   // 月份缩写到 OrgNode 属性的映射
   const monthFieldMap: Record<string, keyof OrgNode> = {
@@ -229,23 +264,20 @@ export function calculateFunnelData(
 
     if (index === 0) {
       // 第一个 stage：分子是当前 count，分母是线索总数（leadCount）
-      actualConversion = leadCount > 0
-        ? Math.round((item.count / leadCount) * 100)
-        : 0;
+      actualConversion =
+        leadCount > 0 ? Math.round((item.count / leadCount) * 100) : 0;
     } else if (index < stageCounts.length - 2) {
       // 第二个到倒数第三个：分子是当前 count，分母是从第一个到当前（含）的 count 之和
       const denominator = stageCounts
         .slice(0, index + 1)
         .reduce((sum, s) => sum + s.count, 0);
-      actualConversion = denominator > 0
-        ? Math.round((item.count / denominator) * 100)
-        : 0;
+      actualConversion =
+        denominator > 0 ? Math.round((item.count / denominator) * 100) : 0;
     } else {
       // 倒数第二个（Winning Orders）和倒数第一个（Single Loss）：分子是各自的 count，分母是全部 count 之和
       const denominator = stageCounts.reduce((sum, s) => sum + s.count, 0);
-      actualConversion = denominator > 0
-        ? Math.round((item.count / denominator) * 100)
-        : 0;
+      actualConversion =
+        denominator > 0 ? Math.round((item.count / denominator) * 100) : 0;
     }
 
     return {
@@ -256,5 +288,72 @@ export function calculateFunnelData(
       targetConversion,
       actualConversion,
     };
+  });
+}
+
+// 根据财年月份生成季度列表
+export function getFiscalQuarters(orgNode: OrgNode | null): { label: string; months: string[] }[] {
+  const months = getFiscalMonths(orgNode);
+  const quarters: { label: string; months: string[] }[] = [];
+
+  for (let i = 0; i < months.length; i += 3) {
+    const qMonths = months.slice(i, i + 3);
+    if (qMonths.length > 0) {
+      quarters.push({
+        label: `Q${quarters.length + 1}`,
+        months: qMonths,
+      });
+    }
+  }
+
+  return quarters;
+}
+
+// 获取季度标签列表 ["Q1", "Q2", ...]
+export function getQuarterLabels(orgNode: OrgNode | null): string[] {
+  return getFiscalQuarters(orgNode).map((q) => q.label);
+}
+
+// 根据季度获取对应的月份列表
+export function getMonthsForQuarter(orgNode: OrgNode | null, quarter: string): string[] {
+  const quarters = getFiscalQuarters(orgNode);
+  const found = quarters.find((q) => q.label === quarter);
+  return found ? found.months : [];
+}
+
+// 按季度过滤 deals
+export function filterDealsByQuarter(
+  allDeals: Deal[],
+  orgNode: OrgNode | null,
+  quarter: string | undefined,
+): Deal[] {
+  if (!quarter) return allDeals;
+  const months = getMonthsForQuarter(orgNode, quarter);
+  if (months.length === 0) return allDeals;
+  return allDeals.filter((deal) => deal.createdMonth && months.includes(deal.createdMonth));
+}
+
+// 按季度聚合 StackedHealthData
+export function aggregateHealthDataByQuarter(
+  monthlyData: StackedHealthDataPoint[],
+  orgNode: OrgNode | null,
+): StackedHealthDataPoint[] {
+  const quarters = getFiscalQuarters(orgNode);
+
+  return quarters.map((q) => {
+    const qMonthData = monthlyData.filter((d) => q.months.includes(d.month));
+
+    const aggregated: any = { month: q.label, target: 0 };
+
+    qMonthData.forEach((md) => {
+      aggregated.target += md.target || 0;
+      Object.keys(md).forEach((key) => {
+        if (key !== "month" && key !== "target") {
+          aggregated[key] = (aggregated[key] || 0) + ((md[key] as number) || 0);
+        }
+      });
+    });
+
+    return aggregated as StackedHealthDataPoint;
   });
 }
