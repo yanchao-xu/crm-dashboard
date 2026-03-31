@@ -21,10 +21,19 @@ export function useHealthChartData(
   }, [healthData, stages]);
 
   const stats = useMemo(() => {
-    const currentMonth = new Date().getMonth() + 1; // 1-12
+    // 根据财年月份顺序，找到当前月在数据中的位置
+    const monthAbbrs = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+    const currentMonthAbbr = monthAbbrs[new Date().getMonth()];
+    const currentIndex = healthData.findIndex(
+      (d) => d.month === currentMonthAbbr,
+    );
 
-    // 只累计到当前自然月的数据
-    const dataUpToCurrentMonth = healthData.slice(0, currentMonth);
+    // 累计到当前月（含），如果当前月不在财年范围内则累计全部
+    const sliceEnd = currentIndex >= 0 ? currentIndex + 1 : healthData.length;
+    const dataUpToCurrentMonth = healthData.slice(0, sliceEnd);
 
     const totalActual = dataUpToCurrentMonth.reduce((total, monthData) => {
       const monthSum = stageKeys.reduce(

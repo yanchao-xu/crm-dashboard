@@ -1,7 +1,7 @@
 import { ChartFilterContext } from "@/pages/Index";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { FunnelStage } from "@/types";
-import { ChartCard } from "./common/ChartCard";
+import { ChartCard, FilterTag } from "./common/ChartCard";
 import { StatCard } from "./common/StatCard";
 import { ChartLegend } from "./common/ChartLegend";
 import { formatCurrency } from "./utils/formatters";
@@ -13,6 +13,7 @@ interface FunnelChartProps {
   onStageClick?: (stage: string) => void;
   isActive?: boolean;
   activeFilter?: ChartFilterContext;
+  filterTags?: FilterTag[];
 }
 
 export function FunnelChart({
@@ -20,6 +21,7 @@ export function FunnelChart({
   onStageClick,
   isActive,
   activeFilter,
+  filterTags,
 }: FunnelChartProps) {
   const { t, language } = useLanguage();
   const { funnelData, stats } = useFunnelChartData(data);
@@ -51,6 +53,7 @@ export function FunnelChart({
           : t("dashboard>chart>needsAttention"),
         variant: stats.isOverallHealthy ? "success" : "warning",
       }}
+      filterTags={filterTags}
       isActive={isActive}
       isOtherChartActive={isOtherChartActive}
     >
