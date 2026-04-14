@@ -14,7 +14,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import type { StackedHealthDataPoint } from "@/types";
 import { ChartCard, FilterTag } from "./common/ChartCard";
 import { StatCard } from "./common/StatCard";
-import { formatCurrency } from "./utils/formatters";
+import { formatCurrency, formatMonth } from "./utils/formatters";
 import { stageColors, chartTheme } from "./config/chartColors";
 import { chartMargins, chartHeights, axisConfig } from "./config/chartConfig";
 import { HealthChartTooltip } from "./HealthChart/HealthChartTooltip";
@@ -130,6 +130,7 @@ export function HealthChart({
               dataKey="month"
               {...axisConfig}
               tick={{ fill: chartTheme.tick, fontSize: axisConfig.fontSize }}
+              tickFormatter={(value) => formatMonth(value, language)}
             />
             <YAxis
               {...axisConfig}

@@ -1,4 +1,4 @@
-import { useState, useMemo, use, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { HealthChart } from "@/components/charts/HealthChart";
 import { StagnationChart } from "@/components/charts/StagnationChart";
@@ -51,6 +51,16 @@ const Index = () => {
   const { data: opportunityStages, loading: stagesLoading } =
     useOpportunityStages();
   const { data: leadCount } = useLeadCount();
+
+  // 暂无数据 toast 提示
+  const [showNoDataToast, setShowNoDataToast] = useState(false);
+  useEffect(() => {
+    if (!dealsLoading && !dealsError && deals.length === 0) {
+      setShowNoDataToast(true);
+      const timer = setTimeout(() => setShowNoDataToast(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [dealsLoading, dealsError, deals]);
 
   // Calculate filtered data based on selected organization and products
   const filteredDeals = useMemo(() => {
@@ -258,14 +268,20 @@ const Index = () => {
           </div>
         )}
 
-        {/* 无数据状态 */}
-        {!dealsLoading && !dealsError && deals.length === 0 && (
-          <div className="glass-card p-6 text-center">
-            <p className="text-muted-foreground">
+        {/* 暂无数据 toast 提示 */}
+        <AnimatePresence>
+          {showNoDataToast && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-muted text-muted-foreground px-4 py-2 rounded-lg shadow-lg text-sm"
+            >
               {t("dashboard>status>noData")}
-            </p>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
