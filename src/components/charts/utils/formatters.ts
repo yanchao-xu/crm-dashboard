@@ -36,3 +36,25 @@ export function formatCurrencyWithSymbol(
 export function formatPercentage(value: number, decimals = 0): string {
   return `${value.toFixed(decimals)}%`;
 }
+
+const monthMap: Record<Language, Record<string, string>> = {
+  zh: {
+    Jan: "1月", Feb: "2月", Mar: "3月", Apr: "4月",
+    May: "5月", Jun: "6月", Jul: "7月", Aug: "8月",
+    Sep: "9月", Oct: "10月", Nov: "11月", Dec: "12月",
+  },
+  en: {
+    Jan: "Jan", Feb: "Feb", Mar: "Mar", Apr: "Apr",
+    May: "May", Jun: "Jun", Jul: "Jul", Aug: "Aug",
+    Sep: "Sep", Oct: "Oct", Nov: "Nov", Dec: "Dec",
+  },
+  ja: {
+    Jan: "1月", Feb: "2月", Mar: "3月", Apr: "4月",
+    May: "5月", Jun: "6月", Jul: "7月", Aug: "8月",
+    Sep: "9月", Oct: "10月", Nov: "11月", Dec: "12月",
+  },
+};
+
+export function formatMonth(month: string, language: Language = "zh"): string {
+  return monthMap[language]?.[month] ?? month;
+}
