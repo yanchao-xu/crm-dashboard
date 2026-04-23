@@ -112,13 +112,13 @@ export class DashboardApiService {
   async getOpportunityProducts(parentDataIds: string[]): Promise<any[]> {
     try {
       const response = await this.restApi.get(
-        "/form/api/v2/form-entity-data/quotation-management/opportunity-product-management-subform-form/list",
+        "/form/api/v2/form-entity-data/opportunity-management/opportunity-product-management-subform-form/list",
         {
           params: {
             payload: JSON.stringify({
               filterModel: [
                 {
-                  colId: "businessOpportunity.id",
+                  colId: "parentDataId",
                   filterType: "set",
                   values: parentDataIds,
                 },
@@ -243,11 +243,12 @@ export class DashboardApiService {
     const parentDataIds = rawData.map((item) => item.id);
     // 获取商机产品数据
     const productData = await this.getOpportunityProducts(parentDataIds);
+
     // 构建商机ID到产品ID数组的映射
     const opportunityProductMap = new Map<string, string[]>();
 
     productData.forEach((product: any) => {
-      const parentDataId = product.businessOpportunity?.[0]?.value;
+      const parentDataId = product.parentDataId;
       if (
         parentDataId &&
         product.productName &&
@@ -263,7 +264,8 @@ export class DashboardApiService {
         }
       }
     });
-    const test = rawData.map((item: LeadRawData) => {
+    console.log("rawData", rawData);
+    return rawData.map((item: LeadRawData) => {
       // 计算创建月份
       // important: 我们按照了expectedDealTime 而没有按照创建时间
       const createdDate =
@@ -306,8 +308,6 @@ export class DashboardApiService {
         createdMonth: month,
       };
     });
-
-    return test;
   }
 
   // 转换组织数据为树结构
