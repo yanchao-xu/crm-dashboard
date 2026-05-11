@@ -88,12 +88,12 @@ export class DashboardApiService {
                   dateFrom: `${currentYear}-01-01`,
                   dateTo: `${currentYear}-12-31`,
                 },
-                {
-                  colId: "Status",
-                  filterType: "set",
-                  type: "notIn",
-                  values: ["草稿"],
-                },
+                // {
+                //   colId: "Status",
+                //   filterType: "set",
+                //   type: "notIn",
+                //   values: ["草稿"],
+                // },
               ],
             }),
           },

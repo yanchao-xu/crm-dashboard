@@ -7,6 +7,15 @@ import type {
   StackedHealthDataPoint,
 } from "@/types";
 import { OpportunityStage } from "@/services/api";
+import type { AmountMode } from "@/components/filters/AmountModeFilter";
+
+// 根据 amountMode 获取商机的金额值
+export function getDealAmount(deal: Deal, amountMode: AmountMode = "expectedAmount"): number {
+  if (amountMode === "businessAmount") {
+    return deal.businessAmount ?? 0;
+  }
+  return deal.value;
+}
 
 // Get all person names (owners) under an organization node
 export function getOwnersInOrg(node: OrgNode): string[] {
@@ -118,6 +127,7 @@ export function calculateStackedHealthData(
   filteredDeals: Deal[],
   selectedOrg: OrgNode | null,
   stages: OpportunityStage[] = [],
+  amountMode: AmountMode = "expectedAmount",
 ): StackedHealthDataPoint[] {
   if (stages.length === 0) {
     return [];
@@ -151,7 +161,7 @@ export function calculateStackedHealthData(
 
     const stageData = monthlyData.get(month)!;
     const currentValue = stageData.get(deal.stage) || 0;
-    stageData.set(deal.stage, currentValue + deal.value);
+    stageData.set(deal.stage, currentValue + getDealAmount(deal, amountMode));
   });
 
   return months.map((month) => {
@@ -182,6 +192,7 @@ export function calculateStackedHealthData(
 export function calculateStagnationData(
   filteredDeals: Deal[],
   stages: OpportunityStage[] = [],
+  amountMode: AmountMode = "expectedAmount",
 ): StagnationData[] {
   if (stages.length === 0) {
     return [];
@@ -206,10 +217,10 @@ export function calculateStagnationData(
       over30: over30Deals.length,
       over60: over60Deals.length,
       zombie: zombieDeals.length,
-      activeAmount: activeDeals.reduce((sum, d) => sum + d.value, 0),
-      over30Amount: over30Deals.reduce((sum, d) => sum + d.value, 0),
-      over60Amount: over60Deals.reduce((sum, d) => sum + d.value, 0),
-      zombieAmount: zombieDeals.reduce((sum, d) => sum + d.value, 0),
+      activeAmount: activeDeals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0),
+      over30Amount: over30Deals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0),
+      over60Amount: over60Deals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0),
+      zombieAmount: zombieDeals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0),
     };
   });
 }
@@ -230,6 +241,7 @@ export function calculateFunnelData(
   stages: OpportunityStage[] = [],
   selectedOrg: OrgNode | null = null,
   leadCount: number = 0,
+  amountMode: AmountMode = "expectedAmount",
 ): FunnelStage[] {
   if (stages.length === 0) {
     return [];
@@ -241,7 +253,7 @@ export function calculateFunnelData(
     return {
       stage,
       count: stageDeals.length,
-      value: stageDeals.reduce((sum, d) => sum + d.value, 0),
+      value: stageDeals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0),
     };
   });
 
