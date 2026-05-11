@@ -12,6 +12,7 @@ export interface Deal {
   name: BilingualText;
   company: BilingualText;
   value: number;
+  businessAmount?: number;
   stage: string;
   lastActivityDays: number;
   probability: number;

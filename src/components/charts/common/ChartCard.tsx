@@ -1,6 +1,6 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { motion } from "framer-motion";
-import { X } from "lucide-react";
+import { X, Info } from "lucide-react";
 
 export interface FilterTag {
   label: string;
@@ -10,6 +10,7 @@ export interface FilterTag {
 interface ChartCardProps {
   title: string;
   description: string;
+  titleTooltip?: string;
   status?: {
     label: string;
     variant: "success" | "danger" | "warning";
@@ -24,6 +25,7 @@ interface ChartCardProps {
 export function ChartCard({
   title,
   description,
+  titleTooltip,
   status,
   filterTags,
   isActive,
@@ -31,6 +33,7 @@ export function ChartCard({
   children,
   className = "",
 }: ChartCardProps) {
+  const [showTooltip, setShowTooltip] = useState(false);
   const statusColors = {
     success: "bg-success/20 text-success",
     danger: "bg-danger/20 text-danger",
@@ -43,15 +46,31 @@ export function ChartCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       className={`bot-dashboard-bg glass-card p-6 transition-all ${isActive
-        ? "ring-2 ring-primary shadow-lg shadow-primary/20"
-        : isOtherChartActive
-          ? "opacity-50 hover:opacity-75"
-          : "hover:ring-2 hover:ring-primary/30"
+          ? "ring-2 ring-primary shadow-lg shadow-primary/20"
+          : isOtherChartActive
+            ? "opacity-50 hover:opacity-75"
+            : "hover:ring-2 hover:ring-primary/30"
         } ${className}`}
     >
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold">{title}</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-lg font-semibold">{title}</h3>
+            {titleTooltip && (
+              <div
+                className="relative inline-flex"
+                onMouseEnter={() => setShowTooltip(true)}
+                onMouseLeave={() => setShowTooltip(false)}
+              >
+                <Info className="w-4 h-4 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
+                {showTooltip && (
+                  <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-50 w-72 p-3 rounded-lg bg-popover border border-border shadow-lg text-xs text-popover-foreground whitespace-pre-line">
+                    {titleTooltip.replace(/\\n/g, "\n")}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">

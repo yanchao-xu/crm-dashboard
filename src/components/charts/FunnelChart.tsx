@@ -47,6 +47,7 @@ export function FunnelChart({
     <ChartCard
       title={t("dashboard>chart>funnel")}
       description={t("dashboard>chart>funnelDesc")}
+      titleTooltip={t("dashboard>chart>funnelTooltip")}
       status={{
         label: stats.isOverallHealthy
           ? t("dashboard>chart>onTrack")

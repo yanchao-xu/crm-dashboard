@@ -23,6 +23,10 @@ export const translations: Translations = {
     zh: "阶段转化 vs 目标",
     en: "Stage Conversion vs Target",
   },
+  "dashboard>chart>funnelTooltip": {
+    zh: "计算逻辑：\n1. 每个阶段显示当前商机数量和金额\n2. 转化率 = 当前阶段商机数 ÷ 从第一个到当前阶段（含）的商机数之和\n3. 目标转化率来自组织设置\n4. 绿色表示实际转化率达到或超过目标，红色表示低于目标",
+    en: "Calculation Logic:\n1. Each stage shows current deal count and value\n2. Conversion rate = Current stage deals ÷ Sum of deals from first to current stage (inclusive)\n3. Target conversion rates come from organization settings\n4. Green indicates actual conversion meets or exceeds target, red indicates below target",
+  },
   "dashboard>chart>stagnation": { zh: "商机停滞分析", en: "Deal Stagnation" },
   "dashboard>chart>stagnationDesc": {
     zh: "按最近活动时间分析",
@@ -152,7 +156,8 @@ export const translations: Translations = {
   "dashboard>deals>totalValue": { zh: "商机总价值", en: "Total Deal Value" },
   "dashboard>deals>avgProbability": { zh: "平均概率", en: "Avg Probability" },
   "dashboard>deals>deal": { zh: "商机", en: "Deal" },
-  "dashboard>deals>amount": { zh: "金额", en: "Amount" },
+  "dashboard>deals>expectedTransactionAmount": { zh: "金额", en: "Amount" },
+  "dashboard>deals>businessAmount": { zh: "商机金额", en: "Business Amount" },
   "dashboard>deals>stage": { zh: "阶段", en: "Stage" },
   "dashboard>deals>activityStatus": { zh: "活动状态", en: "Activity" },
   "dashboard>deals>successRate": { zh: "成功率", en: "Probability" },

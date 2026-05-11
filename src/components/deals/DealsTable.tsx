@@ -187,7 +187,10 @@ export function DealsTable({
                   {t("dashboard>deals>deal")}
                 </TableHead>
                 <TableHead className="text-muted-foreground font-mono text-xs">
-                  {t("dashboard>deals>amount")}
+                  {t("dashboard>deals>expectedTransactionAmount")}
+                </TableHead>
+                <TableHead className="text-muted-foreground font-mono text-xs">
+                  {t("dashboard>deals>businessAmount")}
                 </TableHead>
                 <TableHead className="text-muted-foreground font-mono text-xs">
                   {t("dashboard>deals>stage")}
@@ -239,6 +242,11 @@ export function DealsTable({
                     <TableCell>
                       <span className="font-mono text-sm">
                         {formatCurrency(deal.value, language)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono text-sm">
+                        {formatCurrency(deal.businessAmount || 0, language)}
                       </span>
                     </TableCell>
                     <TableCell>
