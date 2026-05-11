@@ -1,4 +1,4 @@
-import { useState, useMemo, use, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { HealthChart } from "@/components/charts/HealthChart";
 import { StagnationChart } from "@/components/charts/StagnationChart";
@@ -32,6 +32,10 @@ import {
   PeriodFilter,
   type PeriodMode,
 } from "@/components/filters/PeriodFilter";
+import {
+  AmountModeFilter,
+  type AmountMode,
+} from "@/components/filters/AmountModeFilter";
 
 export type ChartFilterContext = {
   type: "health" | "funnel" | "stagnation";
@@ -46,6 +50,7 @@ const Index = () => {
   const [selectedOrg, setSelectedOrg] = useState<OrgNode | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [periodMode, setPeriodMode] = useState<PeriodMode>("month");
+  const [amountMode, setAmountMode] = useState<AmountMode>("expectedAmount");
 
   // 从 API 获取数据（不使用 fallback）
   const { data: deals, loading: dealsLoading, error: dealsError } = useDeals();
@@ -69,12 +74,13 @@ const Index = () => {
       filteredDeals,
       orgForTarget,
       opportunityStages,
+      amountMode,
     );
     if (periodMode === "quarter") {
       return aggregateHealthDataByQuarter(monthlyData, orgForTarget);
     }
     return monthlyData;
-  }, [filteredDeals, selectedOrg, orgStructure, opportunityStages, periodMode]);
+  }, [filteredDeals, selectedOrg, orgStructure, opportunityStages, periodMode, amountMode]);
 
   // 点击柱子后过滤 deals（月或季度标签）
   const monthFilteredDeals = useMemo(() => {
@@ -104,6 +110,7 @@ const Index = () => {
       opportunityStages,
       orgForConversion,
       leadCount,
+      amountMode,
     );
   }, [
     monthFilteredDeals,
@@ -111,12 +118,13 @@ const Index = () => {
     selectedOrg,
     orgStructure,
     leadCount,
+    amountMode,
   ]);
 
   // 商机停滞分析数据
   const filteredStagnationData = useMemo(
-    () => calculateStagnationData(monthFilteredDeals, opportunityStages),
-    [monthFilteredDeals, opportunityStages],
+    () => calculateStagnationData(monthFilteredDeals, opportunityStages, amountMode),
+    [monthFilteredDeals, opportunityStages, amountMode],
   );
   const getStageName = (code?: string) => {
     if (!code) return "";
@@ -224,8 +232,8 @@ const Index = () => {
       case "funnel":
         return chartFilter.stage
           ? t("dashboard>filter>funnelStage", {
-              stage: getStageName(chartFilter.stage),
-            })
+            stage: getStageName(chartFilter.stage),
+          })
           : t("dashboard>filter>funnelDefault");
       case "stagnation": {
         if (!chartFilter.activityStatus)
@@ -304,6 +312,10 @@ const Index = () => {
                 setChartFilter(null);
               }}
             />
+            <AmountModeFilter
+              value={amountMode}
+              onChange={setAmountMode}
+            />
           </div>
           {/* Top Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -332,39 +344,39 @@ const Index = () => {
           <AnimatePresence>
             {(chartFilter?.type === "health" ||
               chartFilter?.type === "funnel") && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="bot-dashboard-bg glass-card overflow-hidden">
-                  <div className="flex items-center justify-between p-4 border-b border-border">
-                    <div>
-                      <h3 className="text-lg font-semibold">
-                        {getFilterTitle()}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {t("dashboard>filter>clickToSwitch")}
-                      </p>
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="bot-dashboard-bg glass-card overflow-hidden">
+                    <div className="flex items-center justify-between p-4 border-b border-border">
+                      <div>
+                        <h3 className="text-lg font-semibold">
+                          {getFilterTitle()}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {t("dashboard>filter>clickToSwitch")}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setChartFilter(null)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setChartFilter(null)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
 
-                  <DealsTable
-                    filterContext={chartFilter}
-                    deals={monthFilteredDeals}
-                    stages={opportunityStages}
-                  />
-                </div>
-              </motion.div>
-            )}
+                    <DealsTable
+                      filterContext={chartFilter}
+                      deals={monthFilteredDeals}
+                      stages={opportunityStages}
+                    />
+                  </div>
+                </motion.div>
+              )}
           </AnimatePresence>
 
           {/* Stagnation Chart - Full Width */}

@@ -142,6 +142,8 @@ export const translations: Translations = {
   "dashboard>filter>teamComparison": { zh: "团队对比", en: "Team Comparison" },
   "dashboard>filter>byMonth": { zh: "按月", en: "By Month" },
   "dashboard>filter>byQuarter": { zh: "按季度", en: "By Quarter" },
+  "dashboard>filter>expectedAmount": { zh: "预计交易金额", en: "Expected Amount" },
+  "dashboard>filter>businessAmount": { zh: "商机金额", en: "Business Amount" },
 
   // Deals
   "dashboard>deals>responsible": {
