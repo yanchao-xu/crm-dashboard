@@ -10,20 +10,15 @@ import {
 } from "@/components/ui/popover";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-export interface ProductGroup {
+export interface ProductOption {
   id: string;
-  name: { zh: string; en: string };
-}
-
-export interface TeamOption {
-  id: string;
-  name: { zh: string; en: string };
+  name: string;
 }
 
 interface ProductTeamFilterProps {
   selectedProducts: string[];
   onProductsChange: (products: string[]) => void;
-  productOptions: ProductGroup[];
+  productOptions: ProductOption[];
 }
 
 function FilterPopover({
@@ -32,15 +27,13 @@ function FilterPopover({
   options,
   selectedValues,
   onSelectionChange,
-  getText,
   t,
 }: {
   label: string;
   icon: React.ElementType;
-  options: { id: string; name: { zh: string; en: string } }[];
+  options: { id: string; name: string }[];
   selectedValues: string[];
   onSelectionChange: (values: string[]) => void;
-  getText: (text: { zh: string; en: string }) => string;
   t: (key: string, params?: Record<string, string | number>) => string;
 }) {
   const [open, setOpen] = useState(false);
@@ -94,7 +87,7 @@ function FilterPopover({
                 checked={selectedValues.includes(option.id)}
                 className="w-4 h-4"
               />
-              <span className="text-sm flex-1">{getText(option.name)}</span>
+              <span className="text-sm flex-1">{option.name}</span>
             </div>
           ))}
           {options.length === 0 && (
@@ -113,7 +106,7 @@ export function ProductTeamFilter({
   onProductsChange,
   productOptions,
 }: ProductTeamFilterProps) {
-  const { t, getText } = useLanguage();
+  const { t } = useLanguage();
 
   return (
     <div className="flex items-center gap-2">
@@ -123,7 +116,6 @@ export function ProductTeamFilter({
         options={productOptions}
         selectedValues={selectedProducts}
         onSelectionChange={onProductsChange}
-        getText={getText}
         t={t}
       />
     </div>

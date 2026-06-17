@@ -17,7 +17,7 @@ export interface Deal {
   lastActivityDays: number;
   probability: number;
   owner: string;
-  productGroup?: string[];
+  productLine?: string[];
   createdMonth?: string;
 }
 
@@ -98,7 +98,7 @@ export interface OrgNode {
 // 产品相关类型
 export interface ProductGroup {
   id: string;
-  name: BilingualText;
+  name: string; // 已按当前语言解析好的展示名
 }
 
 // 协作相关类型

@@ -115,7 +115,7 @@ export function useOrgStructure() {
   return useApiData(apiService ? fetchFn : null, emptyOrg);
 }
 
-// 获取产品组
+// 获取产品线
 export function useProductGroups() {
   const restApi = useOptionalRestApi();
   const { language } = useLanguage();
