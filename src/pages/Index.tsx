@@ -146,7 +146,7 @@ const Index = () => {
       const names = selectedProducts
         .map((id) => {
           const pg = productGroups.find((p) => p.id === id);
-          return pg ? getText(pg.name) : id;
+          return pg ? pg.name : id;
         })
         .join(", ");
       tags.push({

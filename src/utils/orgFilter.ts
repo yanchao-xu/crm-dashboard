@@ -48,7 +48,7 @@ export function filterDealsByOrg(
   return allDeals.filter((deal) => owners.includes(deal.owner));
 }
 
-// Filter deals by product groups
+// Filter deals by product line (支持空数组：当选择了筛选项时，productLine 为空的商机不会被包含)
 export function filterDealsByProduct(
   allDeals: Deal[],
   selectedProducts: string[],
@@ -58,8 +58,9 @@ export function filterDealsByProduct(
   }
   return allDeals.filter(
     (deal) =>
-      deal.productGroup &&
-      deal.productGroup.some((pg) => selectedProducts.includes(pg)),
+      deal.productLine &&
+      deal.productLine.length > 0 &&
+      deal.productLine.some((pl) => selectedProducts.includes(pl)),
   );
 }
 

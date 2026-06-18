@@ -108,34 +108,6 @@ export class DashboardApiService {
     }
   }
 
-  // 获取商机产品子表数据
-  async getOpportunityProducts(parentDataIds: string[]): Promise<any[]> {
-    try {
-      const response = await this.restApi.get(
-        "/form/api/v2/form-entity-data/quotation-management/opportunity-product-management-subform-form/list",
-        {
-          params: {
-            payload: JSON.stringify({
-              filterModel: [
-                {
-                  colId: "businessOpportunity.id",
-                  filterType: "set",
-                  values: parentDataIds,
-                },
-              ],
-              needCount: false,
-            }),
-          },
-        },
-      );
-
-      return response.results || response || [];
-    } catch (error) {
-      console.error("Failed to fetch opportunity products:", error);
-      return [];
-    }
-  }
-
   // 获取组织数据
   async getOrganizations(): Promise<OrgNode> {
     try {
@@ -154,17 +126,28 @@ export class DashboardApiService {
     }
   }
 
-  // 获取产品数据
+  // 获取产品线数据（数据字典）
   async getProducts(): Promise<ProductGroup[]> {
     try {
-      const response = await this.restApi.get(
-        "/form/api/v2/form-entity-data/product-management/product-management-form/list",
+      const response = await this.restApi.post(
+        "/form/api/v3/form-entity-data/basic-system-setting/data-dictionary/list",
+        {
+          filterModel: [
+            {
+              colId: "parentHandle",
+              filterType: "text",
+              type: "equals",
+              filter: "productSeries",
+            },
+          ],
+          needCount: false,
+        },
       );
 
-      // 转换 API 数据为产品组格式
+      // 转换 API 数据为产品线格式
       return this.transformProductsData(response.results || response);
     } catch (error) {
-      console.error("Failed to fetch products:", error);
+      console.error("Failed to fetch product lines:", error);
       throw error;
     }
   }
@@ -240,30 +223,7 @@ export class DashboardApiService {
       return [];
     }
 
-    const parentDataIds = rawData.map((item) => item.id);
-    // 获取商机产品数据
-    const productData = await this.getOpportunityProducts(parentDataIds);
-    // 构建商机ID到产品ID数组的映射
-    const opportunityProductMap = new Map<string, string[]>();
-
-    productData.forEach((product: any) => {
-      const parentDataId = product.businessOpportunity?.[0]?.value;
-      if (
-        parentDataId &&
-        product.productName &&
-        Array.isArray(product.productName) &&
-        product.productName.length > 0
-      ) {
-        const productId = product.productName[0]?.id;
-        if (productId) {
-          if (!opportunityProductMap.has(parentDataId)) {
-            opportunityProductMap.set(parentDataId, []);
-          }
-          opportunityProductMap.get(parentDataId)!.push(productId);
-        }
-      }
-    });
-    const test = rawData.map((item: LeadRawData) => {
+    const results = rawData.map((item: LeadRawData) => {
       // 计算创建月份
       // important: 我们按照了expectedDealTime 而没有按照创建时间
       const createdDate =
@@ -272,12 +232,11 @@ export class DashboardApiService {
         ? this.getMonthFromDate(createdDate)
         : undefined;
 
-      // 使用 code 字段（用于数据聚合），如果没有则使用 label
-      //const stageValue = this.getI18nValue(item.opportunityStage?.[0], "label");
-
-      // 获取该商机的产品ID数组
-
-      const productIds = opportunityProductMap.get(item.id?.toString()) || [];
+      // 从 productLine 字段提取产品线 ID 列表
+      // productLine 格式: [{id: 16700, value: "16700", label: "CRM", ...}] 或 []
+      const productLineArr: string[] = Array.isArray(item.productLine)
+        ? item.productLine.map((pl: any) => String(pl.value)).filter(Boolean)
+        : [];
 
       // 计算最后活跃天数
       const lastActivityDays = item.eventDate
@@ -298,17 +257,17 @@ export class DashboardApiService {
           en: item.customerName?.[0]?.label || "",
         },
         value: Number(item.expectedTransactionAmount) || 0,
-        stage: item.opportunityStage?.[0].code,
+        stage: item.opportunityStage?.[0]?.code,
         lastActivityDays,
         probability: Number(item.winRate) || 0,
         owner: item.opportunityOwner?.[0]?.label || "",
-        productGroup: productIds.length > 0 ? productIds : undefined,
+        productLine: productLineArr,
         createdMonth: month,
         businessAmount: Number(item.businessAmount) || 0,
       };
     });
 
-    return test;
+    return results;
   }
 
   // 转换组织数据为树结构
@@ -405,18 +364,15 @@ export class DashboardApiService {
     }
   }
 
-  // 转换产品数据
+  // 转换产品线数据
   private transformProductsData(rawData: any[]): ProductGroup[] {
     if (!Array.isArray(rawData)) {
       return [];
     }
 
-    return rawData.map((item: ProductRawData) => ({
-      id: item.id,
-      name: {
-        zh: item.productName || "",
-        en: item.productName || "",
-      },
+    return rawData.map((item: any) => ({
+      id: String(item.id),
+      name: this.getI18nValue(item, "codeName"),
     }));
   }
   // 转换商机阶段数据
