@@ -80,7 +80,14 @@ const Index = () => {
       return aggregateHealthDataByQuarter(monthlyData, orgForTarget);
     }
     return monthlyData;
-  }, [filteredDeals, selectedOrg, orgStructure, opportunityStages, periodMode, amountMode]);
+  }, [
+    filteredDeals,
+    selectedOrg,
+    orgStructure,
+    opportunityStages,
+    periodMode,
+    amountMode,
+  ]);
 
   // 点击柱子后过滤 deals（月或季度标签）
   const monthFilteredDeals = useMemo(() => {
@@ -123,7 +130,12 @@ const Index = () => {
 
   // 商机停滞分析数据
   const filteredStagnationData = useMemo(
-    () => calculateStagnationData(monthFilteredDeals, opportunityStages, amountMode),
+    () =>
+      calculateStagnationData(
+        monthFilteredDeals,
+        opportunityStages,
+        amountMode,
+      ),
     [monthFilteredDeals, opportunityStages, amountMode],
   );
   const getStageName = (code?: string) => {
@@ -150,7 +162,7 @@ const Index = () => {
         })
         .join(", ");
       tags.push({
-        label: `${t("dashboard>filter>productGroup")}: ${names}`,
+        label: `${t("dashboard>filter>productLine")}: ${names}`,
         onRemove: () => setSelectedProducts([]),
       });
     }
@@ -232,8 +244,8 @@ const Index = () => {
       case "funnel":
         return chartFilter.stage
           ? t("dashboard>filter>funnelStage", {
-            stage: getStageName(chartFilter.stage),
-          })
+              stage: getStageName(chartFilter.stage),
+            })
           : t("dashboard>filter>funnelDefault");
       case "stagnation": {
         if (!chartFilter.activityStatus)
@@ -312,10 +324,7 @@ const Index = () => {
                 setChartFilter(null);
               }}
             />
-            <AmountModeFilter
-              value={amountMode}
-              onChange={setAmountMode}
-            />
+            <AmountModeFilter value={amountMode} onChange={setAmountMode} />
           </div>
           {/* Top Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -344,39 +353,39 @@ const Index = () => {
           <AnimatePresence>
             {(chartFilter?.type === "health" ||
               chartFilter?.type === "funnel") && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="bot-dashboard-bg glass-card overflow-hidden">
-                    <div className="flex items-center justify-between p-4 border-b border-border">
-                      <div>
-                        <h3 className="text-lg font-semibold">
-                          {getFilterTitle()}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {t("dashboard>filter>clickToSwitch")}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setChartFilter(null)}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="bot-dashboard-bg glass-card overflow-hidden">
+                  <div className="flex items-center justify-between p-4 border-b border-border">
+                    <div>
+                      <h3 className="text-lg font-semibold">
+                        {getFilterTitle()}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {t("dashboard>filter>clickToSwitch")}
+                      </p>
                     </div>
-
-                    <DealsTable
-                      filterContext={chartFilter}
-                      deals={monthFilteredDeals}
-                      stages={opportunityStages}
-                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setChartFilter(null)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
                   </div>
-                </motion.div>
-              )}
+
+                  <DealsTable
+                    filterContext={chartFilter}
+                    deals={monthFilteredDeals}
+                    stages={opportunityStages}
+                  />
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
 
           {/* Stagnation Chart - Full Width */}

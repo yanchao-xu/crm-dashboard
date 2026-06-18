@@ -138,11 +138,14 @@ export const translations: Translations = {
     zh: "点击图表其他区域切换筛选，或关闭此表格",
     en: "Click other chart areas to filter, or close this table",
   },
-  "dashboard>filter>productGroup": { zh: "产品线", en: "Product Line" },
+  "dashboard>filter>productLine": { zh: "产品线", en: "Product Line" },
   "dashboard>filter>teamComparison": { zh: "团队对比", en: "Team Comparison" },
   "dashboard>filter>byMonth": { zh: "按月", en: "By Month" },
   "dashboard>filter>byQuarter": { zh: "按季度", en: "By Quarter" },
-  "dashboard>filter>expectedAmount": { zh: "预计交易金额", en: "Expected Amount" },
+  "dashboard>filter>expectedAmount": {
+    zh: "预计交易金额",
+    en: "Expected Amount",
+  },
   "dashboard>filter>businessAmount": { zh: "商机金额", en: "Business Amount" },
 
   // Deals
