@@ -139,6 +139,7 @@ export const translations: Translations = {
     en: "Click other chart areas to filter, or close this table",
   },
   "dashboard>filter>productLine": { zh: "产品线", en: "Product Line" },
+  "dashboard>filter>noProductLine": { zh: "无产品线", en: "No Product Line" },
   "dashboard>filter>teamComparison": { zh: "团队对比", en: "Team Comparison" },
   "dashboard>filter>byMonth": { zh: "按月", en: "By Month" },
   "dashboard>filter>byQuarter": { zh: "按季度", en: "By Quarter" },
