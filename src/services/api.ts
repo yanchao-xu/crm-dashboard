@@ -1,5 +1,5 @@
 import type { RestApi } from "../../icp-extension.types";
-import type { Deal, OrgNode, ProductGroup } from "@/types";
+import type { Deal, OrgNode, ProductGroup, Contract, ReceivablePlan } from "@/types";
 import { toLocale } from "@/lib/language";
 import type { Language } from "@/lib/language";
 
@@ -217,6 +217,92 @@ export class DashboardApiService {
     }
   }
 
+  // 根据合同编号批量获取合同数据
+  async getContracts(contractNumbers: string[]): Promise<Contract[]> {
+    if (contractNumbers.length === 0) return [];
+
+    try {
+      const response = await this.restApi.post(
+        "/form/api/v3/form-entity-data/contract-management/contract-management-form/list",
+        {
+          filterModel: [
+            {
+              colId: "contractCode",
+              filterType: "set",
+              values: contractNumbers,
+            },
+          ],
+        },
+      );
+      const rawData = response.results || response;
+      if (Array.isArray(rawData)) {
+        return rawData.map((item: any) => this.transformContractData(item));
+      }
+      return [];
+    } catch (error) {
+      console.error("Failed to fetch contracts:", error);
+      return [];
+    }
+  }
+
+  // 转换合同数据
+  private transformContractData(item: any): Contract {
+    const signingDate = item.signingDate || "";
+    return {
+      id: item.id,
+      contractCode: item.contractCode || "",
+      totalAmountWithTax: Number(item.totalAmountWithTax) || 0,
+      signingDate,
+      signingMonth: signingDate
+        ? this.getMonthFromDate(signingDate)
+        : undefined,
+    };
+  }
+
+  // 根据合同ID批量获取应收计划数据
+  async getReceivablePlans(contractIds: string[]): Promise<ReceivablePlan[]> {
+    if (contractIds.length === 0) return [];
+
+    try {
+      const response = await this.restApi.post(
+        "/form/api/v3/form-entity-data/contract-management/receivable-plan-form/list",
+        {
+          startRow: 0,
+          endRow: 10000,
+          filterModel: [
+            {
+              colId: "parentDataId",
+              filterType: "set",
+              values: contractIds,
+            },
+          ],
+        },
+      );
+      const rawData = response.results || response;
+      if (Array.isArray(rawData)) {
+        return rawData
+          .map((item: any) => this.transformReceivablePlanData(item))
+          .filter((rp) => rp.actualAmount > 0 && rp.actualDate);
+      }
+      return [];
+    } catch (error) {
+      console.error("Failed to fetch receivable plans:", error);
+      return [];
+    }
+  }
+
+  // 转换应收计划数据
+  private transformReceivablePlanData(item: any): ReceivablePlan {
+    const actualDate = item.actualDate || "";
+    return {
+      id: item.id,
+      parentDataId: String(item.parentDataId || ""),
+      actualAmount: Number(item.actualAmount) || 0,
+      actualDate,
+      actualMonth: actualDate ? this.getMonthFromDate(actualDate) : undefined,
+    };
+  }
+
   // 转换商机数据
   private async transformOpportunityData(rawData: any[]): Promise<Deal[]> {
     if (!Array.isArray(rawData)) {
@@ -264,6 +350,7 @@ export class DashboardApiService {
         productLine: productLineArr,
         createdMonth: month,
         businessAmount: Number(item.businessAmount) || 0,
+        contractNumber: item.contractNumber || undefined,
       };
     });
 

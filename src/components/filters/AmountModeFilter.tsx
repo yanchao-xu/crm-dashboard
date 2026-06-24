@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/select";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-export type AmountMode = "expectedAmount" | "businessAmount";
+export type AmountMode = "expectedAmount" | "businessAmount" | "contractAmount" | "receivableAmount";
 
 interface AmountModeFilterProps {
     value: AmountMode;
@@ -31,6 +31,12 @@ export function AmountModeFilter({ value, onChange }: AmountModeFilterProps) {
                     </SelectItem>
                     <SelectItem value="businessAmount">
                         {t("dashboard>filter>businessAmount")}
+                    </SelectItem>
+                    <SelectItem value="contractAmount">
+                        {t("dashboard>filter>contractAmount")}
+                    </SelectItem>
+                    <SelectItem value="receivableAmount">
+                        {t("dashboard>filter>receivableAmount")}
                     </SelectItem>
                 </SelectContent>
             </Select>

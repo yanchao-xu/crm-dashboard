@@ -1,19 +1,36 @@
 import type {
   OrgNode,
   Deal,
-  HealthDataPoint,
   StagnationData,
   FunnelStage,
   StackedHealthDataPoint,
 } from "@/types";
 import { OpportunityStage } from "@/services/api";
 import type { AmountMode } from "@/components/filters/AmountModeFilter";
+import type { ContractMap, ReceivablePlanMap } from "@/hooks/useApiData";
+
+// 月份缩写到 OrgNode 属性的映射（共用常量）
+const monthFieldMap: Record<string, keyof OrgNode> = {
+  Jan: "janJanuary",
+  Feb: "febFebruary",
+  Mar: "marMarch",
+  Apr: "aprApril",
+  May: "mayMay",
+  Jun: "junJune",
+  Jul: "julJuly",
+  Aug: "augAugust",
+  Sep: "sepSeptember",
+  Oct: "octOctober",
+  Nov: "novNovember",
+  Dec: "decDecember",
+};
 
 // 根据 amountMode 获取商机的金额值
 export function getDealAmount(deal: Deal, amountMode: AmountMode = "expectedAmount"): number {
   if (amountMode === "businessAmount") {
     return deal.businessAmount ?? 0;
   }
+  // contractAmount / receivableAmount 模式在漏斗/停滞图表中 fallback 到 expectedAmount
   return deal.value;
 }
 
@@ -23,7 +40,6 @@ export function getOwnersInOrg(node: OrgNode): string[] {
 
   function collectOwners(n: OrgNode) {
     if (n.type === "person") {
-      // Use English name since deal owners are stored in English
       owners.push(n.name.en);
     }
     if (n.children) {
@@ -48,7 +64,10 @@ export function filterDealsByOrg(
   return allDeals.filter((deal) => owners.includes(deal.owner));
 }
 
-// Filter deals by product line (支持空数组：当选择了筛选项时，productLine 为空的商机不会被包含)
+// 特殊标识：用于筛选无产品线的商机
+export const NO_PRODUCT_LINE_ID = "__no_product_line__";
+
+// Filter deals by product line
 export function filterDealsByProduct(
   allDeals: Deal[],
   selectedProducts: string[],
@@ -56,12 +75,23 @@ export function filterDealsByProduct(
   if (selectedProducts.length === 0) {
     return allDeals;
   }
-  return allDeals.filter(
-    (deal) =>
-      deal.productLine &&
-      deal.productLine.length > 0 &&
-      deal.productLine.some((pl) => selectedProducts.includes(pl)),
-  );
+
+  const includeNoProduct = selectedProducts.includes(NO_PRODUCT_LINE_ID);
+  const productIds = selectedProducts.filter((id) => id !== NO_PRODUCT_LINE_ID);
+
+  return allDeals.filter((deal) => {
+    const hasProductLine = deal.productLine && deal.productLine.length > 0;
+
+    if (includeNoProduct && !hasProductLine) {
+      return true;
+    }
+
+    if (productIds.length > 0 && hasProductLine) {
+      return deal.productLine!.some((pl) => productIds.includes(pl));
+    }
+
+    return false;
+  });
 }
 
 // Filter deals by month (for health chart click)
@@ -76,23 +106,10 @@ export function filterDealsByMonth(
 }
 
 // 根据财年起止日期生成月份列表
-// 有开始时间：从开始月起 12 个月
-// 只有结束时间：结束月往前推 12 个月
-// 都没有：自然年 Jan-Dec
 function getFiscalMonths(orgNode: OrgNode | null): string[] {
   const allMonths = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
   ];
 
   const hasStart = !!orgNode?.theStartDateOfTheFiscalYear;
@@ -103,12 +120,11 @@ function getFiscalMonths(orgNode: OrgNode | null): string[] {
   }
 
   try {
-    let startMonth: number; // 0-11
+    let startMonth: number;
 
     if (hasStart) {
       startMonth = new Date(orgNode!.theStartDateOfTheFiscalYear!).getMonth();
     } else {
-      // 只有结束时间，往前推 12 个月（结束月 - 11）
       const endMonth = new Date(orgNode!.theEndDateOfTheFiscalYear!).getMonth();
       startMonth = (endMonth - 11 + 12) % 12;
     }
@@ -123,52 +139,20 @@ function getFiscalMonths(orgNode: OrgNode | null): string[] {
   }
 }
 
-// Recalculate stacked health data based on filtered deals
-export function calculateStackedHealthData(
-  filteredDeals: Deal[],
+/**
+ * 将按月份/阶段聚合好的金额数据转换为图表数据点数组
+ * 共用逻辑：monthlyData → StackedHealthDataPoint[]
+ */
+function buildHealthDataPoints(
+  monthlyData: Map<string, Map<string, number>>,
   selectedOrg: OrgNode | null,
-  stages: OpportunityStage[] = [],
-  amountMode: AmountMode = "expectedAmount",
+  stages: OpportunityStage[],
 ): StackedHealthDataPoint[] {
-  if (stages.length === 0) {
-    return [];
-  }
   const months = getFiscalMonths(selectedOrg);
-
-  // 月份缩写到 OrgNode 属性的映射
-  const monthFieldMap: Record<string, keyof OrgNode> = {
-    Jan: "janJanuary",
-    Feb: "febFebruary",
-    Mar: "marMarch",
-    Apr: "aprApril",
-    May: "mayMay",
-    Jun: "junJune",
-    Jul: "julJuly",
-    Aug: "augAugust",
-    Sep: "sepSeptember",
-    Oct: "octOctober",
-    Nov: "novNovember",
-    Dec: "decDecember",
-  };
-
-  const monthlyData = new Map<string, Map<string, number>>();
-
-  filteredDeals.forEach((deal) => {
-    const month = deal.createdMonth || "Jan";
-
-    if (!monthlyData.has(month)) {
-      monthlyData.set(month, new Map());
-    }
-
-    const stageData = monthlyData.get(month)!;
-    const currentValue = stageData.get(deal.stage) || 0;
-    stageData.set(deal.stage, currentValue + getDealAmount(deal, amountMode));
-  });
 
   return months.map((month) => {
     const stageData = monthlyData.get(month) || new Map();
 
-    // 从 selectedOrg 获取对应月份的 target 值
     let target = 0;
     if (selectedOrg) {
       const monthField = monthFieldMap[month];
@@ -176,10 +160,7 @@ export function calculateStackedHealthData(
       target = typeof monthValue === "number" ? monthValue : 0;
     }
 
-    const dataPoint: any = {
-      month,
-      target,
-    };
+    const dataPoint: any = { month, target };
 
     stages.forEach((stage) => {
       dataPoint[stage.code] = stageData.get(stage.code) || 0;
@@ -189,15 +170,106 @@ export function calculateStackedHealthData(
   });
 }
 
+/**
+ * 向 monthlyData 中累加金额
+ */
+function addToMonthlyData(
+  monthlyData: Map<string, Map<string, number>>,
+  month: string,
+  stage: string,
+  amount: number,
+) {
+  if (!monthlyData.has(month)) {
+    monthlyData.set(month, new Map());
+  }
+  const stageData = monthlyData.get(month)!;
+  stageData.set(stage, (stageData.get(stage) || 0) + amount);
+}
+
+// Recalculate stacked health data based on filtered deals
+export function calculateStackedHealthData(
+  filteredDeals: Deal[],
+  selectedOrg: OrgNode | null,
+  stages: OpportunityStage[] = [],
+  amountMode: AmountMode = "expectedAmount",
+): StackedHealthDataPoint[] {
+  if (stages.length === 0) return [];
+
+  const monthlyData = new Map<string, Map<string, number>>();
+
+  filteredDeals.forEach((deal) => {
+    const month = deal.createdMonth || "Jan";
+    addToMonthlyData(monthlyData, month, deal.stage, getDealAmount(deal, amountMode));
+  });
+
+  return buildHealthDataPoints(monthlyData, selectedOrg, stages);
+}
+
+// 计算合同金额模式下的健康度图表数据
+export function calculateContractHealthData(
+  filteredDeals: Deal[],
+  selectedOrg: OrgNode | null,
+  stages: OpportunityStage[] = [],
+  contractMap: ContractMap,
+): StackedHealthDataPoint[] {
+  if (stages.length === 0) return [];
+
+  const monthlyData = new Map<string, Map<string, number>>();
+
+  filteredDeals.forEach((deal) => {
+    if (!deal.contractNumber) return;
+
+    const contracts = contractMap.get(deal.contractNumber);
+    if (!contracts || contracts.length === 0) return;
+
+    contracts.forEach((contract) => {
+      const month = contract.signingMonth || deal.createdMonth || "Jan";
+      addToMonthlyData(monthlyData, month, deal.stage, contract.totalAmountWithTax);
+    });
+  });
+
+  return buildHealthDataPoints(monthlyData, selectedOrg, stages);
+}
+
+// 计算实际回款金额模式下的健康度图表数据
+export function calculateReceivableHealthData(
+  filteredDeals: Deal[],
+  selectedOrg: OrgNode | null,
+  stages: OpportunityStage[] = [],
+  contractMap: ContractMap,
+  receivablePlanMap: ReceivablePlanMap,
+): StackedHealthDataPoint[] {
+  if (stages.length === 0) return [];
+
+  const monthlyData = new Map<string, Map<string, number>>();
+
+  filteredDeals.forEach((deal) => {
+    if (!deal.contractNumber) return;
+
+    const contracts = contractMap.get(deal.contractNumber);
+    if (!contracts || contracts.length === 0) return;
+
+    contracts.forEach((contract) => {
+      const plans = receivablePlanMap.get(String(contract.id));
+      if (!plans || plans.length === 0) return;
+
+      plans.forEach((plan) => {
+        const month = plan.actualMonth || deal.createdMonth || "Jan";
+        addToMonthlyData(monthlyData, month, deal.stage, plan.actualAmount);
+      });
+    });
+  });
+
+  return buildHealthDataPoints(monthlyData, selectedOrg, stages);
+}
+
 // Recalculate stagnation data based on filtered deals
 export function calculateStagnationData(
   filteredDeals: Deal[],
   stages: OpportunityStage[] = [],
   amountMode: AmountMode = "expectedAmount",
 ): StagnationData[] {
-  if (stages.length === 0) {
-    return [];
-  }
+  if (stages.length === 0) return [];
 
   return stages.map((stage) => {
     const stageDeals = filteredDeals.filter((d) => d.stage === stage.code);
@@ -213,7 +285,7 @@ export function calculateStagnationData(
 
     return {
       stage: stage.code,
-      stageName: stage.name, // 直接使用 name
+      stageName: stage.name,
       active: activeDeals.length,
       over30: over30Deals.length,
       over60: over60Deals.length,
@@ -236,7 +308,7 @@ const stageToConversionField: Record<string, keyof OrgNode> = {
   "Single Loss": "negotiationToLoss",
 };
 
-// Recalculate funnel data based on filtered deals (with realistic conversion rates)
+// Recalculate funnel data based on filtered deals
 export function calculateFunnelData(
   filteredDeals: Deal[],
   stages: OpportunityStage[] = [],
@@ -244,11 +316,8 @@ export function calculateFunnelData(
   leadCount: number = 0,
   amountMode: AmountMode = "expectedAmount",
 ): FunnelStage[] {
-  if (stages.length === 0) {
-    return [];
-  }
+  if (stages.length === 0) return [];
 
-  // 先计算每个 stage 的 count
   const stageCounts = stages.map((stage) => {
     const stageDeals = filteredDeals.filter((d) => d.stage === stage.code);
     return {
@@ -259,7 +328,6 @@ export function calculateFunnelData(
   });
 
   return stageCounts.map((item, index) => {
-    // 从选中的组织节点获取 targetConversion
     let targetConversion = 0;
     if (selectedOrg) {
       const field = stageToConversionField[item.stage.code];
@@ -269,25 +337,18 @@ export function calculateFunnelData(
       }
     }
 
-    // actualConversion 计算逻辑：
-    // 第一个 stage 固定 100%
-    // 从第二个到倒数第二个：当前 count / 前面所有 stage count 之和
-    // 最后两个（Winning Orders 和 Single Loss）：Winning Orders count / 前面所有 count 之和
     let actualConversion = 100;
 
     if (index === 0) {
-      // 第一个 stage：分子是当前 count，分母是线索总数（leadCount）
       actualConversion =
         leadCount > 0 ? Math.round((item.count / leadCount) * 100) : 0;
     } else if (index < stageCounts.length - 2) {
-      // 第二个到倒数第三个：分子是当前 count，分母是从第一个到当前（含）的 count 之和
       const denominator = stageCounts
         .slice(0, index + 1)
         .reduce((sum, s) => sum + s.count, 0);
       actualConversion =
         denominator > 0 ? Math.round((item.count / denominator) * 100) : 0;
     } else {
-      // 倒数第二个（Winning Orders）和倒数第一个（Single Loss）：分子是各自的 count，分母是全部 count 之和
       const denominator = stageCounts.reduce((sum, s) => sum + s.count, 0);
       actualConversion =
         denominator > 0 ? Math.round((item.count / denominator) * 100) : 0;
@@ -322,7 +383,7 @@ export function getFiscalQuarters(orgNode: OrgNode | null): { label: string; mon
   return quarters;
 }
 
-// 获取季度标签列表 ["Q1", "Q2", ...]
+// 获取季度标签列表
 export function getQuarterLabels(orgNode: OrgNode | null): string[] {
   return getFiscalQuarters(orgNode).map((q) => q.label);
 }

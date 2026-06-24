@@ -148,6 +148,8 @@ export const translations: Translations = {
     en: "Expected Amount",
   },
   "dashboard>filter>businessAmount": { zh: "商机金额", en: "Business Amount" },
+  "dashboard>filter>contractAmount": { zh: "合同总金额(含税)", en: "Contract Amount (Tax Incl.)" },
+  "dashboard>filter>receivableAmount": { zh: "实际回款金额", en: "Actual Payment" },
 
   // Deals
   "dashboard>deals>responsible": {

@@ -19,6 +19,27 @@ export interface Deal {
   owner: string;
   productLine?: string[];
   createdMonth?: string;
+  contractNumber?: string;
+}
+
+// 合同相关类型
+export interface Contract {
+  id: string;
+  contractCode: string;
+  totalAmountWithTax: number;
+  signingDate: string;
+  signingMonth?: string; // 解析后的月份 "Jan"~"Dec"
+  dealId?: string; // 关联的商机ID
+  stage?: string; // 继承自商机的阶段
+}
+
+// 应收计划相关类型
+export interface ReceivablePlan {
+  id: string;
+  parentDataId: string; // 关联的合同ID
+  actualAmount: number; // 实际回款金额
+  actualDate: string; // 实际回款日期
+  actualMonth?: string; // 解析后的月份 "Jan"~"Dec"
 }
 
 // 图表数据类型
