@@ -12,6 +12,7 @@ import {
 import type { StagnationData } from "@/types";
 import { ChartFilterContext } from "@/pages/Index";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { DollarSign, Hash } from "lucide-react";
 import { ChartCard, FilterTag } from "./common/ChartCard";
@@ -42,6 +43,7 @@ export function StagnationChart({
   filterTags,
 }: StagnationChartProps) {
   const { t, language } = useLanguage();
+  const { currencyCode } = useCurrency();
   const [displayMode, setDisplayMode] = useState<DisplayMode>("amount");
   const { chartData, stats } = useStagnationChartData(data, displayMode);
 
@@ -76,7 +78,7 @@ export function StagnationChart({
 
   const formatValue = (value: number): string => {
     return displayMode === "amount"
-      ? formatCurrencyWithSymbol(value, language)
+      ? formatCurrencyWithSymbol(value, currencyCode)
       : String(value);
   };
 
@@ -213,7 +215,7 @@ export function StagnationChart({
               tick={{ fill: chartTheme.tick, fontSize: axisConfig.fontSize }}
               tickFormatter={(value) =>
                 displayMode === "amount"
-                  ? formatCurrencyWithSymbol(value, language)
+                  ? formatCurrencyWithSymbol(value, currencyCode)
                   : String(value)
               }
             />
@@ -222,7 +224,7 @@ export function StagnationChart({
                 <StagnationTooltip
                   t={t}
                   displayMode={displayMode}
-                  language={language}
+                  currencyCode={currencyCode}
                 />
               }
               cursor={{ fill: chartTheme.cursor }}

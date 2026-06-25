@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { HealthChart } from "@/components/charts/HealthChart";
 import { StagnationChart } from "@/components/charts/StagnationChart";
@@ -8,6 +8,7 @@ import { X, Loader2 } from "lucide-react";
 import { FunnelChart } from "@/components/charts/FunnelChart";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import type { OrgNode } from "@/types";
 import type { FilterTag } from "@/components/charts/common/ChartCard";
 import {
@@ -32,6 +33,9 @@ import {
   useLeadCount,
   useContracts,
   useReceivablePlans,
+  useCurrencies,
+  useExchangeRates,
+  useExchangeRateService,
 } from "@/hooks/useApiData";
 import { DealsTable } from "@/components/deals/DealsTable";
 import {
@@ -42,6 +46,7 @@ import {
   AmountModeFilter,
   type AmountMode,
 } from "@/components/filters/AmountModeFilter";
+import { CurrencyFilter } from "@/components/filters/CurrencyFilter";
 
 export type ChartFilterContext = {
   type: "health" | "funnel" | "stagnation";
@@ -57,6 +62,7 @@ const Index = () => {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [periodMode, setPeriodMode] = useState<PeriodMode>("month");
   const [amountMode, setAmountMode] = useState<AmountMode>("expectedAmount");
+  const [selectedCurrency, setSelectedCurrency] = useState<string>("");
 
   // 从 API 获取数据（不使用 fallback）
   const { data: deals, loading: dealsLoading, error: dealsError } = useDeals();
@@ -65,6 +71,25 @@ const Index = () => {
   const { data: opportunityStages, loading: stagesLoading } =
     useOpportunityStages();
   const { data: leadCount } = useLeadCount();
+  const { data: currencies, loading: currenciesLoading } = useCurrencies();
+
+  // 获取汇率表
+  const { data: exchangeRates } = useExchangeRates();
+  const exchangeService = useExchangeRateService(exchangeRates);
+
+  // 根据选中的币种 code 找到对应的 id（用于汇率匹配）
+  const selectedCurrencyId = useMemo(() => {
+    if (!selectedCurrency || currencies.length === 0) return undefined;
+    const found = currencies.find((c) => c.code === selectedCurrency);
+    return found?.id;
+  }, [selectedCurrency, currencies]);
+
+  // 币种加载完成后，如果还没选择，设置第一个为默认值
+  useEffect(() => {
+    if (currencies.length > 0 && !selectedCurrency) {
+      setSelectedCurrency(currencies[0].code);
+    }
+  }, [currencies, selectedCurrency]);
 
   // 获取合同数据（依赖 deals 加载完成）
   const { contracts: contractMap, loading: contractsLoading } = useContracts(deals);
@@ -91,6 +116,8 @@ const Index = () => {
         orgForTarget,
         opportunityStages,
         contractMap,
+        exchangeService,
+        selectedCurrencyId,
       );
     } else if (amountMode === "receivableAmount") {
       // 实际回款金额模式：按应收计划 actualDate 归类月份
@@ -100,6 +127,8 @@ const Index = () => {
         opportunityStages,
         contractMap,
         receivablePlanMap,
+        exchangeService,
+        selectedCurrencyId,
       );
     } else {
       monthlyData = calculateStackedHealthData(
@@ -107,6 +136,8 @@ const Index = () => {
         orgForTarget,
         opportunityStages,
         amountMode,
+        exchangeService,
+        selectedCurrencyId,
       );
     }
 
@@ -123,6 +154,8 @@ const Index = () => {
     amountMode,
     contractMap,
     receivablePlanMap,
+    exchangeService,
+    selectedCurrencyId,
   ]);
 
   // 点击柱子后过滤 deals（月或季度标签）
@@ -171,6 +204,8 @@ const Index = () => {
       receivablePlanMap,
       selectedMonths,
       dealsForAmount,
+      exchangeService,
+      selectedCurrencyId,
     );
   }, [
     monthFilteredDeals,
@@ -183,6 +218,8 @@ const Index = () => {
     contractMap,
     receivablePlanMap,
     selectedMonths,
+    exchangeService,
+    selectedCurrencyId,
   ]);
 
   // 商机停滞分析数据
@@ -198,8 +235,10 @@ const Index = () => {
       receivablePlanMap,
       selectedMonths,
       dealsForAmount,
+      exchangeService,
+      selectedCurrencyId,
     );
-  }, [monthFilteredDeals, filteredDeals, opportunityStages, amountMode, contractMap, receivablePlanMap, selectedMonths]);
+  }, [monthFilteredDeals, filteredDeals, opportunityStages, amountMode, contractMap, receivablePlanMap, selectedMonths, exchangeService, selectedCurrencyId]);
   const getStageName = (code?: string) => {
     if (!code) return "";
     return opportunityStages.find((s) => s.code === code)?.name ?? code;
@@ -390,34 +429,94 @@ const Index = () => {
               }}
             />
             <AmountModeFilter value={amountMode} onChange={setAmountMode} />
-          </div>
-          {/* Top Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <HealthChart
-              data={filteredStackedHealthData}
-              stages={opportunityStages}
-              onSegmentClick={(month) =>
-                setChartFilter({ type: "health", month })
-              }
-              isActive={chartFilter?.type === "health"}
-              activeFilter={chartFilter}
-              filterTags={healthFilterTags}
-            />
-            <FunnelChart
-              data={filteredFunnelData}
-              onStageClick={(stage) =>
-                setChartFilter({ type: "funnel", stage })
-              }
-              isActive={chartFilter?.type === "funnel"}
-              activeFilter={chartFilter}
-              filterTags={funnelFilterTags}
+            <CurrencyFilter
+              value={selectedCurrency}
+              onChange={setSelectedCurrency}
+              options={currencies}
+              loading={currenciesLoading}
             />
           </div>
+          <CurrencyProvider currencyCode={selectedCurrency}>
+            {/* Top Charts Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <HealthChart
+                data={filteredStackedHealthData}
+                stages={opportunityStages}
+                onSegmentClick={(month) =>
+                  setChartFilter({ type: "health", month })
+                }
+                isActive={chartFilter?.type === "health"}
+                activeFilter={chartFilter}
+                filterTags={healthFilterTags}
+              />
+              <FunnelChart
+                data={filteredFunnelData}
+                onStageClick={(stage) =>
+                  setChartFilter({ type: "funnel", stage })
+                }
+                isActive={chartFilter?.type === "funnel"}
+                activeFilter={chartFilter}
+                filterTags={funnelFilterTags}
+              />
+            </div>
 
-          {/* Deals Table for Health/Funnel - Full Width */}
-          <AnimatePresence>
-            {(chartFilter?.type === "health" ||
-              chartFilter?.type === "funnel") && (
+            {/* Deals Table for Health/Funnel - Full Width */}
+            <AnimatePresence>
+              {(chartFilter?.type === "health" ||
+                chartFilter?.type === "funnel") && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="bot-dashboard-bg glass-card overflow-hidden">
+                      <div className="flex items-center justify-between p-4 border-b border-border">
+                        <div>
+                          <h3 className="text-lg font-semibold">
+                            {getFilterTitle()}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {t("dashboard>filter>clickToSwitch")}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setChartFilter(null)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+
+                      <DealsTable
+                        filterContext={chartFilter}
+                        deals={monthFilteredDeals}
+                        stages={opportunityStages}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Stagnation Chart - Full Width */}
+            <StagnationChart
+              data={filteredStagnationData}
+              onBarClick={(stage, status) =>
+                setChartFilter({
+                  type: "stagnation",
+                  stage,
+                  activityStatus: status,
+                })
+              }
+              isActive={chartFilter?.type === "stagnation"}
+              activeFilter={chartFilter}
+              filterTags={stagnationFilterTags}
+            />
+
+            {/* Deals Table for Stagnation - Full Width */}
+            <AnimatePresence>
+              {chartFilter?.type === "stagnation" && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
@@ -442,7 +541,6 @@ const Index = () => {
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
-
                     <DealsTable
                       filterContext={chartFilter}
                       deals={monthFilteredDeals}
@@ -451,59 +549,8 @@ const Index = () => {
                   </div>
                 </motion.div>
               )}
-          </AnimatePresence>
-
-          {/* Stagnation Chart - Full Width */}
-          <StagnationChart
-            data={filteredStagnationData}
-            onBarClick={(stage, status) =>
-              setChartFilter({
-                type: "stagnation",
-                stage,
-                activityStatus: status,
-              })
-            }
-            isActive={chartFilter?.type === "stagnation"}
-            activeFilter={chartFilter}
-            filterTags={stagnationFilterTags}
-          />
-
-          {/* Deals Table for Stagnation - Full Width */}
-          <AnimatePresence>
-            {chartFilter?.type === "stagnation" && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="bot-dashboard-bg glass-card overflow-hidden">
-                  <div className="flex items-center justify-between p-4 border-b border-border">
-                    <div>
-                      <h3 className="text-lg font-semibold">
-                        {getFilterTitle()}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {t("dashboard>filter>clickToSwitch")}
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setChartFilter(null)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <DealsTable
-                    filterContext={chartFilter}
-                    deals={monthFilteredDeals}
-                    stages={opportunityStages}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+            </AnimatePresence>
+          </CurrencyProvider>
         </motion.div>
       </div>
     </div>

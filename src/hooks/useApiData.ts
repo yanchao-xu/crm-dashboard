@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useOptionalRestApi } from "@/contexts/ApiContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { DashboardApiService, OpportunityStage } from "@/services/api";
-import type { OrgNode, Deal, Contract, ReceivablePlan } from "@/types";
+import type { OrgNode, Deal, Contract, ReceivablePlan, CurrencyItem, ExchangeRate } from "@/types";
+import { ExchangeRateService } from "@/services/exchangeRate";
 
 // 通用数据获取 hook
 function useApiData<T>(fetchFn: (() => Promise<T>) | null, emptyData: T) {
@@ -167,6 +168,52 @@ export function useLeadCount() {
   );
 
   return useApiData(apiService ? fetchFn : null, 0);
+}
+
+// 获取币种列表
+export function useCurrencies() {
+  const restApi = useOptionalRestApi();
+  const { language } = useLanguage();
+
+  const apiService = useMemo(
+    () => (restApi ? new DashboardApiService(restApi, language) : null),
+    [restApi, language],
+  );
+
+  const fetchFn = useCallback(
+    () => (apiService ? apiService.getCurrencies() : Promise.resolve([])),
+    [apiService],
+  );
+
+  return useApiData<CurrencyItem[]>(apiService ? fetchFn : null, []);
+}
+
+// 获取汇率表
+export function useExchangeRates() {
+  const restApi = useOptionalRestApi();
+  const { language } = useLanguage();
+
+  const apiService = useMemo(
+    () => (restApi ? new DashboardApiService(restApi, language) : null),
+    [restApi, language],
+  );
+
+  const fetchFn = useCallback(
+    () => (apiService ? apiService.getExchangeRates() : Promise.resolve([])),
+    [apiService],
+  );
+
+  return useApiData<ExchangeRate[]>(apiService ? fetchFn : null, []);
+}
+
+// 汇率转换服务实例（依赖汇率表数据）
+export function useExchangeRateService(
+  exchangeRates: ExchangeRate[],
+): ExchangeRateService | null {
+  return useMemo(() => {
+    if (exchangeRates.length === 0) return null;
+    return new ExchangeRateService(exchangeRates);
+  }, [exchangeRates]);
 }
 
 

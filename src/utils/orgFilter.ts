@@ -8,6 +8,7 @@ import type {
 import { OpportunityStage } from "@/services/api";
 import type { AmountMode } from "@/components/filters/AmountModeFilter";
 import type { ContractMap, ReceivablePlanMap } from "@/hooks/useApiData";
+import type { ExchangeRateService } from "@/services/exchangeRate";
 
 // 月份缩写到 OrgNode 属性的映射（共用常量）
 const monthFieldMap: Record<string, keyof OrgNode> = {
@@ -25,13 +26,25 @@ const monthFieldMap: Record<string, keyof OrgNode> = {
   Dec: "decDecember",
 };
 
-// 根据 amountMode 获取商机的金额值
-export function getDealAmount(deal: Deal, amountMode: AmountMode = "expectedAmount"): number {
+// 根据 amountMode 获取商机的金额值（含汇率转换）
+export function getDealAmount(
+  deal: Deal,
+  amountMode: AmountMode = "expectedAmount",
+  exchangeService?: ExchangeRateService | null,
+  targetCurrencyId?: string,
+): number {
+  let amount: number;
   if (amountMode === "businessAmount") {
-    return deal.businessAmount ?? 0;
+    amount = deal.businessAmount ?? 0;
+  } else {
+    // contractAmount / receivableAmount 模式在漏斗/停滞图表中 fallback 到 expectedAmount
+    amount = deal.value;
   }
-  // contractAmount / receivableAmount 模式在漏斗/停滞图表中 fallback 到 expectedAmount
-  return deal.value;
+  // 汇率转换
+  if (exchangeService && targetCurrencyId && deal.currencyId) {
+    return exchangeService.convert(amount, deal.currencyId, targetCurrencyId);
+  }
+  return amount;
 }
 
 // Get all person names (owners) under an organization node
@@ -147,6 +160,8 @@ function buildHealthDataPoints(
   monthlyData: Map<string, Map<string, number>>,
   selectedOrg: OrgNode | null,
   stages: OpportunityStage[],
+  exchangeService?: ExchangeRateService | null,
+  targetCurrencyId?: string,
 ): StackedHealthDataPoint[] {
   const months = getFiscalMonths(selectedOrg);
 
@@ -158,6 +173,10 @@ function buildHealthDataPoints(
       const monthField = monthFieldMap[month];
       const monthValue = selectedOrg[monthField];
       target = typeof monthValue === "number" ? monthValue : 0;
+      // 对组织目标金额做汇率转换
+      if (exchangeService && targetCurrencyId && selectedOrg.currencyId) {
+        target = exchangeService.convert(target, selectedOrg.currencyId, targetCurrencyId);
+      }
     }
 
     const dataPoint: any = { month, target };
@@ -192,6 +211,8 @@ export function calculateStackedHealthData(
   selectedOrg: OrgNode | null,
   stages: OpportunityStage[] = [],
   amountMode: AmountMode = "expectedAmount",
+  exchangeService?: ExchangeRateService | null,
+  targetCurrencyId?: string,
 ): StackedHealthDataPoint[] {
   if (stages.length === 0) return [];
 
@@ -199,10 +220,10 @@ export function calculateStackedHealthData(
 
   filteredDeals.forEach((deal) => {
     const month = deal.createdMonth || "Jan";
-    addToMonthlyData(monthlyData, month, deal.stage, getDealAmount(deal, amountMode));
+    addToMonthlyData(monthlyData, month, deal.stage, getDealAmount(deal, amountMode, exchangeService, targetCurrencyId));
   });
 
-  return buildHealthDataPoints(monthlyData, selectedOrg, stages);
+  return buildHealthDataPoints(monthlyData, selectedOrg, stages, exchangeService, targetCurrencyId);
 }
 
 // 计算合同金额模式下的健康度图表数据
@@ -211,6 +232,8 @@ export function calculateContractHealthData(
   selectedOrg: OrgNode | null,
   stages: OpportunityStage[] = [],
   contractMap: ContractMap,
+  exchangeService?: ExchangeRateService | null,
+  targetCurrencyId?: string,
 ): StackedHealthDataPoint[] {
   if (stages.length === 0) return [];
 
@@ -224,11 +247,16 @@ export function calculateContractHealthData(
 
     contracts.forEach((contract) => {
       const month = contract.signingMonth || deal.createdMonth || "Jan";
-      addToMonthlyData(monthlyData, month, deal.stage, contract.totalAmountWithTax);
+      let amount = contract.totalAmountWithTax;
+      // 汇率转换：使用合同自身的 currencyId
+      if (exchangeService && targetCurrencyId && contract.currencyId) {
+        amount = exchangeService.convert(amount, contract.currencyId, targetCurrencyId);
+      }
+      addToMonthlyData(monthlyData, month, deal.stage, amount);
     });
   });
 
-  return buildHealthDataPoints(monthlyData, selectedOrg, stages);
+  return buildHealthDataPoints(monthlyData, selectedOrg, stages, exchangeService, targetCurrencyId);
 }
 
 // 计算实际回款金额模式下的健康度图表数据
@@ -238,6 +266,8 @@ export function calculateReceivableHealthData(
   stages: OpportunityStage[] = [],
   contractMap: ContractMap,
   receivablePlanMap: ReceivablePlanMap,
+  exchangeService?: ExchangeRateService | null,
+  targetCurrencyId?: string,
 ): StackedHealthDataPoint[] {
   if (stages.length === 0) return [];
 
@@ -255,12 +285,17 @@ export function calculateReceivableHealthData(
 
       plans.forEach((plan) => {
         const month = plan.actualMonth || deal.createdMonth || "Jan";
-        addToMonthlyData(monthlyData, month, deal.stage, plan.actualAmount);
+        let amount = plan.actualAmount;
+        // 汇率转换：使用应收计划自身的 currencyId
+        if (exchangeService && targetCurrencyId && plan.currencyId) {
+          amount = exchangeService.convert(amount, plan.currencyId, targetCurrencyId);
+        }
+        addToMonthlyData(monthlyData, month, deal.stage, amount);
       });
     });
   });
 
-  return buildHealthDataPoints(monthlyData, selectedOrg, stages);
+  return buildHealthDataPoints(monthlyData, selectedOrg, stages, exchangeService, targetCurrencyId);
 }
 
 // Recalculate stagnation data based on filtered deals
@@ -272,6 +307,8 @@ export function calculateStagnationData(
   receivablePlanMap?: ReceivablePlanMap,
   selectedMonths?: string[],
   dealsForAmount?: Deal[],
+  exchangeService?: ExchangeRateService | null,
+  targetCurrencyId?: string,
 ): StagnationData[] {
   if (stages.length === 0) return [];
 
@@ -301,18 +338,26 @@ export function calculateStagnationData(
           plans.forEach((plan) => {
             const month = plan.actualMonth;
             if (selectedMonths && selectedMonths.length > 0 && month && !selectedMonths.includes(month)) return;
+            let amount = plan.actualAmount;
+            if (exchangeService && targetCurrencyId && plan.currencyId) {
+              amount = exchangeService.convert(amount, plan.currencyId, targetCurrencyId);
+            }
             if (!amountByStageAndStatus!.has(deal.stage)) {
               amountByStageAndStatus!.set(deal.stage, { active: 0, over30: 0, over60: 0, zombie: 0 });
             }
-            amountByStageAndStatus!.get(deal.stage)![statusKey] += plan.actualAmount;
+            amountByStageAndStatus!.get(deal.stage)![statusKey] += amount;
           });
         } else {
           const month = contract.signingMonth;
           if (selectedMonths && selectedMonths.length > 0 && month && !selectedMonths.includes(month)) return;
+          let amount = contract.totalAmountWithTax;
+          if (exchangeService && targetCurrencyId && contract.currencyId) {
+            amount = exchangeService.convert(amount, contract.currencyId, targetCurrencyId);
+          }
           if (!amountByStageAndStatus!.has(deal.stage)) {
             amountByStageAndStatus!.set(deal.stage, { active: 0, over30: 0, over60: 0, zombie: 0 });
           }
-          amountByStageAndStatus!.get(deal.stage)![statusKey] += contract.totalAmountWithTax;
+          amountByStageAndStatus!.get(deal.stage)![statusKey] += amount;
         }
       });
     });
@@ -342,10 +387,10 @@ export function calculateStagnationData(
       over60Amount = stageAmounts.over60;
       zombieAmount = stageAmounts.zombie;
     } else {
-      activeAmount = activeDeals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0);
-      over30Amount = over30Deals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0);
-      over60Amount = over60Deals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0);
-      zombieAmount = zombieDeals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0);
+      activeAmount = activeDeals.reduce((sum, d) => sum + getDealAmount(d, amountMode, exchangeService, targetCurrencyId), 0);
+      over30Amount = over30Deals.reduce((sum, d) => sum + getDealAmount(d, amountMode, exchangeService, targetCurrencyId), 0);
+      over60Amount = over60Deals.reduce((sum, d) => sum + getDealAmount(d, amountMode, exchangeService, targetCurrencyId), 0);
+      zombieAmount = zombieDeals.reduce((sum, d) => sum + getDealAmount(d, amountMode, exchangeService, targetCurrencyId), 0);
     }
 
     return {
@@ -384,6 +429,8 @@ export function calculateFunnelData(
   receivablePlanMap?: ReceivablePlanMap,
   selectedMonths?: string[],
   dealsForAmount?: Deal[],
+  exchangeService?: ExchangeRateService | null,
+  targetCurrencyId?: string,
 ): FunnelStage[] {
   if (stages.length === 0) return [];
 
@@ -408,12 +455,20 @@ export function calculateFunnelData(
           plans.forEach((plan) => {
             const month = plan.actualMonth;
             if (selectedMonths && selectedMonths.length > 0 && month && !selectedMonths.includes(month)) return;
-            amountByStage!.set(deal.stage, (amountByStage!.get(deal.stage) || 0) + plan.actualAmount);
+            let amount = plan.actualAmount;
+            if (exchangeService && targetCurrencyId && plan.currencyId) {
+              amount = exchangeService.convert(amount, plan.currencyId, targetCurrencyId);
+            }
+            amountByStage!.set(deal.stage, (amountByStage!.get(deal.stage) || 0) + amount);
           });
         } else {
           const month = contract.signingMonth;
           if (selectedMonths && selectedMonths.length > 0 && month && !selectedMonths.includes(month)) return;
-          amountByStage!.set(deal.stage, (amountByStage!.get(deal.stage) || 0) + contract.totalAmountWithTax);
+          let amount = contract.totalAmountWithTax;
+          if (exchangeService && targetCurrencyId && contract.currencyId) {
+            amount = exchangeService.convert(amount, contract.currencyId, targetCurrencyId);
+          }
+          amountByStage!.set(deal.stage, (amountByStage!.get(deal.stage) || 0) + amount);
         }
       });
     });
@@ -425,7 +480,7 @@ export function calculateFunnelData(
     if (amountByStage) {
       value = amountByStage.get(stage.code) || 0;
     } else {
-      value = stageDeals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0);
+      value = stageDeals.reduce((sum, d) => sum + getDealAmount(d, amountMode, exchangeService, targetCurrencyId), 0);
     }
     return {
       stage,

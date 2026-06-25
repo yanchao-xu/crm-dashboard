@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { ChartFilterContext } from "@/pages/Index";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import type { StackedHealthDataPoint } from "@/types";
 import { ChartCard, FilterTag } from "./common/ChartCard";
 import { StatCard } from "./common/StatCard";
@@ -38,6 +39,7 @@ export function HealthChart({
   filterTags,
 }: HealthChartProps) {
   const { t, language } = useLanguage();
+  const { currencyCode } = useCurrency();
 
   // 提取阶段代码列表
   const stageCodes = stages.map((s) => s.code);
@@ -99,12 +101,12 @@ export function HealthChart({
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard
           label={t("dashboard>chart>current")}
-          value={formatCurrency(stats.latestActual, language)}
+          value={formatCurrency(stats.latestActual, currencyCode)}
           valueColor="text-chart-actual"
         />
         <StatCard
           label={t("dashboard>chart>target")}
-          value={formatCurrency(stats.latestTarget, language)}
+          value={formatCurrency(stats.latestTarget, currencyCode)}
           valueColor="text-chart-target"
         />
         <StatCard
@@ -135,10 +137,10 @@ export function HealthChart({
             <YAxis
               {...axisConfig}
               tick={{ fill: chartTheme.tick, fontSize: axisConfig.fontSize }}
-              tickFormatter={(value) => formatCurrency(value, language)}
+              tickFormatter={(value) => formatCurrency(value, currencyCode)}
             />
             <Tooltip
-              content={<HealthChartTooltip t={t} language={language} />}
+              content={<HealthChartTooltip t={t} currencyCode={currencyCode} />}
             />
 
             {stageKeys.map((stageKey, index) => (

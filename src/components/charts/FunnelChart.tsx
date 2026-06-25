@@ -1,5 +1,6 @@
 import { ChartFilterContext } from "@/pages/Index";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import type { FunnelStage } from "@/types";
 import { ChartCard, FilterTag } from "./common/ChartCard";
 import { StatCard } from "./common/StatCard";
@@ -24,6 +25,7 @@ export function FunnelChart({
   filterTags,
 }: FunnelChartProps) {
   const { t, language } = useLanguage();
+  const { currencyCode } = useCurrency();
   const { funnelData, stats } = useFunnelChartData(data);
 
   const isOtherChartActive = !!activeFilter && activeFilter.type !== "funnel";
@@ -61,7 +63,7 @@ export function FunnelChart({
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard
           label={t("dashboard>chart>totalPipeline")}
-          value={formatCurrency(stats.totalValue, language)}
+          value={formatCurrency(stats.totalValue, currencyCode)}
           valueColor="text-primary"
         />
         <StatCard
@@ -87,6 +89,7 @@ export function FunnelChart({
             isHighlighted={highlightedStage === stage.stage}
             t={t}
             language={language}
+            currencyCode={currencyCode}
           />
         ))}
       </div>

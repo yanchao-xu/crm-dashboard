@@ -1,5 +1,13 @@
 import type { RestApi } from "../../icp-extension.types";
-import type { Deal, OrgNode, ProductGroup, Contract, ReceivablePlan } from "@/types";
+import type {
+  Deal,
+  OrgNode,
+  ProductGroup,
+  Contract,
+  ReceivablePlan,
+  CurrencyItem,
+  ExchangeRate,
+} from "@/types";
 import { toLocale } from "@/lib/language";
 import type { Language } from "@/lib/language";
 
@@ -25,8 +33,6 @@ interface OrgRawData {
   name: string;
   type: "company" | "school" | "team" | "person";
   parentId?: string;
-  quota?: number;
-  fiscalStart?: string;
   [key: string]: any;
 }
 
@@ -108,6 +114,7 @@ export class DashboardApiService {
                 "productLine",
                 "businessAmount",
                 "contractNumber",
+                "settlementCurrency",
               ],
             }),
           },
@@ -133,8 +140,6 @@ export class DashboardApiService {
               selectColId: [
                 "name",
                 "organizationType",
-                "quota",
-                "fiscalStart",
                 "organizationId",
                 "janJanuary",
                 "febFebruary",
@@ -156,6 +161,7 @@ export class DashboardApiService {
                 "negotiationToLoss",
                 "theStartDateOfTheFiscalYear",
                 "theEndDateOfTheFiscalYear",
+                "settlementCurrency",
               ],
             }),
           },
@@ -188,7 +194,7 @@ export class DashboardApiService {
             },
           ],
           needCount: false,
-          selectColId: ["code", "codeName", "codeName_i18n_zh-CN", "codeName_i18n_en-US", "codeName_i18n_ja-JP"],
+          selectColId: ["code", "codeName"],
         },
       );
 
@@ -223,7 +229,7 @@ export class DashboardApiService {
                 },
               ],
               needCount: false,
-              selectColId: ["code", "codeName", "codeName_i18n_zh-CN", "codeName_i18n_en-US", "codeName_i18n_ja-JP"],
+              selectColId: ["code", "codeName"],
             }),
           },
         },
@@ -282,7 +288,7 @@ export class DashboardApiService {
               values: contractNumbers,
             },
           ],
-          selectColId: ["contractCode", "totalAmountWithTax", "signingDate"],
+          selectColId: ["contractCode", "totalAmountWithTax", "signingDate", "settlementCurrency"],
         },
       );
       const rawData = response.results || response;
@@ -307,6 +313,9 @@ export class DashboardApiService {
       signingMonth: signingDate
         ? this.getMonthFromDate(signingDate)
         : undefined,
+      currencyId: item.settlementCurrency?.[0]?.id != null
+        ? String(item.settlementCurrency[0].id)
+        : undefined,
     };
   }
 
@@ -327,7 +336,7 @@ export class DashboardApiService {
               values: contractIds,
             },
           ],
-          selectColId: ["parentDataId", "actualAmount", "actualDate"],
+          selectColId: ["parentDataId", "actualAmount", "actualDate", "settlementCurrency"],
         },
       );
       const rawData = response.results || response;
@@ -343,6 +352,79 @@ export class DashboardApiService {
     }
   }
 
+  // 获取币种列表（数据字典）
+  async getCurrencies(): Promise<CurrencyItem[]> {
+    try {
+      const response = await this.restApi.post(
+        "/form/api/v3/form-entity-data/basic-system-setting/data-dictionary/list",
+        {
+          filterModel: [
+            {
+              colId: "parentHandle",
+              filterType: "text",
+              type: "equals",
+              filter: "settlementCurrency",
+            },
+          ],
+          needCount: false,
+          selectColId: ["code", "codeName"],
+        },
+      );
+
+      const rawData = response.results || response;
+      return this.transformCurrencyData(rawData);
+    } catch (error) {
+      console.error("Failed to fetch currencies:", error);
+      throw error;
+    }
+  }
+
+  // 获取汇率表
+  async getExchangeRates(): Promise<ExchangeRate[]> {
+    try {
+      const response = await this.restApi.post(
+        "/form/api/v3/form-entity-data/basic-system-setting/exchange-rate-management-form/list",
+        {
+          startRow: 0,
+          endRow: 10000,
+          selectColId: ["fromCurrency", "toCurrency", "rate"],
+        },
+      );
+
+      const rawData = response.results || response;
+      return this.transformExchangeRateData(rawData);
+    } catch (error) {
+      console.error("Failed to fetch exchange rates:", error);
+      return [];
+    }
+  }
+
+  // 转换汇率数据
+  private transformExchangeRateData(rawData: any[]): ExchangeRate[] {
+    if (!Array.isArray(rawData)) {
+      return [];
+    }
+    return rawData
+      .filter((item: any) => item.fromCurrency?.[0] && item.toCurrency?.[0] && item.rate)
+      .map((item: any) => ({
+        fromCurrencyId: String(item.fromCurrency[0].value),
+        toCurrencyId: String(item.toCurrency[0].value),
+        rate: Number(item.rate) || 0,
+      }));
+  }
+
+  // 转换币种数据
+  private transformCurrencyData(rawData: any[]): CurrencyItem[] {
+    if (!Array.isArray(rawData)) {
+      return [];
+    }
+    return rawData.map((item: any) => ({
+      id: String(item.id),
+      code: item.code,
+      name: this.getI18nValue(item, "codeName"),
+    }));
+  }
+
   // 转换应收计划数据
   private transformReceivablePlanData(item: any): ReceivablePlan {
     const actualDate = item.actualDate || "";
@@ -352,6 +434,9 @@ export class DashboardApiService {
       actualAmount: Number(item.actualAmount) || 0,
       actualDate,
       actualMonth: actualDate ? this.getMonthFromDate(actualDate) : undefined,
+      currencyId: item.settlementCurrency?.[0]?.id != null
+        ? String(item.settlementCurrency[0].id)
+        : undefined,
     };
   }
 
@@ -403,6 +488,9 @@ export class DashboardApiService {
         createdMonth: month,
         businessAmount: Number(item.businessAmount) || 0,
         contractNumber: item.contractNumber || undefined,
+        currencyId: item.settlementCurrency?.[0]?.id != null
+          ? String(item.settlementCurrency[0].id)
+          : undefined,
       };
     });
 
@@ -445,9 +533,10 @@ export class DashboardApiService {
           en: item.name || "",
         },
         type: types.includes(itemType) ? itemType : "person",
-        quota: item.quota,
-        fiscalStart: item.fiscalStart,
         children: [],
+        currencyId: item.settlementCurrency?.[0]?.id != null
+          ? String(item.settlementCurrency[0].id)
+          : undefined,
         janJanuary: item.janJanuary,
         febFebruary: item.febFebruary,
         marMarch: item.marMarch,

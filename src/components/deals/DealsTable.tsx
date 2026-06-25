@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ChartFilterContext } from "@/pages/Index";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { formatCurrency } from "@/components/charts/utils/formatters";
 import type { OpportunityStage } from "@/services/api";
 
@@ -29,6 +30,7 @@ export function DealsTable({
   stages = [],
 }: DealsTableProps) {
   const { t, getText, language } = useLanguage();
+  const { currencyCode } = useCurrency();
   const allDeals = propDeals || [];
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [filters, setFilters] = useState<FilterState>({
@@ -240,12 +242,12 @@ export function DealsTable({
                     </TableCell>
                     <TableCell>
                       <span className="font-mono text-sm">
-                        {formatCurrency(deal.value, language)}
+                        {formatCurrency(deal.value, currencyCode)}
                       </span>
                     </TableCell>
                     <TableCell>
                       <span className="font-mono text-sm">
-                        {formatCurrency(deal.businessAmount || 0, language)}
+                        {formatCurrency(deal.businessAmount || 0, currencyCode)}
                       </span>
                     </TableCell>
                     <TableCell>
