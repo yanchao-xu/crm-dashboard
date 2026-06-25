@@ -95,6 +95,20 @@ export class DashboardApiService {
                 //   values: ["草稿"],
                 // },
               ],
+              selectColId: [
+                "expectedDealTime",
+                "creationTime",
+                "opportunityName",
+                "customerName",
+                "expectedTransactionAmount",
+                "opportunityStage",
+                "eventDate",
+                "winRate",
+                "opportunityOwner",
+                "productLine",
+                "businessAmount",
+                "contractNumber",
+              ],
             }),
           },
         },
@@ -113,6 +127,39 @@ export class DashboardApiService {
     try {
       const response = await this.restApi.get(
         "/form/api/v2/form-entity-data/basic-system-setting/self-organization-info-form/list",
+        {
+          params: {
+            payload: JSON.stringify({
+              selectColId: [
+                "name",
+                "organizationType",
+                "quota",
+                "fiscalStart",
+                "organizationId",
+                "janJanuary",
+                "febFebruary",
+                "marMarch",
+                "aprApril",
+                "mayMay",
+                "junJune",
+                "julJuly",
+                "augAugust",
+                "sepSeptember",
+                "octOctober",
+                "novNovember",
+                "decDecember",
+                "leadToQualification",
+                "qualificationToDiscovery",
+                "discoveryToProposal",
+                "proposalToNegotiation",
+                "negotiationToWin",
+                "negotiationToLoss",
+                "theStartDateOfTheFiscalYear",
+                "theEndDateOfTheFiscalYear",
+              ],
+            }),
+          },
+        },
       );
 
       // 尝试多种可能的数据路径
@@ -141,6 +188,7 @@ export class DashboardApiService {
             },
           ],
           needCount: false,
+          selectColId: ["code", "codeName", "codeName_i18n_zh-CN", "codeName_i18n_en-US", "codeName_i18n_ja-JP"],
         },
       );
 
@@ -175,6 +223,7 @@ export class DashboardApiService {
                 },
               ],
               needCount: false,
+              selectColId: ["code", "codeName", "codeName_i18n_zh-CN", "codeName_i18n_en-US", "codeName_i18n_ja-JP"],
             }),
           },
         },
@@ -205,6 +254,7 @@ export class DashboardApiService {
                   dateTo: `${currentYear}-12-31`,
                 },
               ],
+              selectColId: ["expectedDealTime"],
             }),
           },
         },
@@ -232,6 +282,7 @@ export class DashboardApiService {
               values: contractNumbers,
             },
           ],
+          selectColId: ["contractCode", "totalAmountWithTax", "signingDate"],
         },
       );
       const rawData = response.results || response;
@@ -276,6 +327,7 @@ export class DashboardApiService {
               values: contractIds,
             },
           ],
+          selectColId: ["parentDataId", "actualAmount", "actualDate"],
         },
       );
       const rawData = response.results || response;
