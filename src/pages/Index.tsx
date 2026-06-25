@@ -21,6 +21,7 @@ import {
   calculateStagnationData,
   calculateFunnelData,
   aggregateHealthDataByQuarter,
+  getMonthsForQuarter,
   NO_PRODUCT_LINE_ID,
 } from "@/utils/orgFilter";
 import {
@@ -144,35 +145,61 @@ const Index = () => {
 
   // 销售漏斗数据
   // target conversion 来自选中的组织节点，未选中时使用根节点
+  const selectedMonths = useMemo((): string[] | undefined => {
+    if (!chartFilter?.month || chartFilter.type !== "health") return undefined;
+    const clickedLabel = chartFilter.month;
+    if (clickedLabel.startsWith("Q")) {
+      const orgForQuarters = selectedOrg || (orgStructure.id ? orgStructure : null);
+      return getMonthsForQuarter(orgForQuarters, clickedLabel);
+    }
+    return [clickedLabel];
+  }, [chartFilter, selectedOrg, orgStructure]);
+
   const filteredFunnelData = useMemo(() => {
     const orgForConversion =
       selectedOrg || (orgStructure.id ? orgStructure : null);
+    const dealsForAmount = (amountMode === "contractAmount" || amountMode === "receivableAmount")
+      ? filteredDeals
+      : monthFilteredDeals;
     return calculateFunnelData(
       monthFilteredDeals,
       opportunityStages,
       orgForConversion,
       leadCount,
       amountMode,
+      contractMap,
+      receivablePlanMap,
+      selectedMonths,
+      dealsForAmount,
     );
   }, [
     monthFilteredDeals,
+    filteredDeals,
     opportunityStages,
     selectedOrg,
     orgStructure,
     leadCount,
     amountMode,
+    contractMap,
+    receivablePlanMap,
+    selectedMonths,
   ]);
 
   // 商机停滞分析数据
-  const filteredStagnationData = useMemo(
-    () =>
-      calculateStagnationData(
-        monthFilteredDeals,
-        opportunityStages,
-        amountMode,
-      ),
-    [monthFilteredDeals, opportunityStages, amountMode],
-  );
+  const filteredStagnationData = useMemo(() => {
+    const dealsForAmount = (amountMode === "contractAmount" || amountMode === "receivableAmount")
+      ? filteredDeals
+      : monthFilteredDeals;
+    return calculateStagnationData(
+      monthFilteredDeals,
+      opportunityStages,
+      amountMode,
+      contractMap,
+      receivablePlanMap,
+      selectedMonths,
+      dealsForAmount,
+    );
+  }, [monthFilteredDeals, filteredDeals, opportunityStages, amountMode, contractMap, receivablePlanMap, selectedMonths]);
   const getStageName = (code?: string) => {
     if (!code) return "";
     return opportunityStages.find((s) => s.code === code)?.name ?? code;

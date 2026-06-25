@@ -219,9 +219,8 @@ export function DealsTable({
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                     onClick={() => setSelectedDeal(isSelected ? null : deal)}
-                    className={`cursor-pointer transition-colors border-border ${
-                      isSelected ? "bg-primary/10" : "hover:bg-secondary/50"
-                    }`}
+                    className={`cursor-pointer transition-colors border-border ${isSelected ? "bg-primary/10" : "hover:bg-secondary/50"
+                      }`}
                   >
                     <TableCell>
                       <div>
@@ -263,13 +262,12 @@ export function DealsTable({
                       <div className="flex items-center gap-2">
                         <div className="w-12 h-1.5 rounded-full bg-secondary overflow-hidden">
                           <div
-                            className={`h-full rounded-full transition-all ${
-                              deal.probability >= 70
-                                ? "bg-success"
-                                : deal.probability >= 40
-                                  ? "bg-warning"
-                                  : "bg-danger"
-                            }`}
+                            className={`h-full rounded-full transition-all ${deal.probability >= 70
+                              ? "bg-success"
+                              : deal.probability >= 40
+                                ? "bg-warning"
+                                : "bg-danger"
+                              }`}
                             style={{ width: `${deal.probability}%` }}
                           />
                         </div>

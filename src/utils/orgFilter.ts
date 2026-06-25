@@ -268,8 +268,55 @@ export function calculateStagnationData(
   filteredDeals: Deal[],
   stages: OpportunityStage[] = [],
   amountMode: AmountMode = "expectedAmount",
+  contractMap?: ContractMap,
+  receivablePlanMap?: ReceivablePlanMap,
+  selectedMonths?: string[],
+  dealsForAmount?: Deal[],
 ): StagnationData[] {
   if (stages.length === 0) return [];
+
+  const useContractAmounts = amountMode === "contractAmount" && contractMap;
+  const useReceivableAmounts = amountMode === "receivableAmount" && contractMap && receivablePlanMap;
+
+  // 金额按时间维度独立计算：遍历全量 deals，找时间匹配的合同/回款，按商机 stage+activityStatus 归类
+  let amountByStageAndStatus: Map<string, { active: number; over30: number; over60: number; zombie: number }> | undefined;
+
+  if (useContractAmounts || useReceivableAmounts) {
+    amountByStageAndStatus = new Map();
+    const amountDeals = dealsForAmount || filteredDeals;
+    amountDeals.forEach((deal) => {
+      if (!deal.contractNumber || !contractMap) return;
+      const contracts = contractMap.get(deal.contractNumber);
+      if (!contracts || contracts.length === 0) return;
+
+      const statusKey = deal.lastActivityDays >= 90 ? "zombie"
+        : deal.lastActivityDays >= 60 ? "over60"
+        : deal.lastActivityDays >= 30 ? "over30"
+        : "active";
+
+      contracts.forEach((contract) => {
+        if (useReceivableAmounts && receivablePlanMap) {
+          const plans = receivablePlanMap.get(String(contract.id));
+          if (!plans) return;
+          plans.forEach((plan) => {
+            const month = plan.actualMonth;
+            if (selectedMonths && selectedMonths.length > 0 && month && !selectedMonths.includes(month)) return;
+            if (!amountByStageAndStatus!.has(deal.stage)) {
+              amountByStageAndStatus!.set(deal.stage, { active: 0, over30: 0, over60: 0, zombie: 0 });
+            }
+            amountByStageAndStatus!.get(deal.stage)![statusKey] += plan.actualAmount;
+          });
+        } else {
+          const month = contract.signingMonth;
+          if (selectedMonths && selectedMonths.length > 0 && month && !selectedMonths.includes(month)) return;
+          if (!amountByStageAndStatus!.has(deal.stage)) {
+            amountByStageAndStatus!.set(deal.stage, { active: 0, over30: 0, over60: 0, zombie: 0 });
+          }
+          amountByStageAndStatus!.get(deal.stage)![statusKey] += contract.totalAmountWithTax;
+        }
+      });
+    });
+  }
 
   return stages.map((stage) => {
     const stageDeals = filteredDeals.filter((d) => d.stage === stage.code);
@@ -283,6 +330,24 @@ export function calculateStagnationData(
     );
     const zombieDeals = stageDeals.filter((d) => d.lastActivityDays >= 90);
 
+    let activeAmount: number;
+    let over30Amount: number;
+    let over60Amount: number;
+    let zombieAmount: number;
+
+    if (amountByStageAndStatus) {
+      const stageAmounts = amountByStageAndStatus.get(stage.code) || { active: 0, over30: 0, over60: 0, zombie: 0 };
+      activeAmount = stageAmounts.active;
+      over30Amount = stageAmounts.over30;
+      over60Amount = stageAmounts.over60;
+      zombieAmount = stageAmounts.zombie;
+    } else {
+      activeAmount = activeDeals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0);
+      over30Amount = over30Deals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0);
+      over60Amount = over60Deals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0);
+      zombieAmount = zombieDeals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0);
+    }
+
     return {
       stage: stage.code,
       stageName: stage.name,
@@ -290,10 +355,10 @@ export function calculateStagnationData(
       over30: over30Deals.length,
       over60: over60Deals.length,
       zombie: zombieDeals.length,
-      activeAmount: activeDeals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0),
-      over30Amount: over30Deals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0),
-      over60Amount: over60Deals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0),
-      zombieAmount: zombieDeals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0),
+      activeAmount,
+      over30Amount,
+      over60Amount,
+      zombieAmount,
     };
   });
 }
@@ -315,15 +380,57 @@ export function calculateFunnelData(
   selectedOrg: OrgNode | null = null,
   leadCount: number = 0,
   amountMode: AmountMode = "expectedAmount",
+  contractMap?: ContractMap,
+  receivablePlanMap?: ReceivablePlanMap,
+  selectedMonths?: string[],
+  dealsForAmount?: Deal[],
 ): FunnelStage[] {
   if (stages.length === 0) return [];
 
+  const useContractAmounts = amountMode === "contractAmount" && contractMap;
+  const useReceivableAmounts = amountMode === "receivableAmount" && contractMap && receivablePlanMap;
+
+  // 金额按时间维度独立计算：遍历全量 deals，找时间匹配的合同/回款，按商机 stage 归类
+  let amountByStage: Map<string, number> | undefined;
+
+  if (useContractAmounts || useReceivableAmounts) {
+    amountByStage = new Map();
+    const amountDeals = dealsForAmount || filteredDeals;
+    amountDeals.forEach((deal) => {
+      if (!deal.contractNumber || !contractMap) return;
+      const contracts = contractMap.get(deal.contractNumber);
+      if (!contracts || contracts.length === 0) return;
+
+      contracts.forEach((contract) => {
+        if (useReceivableAmounts && receivablePlanMap) {
+          const plans = receivablePlanMap.get(String(contract.id));
+          if (!plans) return;
+          plans.forEach((plan) => {
+            const month = plan.actualMonth;
+            if (selectedMonths && selectedMonths.length > 0 && month && !selectedMonths.includes(month)) return;
+            amountByStage!.set(deal.stage, (amountByStage!.get(deal.stage) || 0) + plan.actualAmount);
+          });
+        } else {
+          const month = contract.signingMonth;
+          if (selectedMonths && selectedMonths.length > 0 && month && !selectedMonths.includes(month)) return;
+          amountByStage!.set(deal.stage, (amountByStage!.get(deal.stage) || 0) + contract.totalAmountWithTax);
+        }
+      });
+    });
+  }
+
   const stageCounts = stages.map((stage) => {
     const stageDeals = filteredDeals.filter((d) => d.stage === stage.code);
+    let value: number;
+    if (amountByStage) {
+      value = amountByStage.get(stage.code) || 0;
+    } else {
+      value = stageDeals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0);
+    }
     return {
       stage,
       count: stageDeals.length,
-      value: stageDeals.reduce((sum, d) => sum + getDealAmount(d, amountMode), 0),
+      value,
     };
   });
 
