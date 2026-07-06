@@ -288,7 +288,7 @@ export class DashboardApiService {
               values: contractNumbers,
             },
           ],
-          selectColId: ["contractCode", "totalAmountWithTax", "signingDate", "settlementCurrency"],
+          selectColId: ["contractCode", "contractName", "customer", "contractOwner", "totalAmountWithTax", "signingDate", "expiryDate", "settlementCurrency"],
         },
       );
       const rawData = response.results || response;
@@ -308,8 +308,12 @@ export class DashboardApiService {
     return {
       id: item.id,
       contractCode: item.contractCode || "",
+      contractName: item.contractName || "",
+      customer: item.customer?.[0]?.label || "",
+      owner: item.contractOwner?.[0]?.label || "",
       totalAmountWithTax: Number(item.totalAmountWithTax) || 0,
       signingDate,
+      expiryDate: item.expiryDate || "",
       signingMonth: signingDate
         ? this.getMonthFromDate(signingDate)
         : undefined,
@@ -336,14 +340,14 @@ export class DashboardApiService {
               values: contractIds,
             },
           ],
-          selectColId: ["parentDataId", "actualAmount", "actualDate", "settlementCurrency"],
+          selectColId: ["parentDataId", "actualAmount", "actualDate", "plannedAmount", "plannedDate", "paymentStage", "paymentOwner", "settlementCurrency"],
         },
       );
       const rawData = response.results || response;
       if (Array.isArray(rawData)) {
         return rawData
           .map((item: any) => this.transformReceivablePlanData(item))
-          .filter((rp) => rp.actualAmount > 0 && rp.actualDate);
+          .filter((rp) => (rp.actualAmount > 0 && rp.actualDate) || (rp.plannedAmount > 0 && rp.plannedDate));
       }
       return [];
     } catch (error) {
@@ -428,12 +432,18 @@ export class DashboardApiService {
   // 转换应收计划数据
   private transformReceivablePlanData(item: any): ReceivablePlan {
     const actualDate = item.actualDate || "";
+    const plannedDate = item.plannedDate || "";
     return {
       id: item.id,
       parentDataId: String(item.parentDataId || ""),
       actualAmount: Number(item.actualAmount) || 0,
       actualDate,
       actualMonth: actualDate ? this.getMonthFromDate(actualDate) : undefined,
+      plannedAmount: Number(item.plannedAmount) || 0,
+      plannedDate,
+      plannedMonth: plannedDate ? this.getMonthFromDate(plannedDate) : undefined,
+      paymentStage: item.paymentStage || "",
+      paymentOwner: item.paymentOwner?.[0]?.label || "",
       currencyId: item.settlementCurrency?.[0]?.id != null
         ? String(item.settlementCurrency[0].id)
         : undefined,

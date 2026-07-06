@@ -38,6 +38,9 @@ import {
   useExchangeRateService,
 } from "@/hooks/useApiData";
 import { DealsTable } from "@/components/deals/DealsTable";
+import { ContractsTable } from "@/components/deals/ContractsTable";
+import { CollectionHealthChart } from "@/components/charts/CollectionHealthChart";
+import { calculateCollectionHealthFromApi } from "@/components/charts/CollectionHealthChart/useCollectionHealthData";
 import {
   PeriodFilter,
   type PeriodMode,
@@ -49,7 +52,7 @@ import {
 import { CurrencyFilter } from "@/components/filters/CurrencyFilter";
 
 export type ChartFilterContext = {
-  type: "health" | "funnel" | "stagnation";
+  type: "health" | "funnel" | "stagnation" | "collection";
   stage?: string;
   activityStatus?: string;
   month?: string;
@@ -239,6 +242,18 @@ const Index = () => {
       selectedCurrencyId,
     );
   }, [monthFilteredDeals, filteredDeals, opportunityStages, amountMode, contractMap, receivablePlanMap, selectedMonths, exchangeService, selectedCurrencyId]);
+
+  // 回款健康度图表数据
+  const collectionHealthData = useMemo(() => {
+    const orgForFiscal = selectedOrg || (orgStructure.id ? orgStructure : null);
+    return calculateCollectionHealthFromApi(
+      contractMap,
+      receivablePlanMap,
+      orgForFiscal,
+      exchangeService,
+      selectedCurrencyId,
+    );
+  }, [contractMap, receivablePlanMap, selectedOrg, orgStructure, exchangeService, selectedCurrencyId]);
   const getStageName = (code?: string) => {
     if (!code) return "";
     return opportunityStages.find((s) => s.code === code)?.name ?? code;
@@ -360,6 +375,10 @@ const Index = () => {
         }
         return t("dashboard>filter>stagnationStatus", { status: statusLabel });
       }
+      case "collection":
+        return chartFilter.month
+          ? t("dashboard>filter>collectionMonth", { month: chartFilter.month })
+          : t("dashboard>filter>collectionDefault");
       default:
         return t("dashboard>filter>dealList");
     }
@@ -545,6 +564,54 @@ const Index = () => {
                       filterContext={chartFilter}
                       deals={monthFilteredDeals}
                       stages={opportunityStages}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Collection Health Chart - Full Width */}
+            <CollectionHealthChart
+              data={collectionHealthData}
+              onMonthClick={(month) =>
+                setChartFilter({ type: "collection", month })
+              }
+              isActive={chartFilter?.type === "collection"}
+              activeFilter={chartFilter}
+              filterTags={buildCommonTags()}
+            />
+
+            {/* Contracts Table for Collection - Full Width */}
+            <AnimatePresence>
+              {chartFilter?.type === "collection" && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="bot-dashboard-bg glass-card overflow-hidden">
+                    <div className="flex items-center justify-between p-4 border-b border-border">
+                      <div>
+                        <h3 className="text-lg font-semibold">
+                          {getFilterTitle()}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {t("dashboard>filter>clickToSwitch")}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setChartFilter(null)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <ContractsTable
+                      contractMap={contractMap}
+                      receivablePlanMap={receivablePlanMap}
+                      filterContext={chartFilter}
                     />
                   </div>
                 </motion.div>

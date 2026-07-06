@@ -85,6 +85,67 @@ export const translations: Translations = {
   "dashboard>chart>amount": { zh: "金额", en: "Amount" },
   "dashboard>chart>count": { zh: "数量", en: "Count" },
 
+  // Collection Health (回款健康度)
+  "dashboard>collection>title": { zh: "回款健康度", en: "Collection Health" },
+  "dashboard>collection>desc": {
+    zh: "应收 vs 实际回款",
+    en: "Target vs Actual Collection",
+  },
+  "dashboard>collection>target": { zh: "应收金额", en: "Target Collection" },
+  "dashboard>collection>actual": { zh: "实际回款", en: "Actual Collection" },
+  "dashboard>collection>rate": { zh: "回款率", en: "Collection Rate" },
+  "dashboard>collection>pending": { zh: "待收金额", en: "Pending Collection" },
+  "dashboard>collection>empty": {
+    zh: "没有符合条件的回款合同",
+    en: "No contracts match the filter criteria",
+  },
+  "opportunity-management|>opportunity-management-form|>contract-number": {
+    zh: "合同编号",
+    en: "Contract Code",
+  },
+  "contract-management|>contract-management|>contract-name": {
+    zh: "合同名称",
+    en: "Contract Name",
+  },
+  "contract-management|>contract-management-form|>customer": {
+    zh: "客户",
+    en: "Customer",
+  },
+  "contract-management|>contract-management-form|>contract-amount-excluding-tax":
+    {
+      zh: "合同金额",
+      en: "Contract Value",
+    },
+  "dashboard>collection>collected": { zh: "已回款", en: "Collected" },
+  "dashboard>collection>pendingAmount": { zh: "待回款", en: "Pending" },
+  "contract-management|>contract-management|>expiration-date": {
+    zh: "到期日期",
+    en: "Expiry Date",
+  },
+  "contract-management|>contract-management-form|>contract-manager": {
+    zh: "合同负责人",
+    en: "Owner",
+  },
+  "dashboard>collection>signingDate": { zh: "签约日期", en: "Signing Date" },
+  "dashboard>collection>status": { zh: "状态", en: "Status" },
+  "dashboard>collection>status>completed": { zh: "已完成", en: "Completed" },
+  "dashboard>collection>status>onTime": { zh: "正常", en: "On Time" },
+  "dashboard>collection>status>dueSoon": { zh: "即将到期", en: "Due Soon" },
+  "dashboard>collection>status>overdue": { zh: "逾期", en: "Overdue" },
+  "dashboard>collection>plan": { zh: "计划", en: "Plan" },
+  "dashboard>collection>actualLabel": { zh: "实际", en: "Actual" },
+  "dashboard>collection>notCollected": { zh: "未回款", en: "Not collected" },
+  "dashboard>collection>onTimeLabel": { zh: "准时", en: "On time" },
+  "dashboard>collection>delayed": { zh: "延迟{days}天", en: "Delayed {days}d" },
+  "dashboard>filter>collectionMonth": {
+    zh: "{month} 月回款合同",
+    en: "Contracts for {month}",
+  },
+  "dashboard>filter>collectionDefault": {
+    zh: "回款相关合同",
+    en: "Collection related contracts",
+  },
+
   // Filter labels
   "dashboard>filter>searchPlaceholder": {
     zh: "搜索商机名称或公司...",
@@ -148,8 +209,14 @@ export const translations: Translations = {
     en: "Expected Amount",
   },
   "dashboard>filter>businessAmount": { zh: "商机金额", en: "Business Amount" },
-  "dashboard>filter>contractAmount": { zh: "合同总金额(含税)", en: "Contract Amount (Tax Incl.)" },
-  "dashboard>filter>receivableAmount": { zh: "实际回款金额", en: "Actual Payment" },
+  "dashboard>filter>contractAmount": {
+    zh: "合同总金额(含税)",
+    en: "Contract Amount (Tax Incl.)",
+  },
+  "dashboard>filter>receivableAmount": {
+    zh: "实际回款金额",
+    en: "Actual Payment",
+  },
 
   // Deals
   "dashboard>deals>responsible": {

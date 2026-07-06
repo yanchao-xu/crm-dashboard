@@ -27,8 +27,12 @@ export interface Deal {
 export interface Contract {
   id: string;
   contractCode: string;
+  contractName: string; // 合同名称
+  customer: string; // 客户（甲方名称）
+  owner: string; // 负责人
   totalAmountWithTax: number;
   signingDate: string;
+  expiryDate: string; // 到期日期
   signingMonth?: string; // 解析后的月份 "Jan"~"Dec"
   dealId?: string; // 关联的商机ID
   stage?: string; // 继承自商机的阶段
@@ -42,6 +46,11 @@ export interface ReceivablePlan {
   actualAmount: number; // 实际回款金额
   actualDate: string; // 实际回款日期
   actualMonth?: string; // 解析后的月份 "Jan"~"Dec"
+  plannedAmount: number; // 计划应收金额
+  plannedDate: string; // 计划应收日期
+  plannedMonth?: string; // 解析后的月份 "Jan"~"Dec"
+  paymentStage: string; // 款项阶段（如 "首款"、"尾款"）
+  paymentOwner: string; // 负责人
   currencyId?: string; // 结算币种 id，用于汇率匹配
 }
 
