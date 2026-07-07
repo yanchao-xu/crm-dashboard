@@ -119,7 +119,7 @@ export function filterDealsByMonth(
 }
 
 // 根据财年起止日期生成月份列表
-function getFiscalMonths(orgNode: OrgNode | null): string[] {
+export function getFiscalMonths(orgNode: OrgNode | null): string[] {
   const allMonths = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",

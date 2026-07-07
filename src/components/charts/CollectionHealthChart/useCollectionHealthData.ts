@@ -59,6 +59,7 @@ export function calculateCollectionHealthFromApi(
   selectedOrg: OrgNode | null,
   exchangeService: ExchangeRateService | null,
   targetCurrencyId?: string,
+  allowedContractNumbers?: Set<string>,
 ): CollectionHealthDataPoint[] {
   // 按财年获取 12 个月份列表
   const fiscalMonths = getFiscalMonths(selectedOrg);
@@ -72,7 +73,12 @@ export function calculateCollectionHealthFromApi(
   });
 
   // 遍历所有合同中的应收计划
-  contractMap.forEach((contracts) => {
+  contractMap.forEach((contracts, contractCode) => {
+    // 如果指定了白名单，只处理匹配的合同
+    if (allowedContractNumbers && !allowedContractNumbers.has(contractCode)) {
+      return;
+    }
+
     contracts.forEach((contract) => {
       const plans = receivablePlanMap.get(String(contract.id)) || [];
       plans.forEach((plan) => {
@@ -110,10 +116,41 @@ export function calculateCollectionHealthFromApi(
  * Hook: 计算回款健康度图表的统计摘要
  * totalTarget / totalActual 为 12 个月的累加汇总
  */
-export function useCollectionHealthData(data: CollectionHealthDataPoint[]) {
+export function useCollectionHealthData(data: CollectionHealthDataPoint[], fiscalMonths?: string[]) {
   return useMemo(() => {
-    const totalTarget = data.reduce((sum, d) => sum + d.target, 0);
-    const totalActual = data.reduce((sum, d) => sum + d.actual, 0);
+    const MONTH_ABBRS = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+    const currentMonthAbbr = MONTH_ABBRS[new Date().getMonth()];
+
+    // 找到截止位置（与商机健康度逻辑一致）
+    let sliceEnd = data.length;
+
+    // 尝试直接匹配月份（月模式）
+    const monthIndex = data.findIndex((d) => d.month === currentMonthAbbr);
+    if (monthIndex >= 0) {
+      sliceEnd = monthIndex + 1;
+    } else {
+      // 季度模式
+      const isQuarterMode = data.some((d) => d.month.startsWith("Q"));
+      if (isQuarterMode && fiscalMonths && fiscalMonths.length === 12) {
+        const posInFiscal = fiscalMonths.indexOf(currentMonthAbbr);
+        if (posInFiscal >= 0) {
+          const quarterIndex = Math.floor(posInFiscal / 3);
+          sliceEnd = Math.min(quarterIndex + 1, data.length);
+        }
+      } else if (isQuarterMode) {
+        const currentMonthIndex = new Date().getMonth();
+        const quarterIndex = Math.floor(currentMonthIndex / 3);
+        sliceEnd = Math.min(quarterIndex + 1, data.length);
+      }
+    }
+
+    const dataUpToCurrent = data.slice(0, sliceEnd);
+
+    const totalTarget = dataUpToCurrent.reduce((sum, d) => sum + d.target, 0);
+    const totalActual = dataUpToCurrent.reduce((sum, d) => sum + d.actual, 0);
     const totalPending = Math.max(totalTarget - totalActual, 0);
     const rate = totalTarget > 0 ? Math.round((totalActual / totalTarget) * 100) : 0;
     const isHealthy = totalActual >= totalTarget * 0.9;
@@ -125,5 +162,36 @@ export function useCollectionHealthData(data: CollectionHealthDataPoint[]) {
       rate,
       isHealthy,
     };
-  }, [data]);
+  }, [data, fiscalMonths]);
+}
+
+/**
+ * 按季度聚合回款健康度月度数据
+ * 将 12 个月的数据按财年季度分组，合并为 4 个季度（Q1~Q4）
+ */
+export function aggregateCollectionHealthByQuarter(
+  monthlyData: CollectionHealthDataPoint[],
+  orgNode: OrgNode | null,
+): CollectionHealthDataPoint[] {
+  const fiscalMonths = getFiscalMonths(orgNode);
+  const quarters: { label: string; months: string[] }[] = [];
+
+  for (let i = 0; i < fiscalMonths.length; i += 3) {
+    const qMonths = fiscalMonths.slice(i, i + 3);
+    if (qMonths.length > 0) {
+      quarters.push({
+        label: `Q${quarters.length + 1}`,
+        months: qMonths,
+      });
+    }
+  }
+
+  return quarters.map((q) => {
+    const qMonthData = monthlyData.filter((d) => q.months.includes(d.month));
+    return {
+      month: q.label,
+      target: qMonthData.reduce((sum, d) => sum + d.target, 0),
+      actual: qMonthData.reduce((sum, d) => sum + d.actual, 0),
+    };
+  });
 }

@@ -31,6 +31,7 @@ interface CollectionHealthChartProps {
     isActive?: boolean;
     activeFilter?: ChartFilterContext;
     filterTags?: FilterTag[];
+    fiscalMonths?: string[];
 }
 
 export function CollectionHealthChart({
@@ -39,12 +40,13 @@ export function CollectionHealthChart({
     isActive,
     activeFilter,
     filterTags,
+    fiscalMonths,
 }: CollectionHealthChartProps) {
     const { t, language } = useLanguage();
     const { currencyCode } = useCurrency();
 
     const { totalTarget, totalActual, rate, isHealthy } =
-        useCollectionHealthData(data);
+        useCollectionHealthData(data, fiscalMonths);
 
     const isOtherChartActive = !!(
         activeFilter && activeFilter.type !== "collection"

@@ -10,10 +10,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import type { Contract, ReceivablePlan } from "@/types";
+import type { Contract, ReceivablePlan, OrgNode } from "@/types";
 import type { ContractMap, ReceivablePlanMap } from "@/hooks/useApiData";
 import type { ChartFilterContext } from "@/pages/Index";
-import { formatCurrency } from "@/components/charts/utils/formatters";
+import { formatAmountNumber, getCurrencySymbol } from "@/components/charts/utils/formatters";
+import type { ExchangeRateService } from "@/services/exchangeRate";
+import { getMonthsForQuarter } from "@/utils/orgFilter";
 import {
   ChevronRight,
   ChevronDown,
@@ -44,56 +46,81 @@ function buildContractRows(
   contractMap: ContractMap,
   receivablePlanMap: ReceivablePlanMap,
   filterMonth?: string,
+  exchangeService?: ExchangeRateService | null,
+  targetCurrencyId?: string,
+  allowedContractNumbers?: Set<string>,
+  selectedOrg?: OrgNode | null,
 ): ContractRowData[] {
   const rows: ContractRowData[] = [];
 
-  contractMap.forEach((contracts) => {
+  const convert = (amount: number, fromCurrencyId?: string): number => {
+    if (!exchangeService || !targetCurrencyId || !fromCurrencyId) return amount;
+    return exchangeService.convert(amount, fromCurrencyId, targetCurrencyId);
+  };
+
+  // 如果 filterMonth 是季度标签（Q1~Q4），展开为对应的月份列表
+  let filterMonths: string[] | undefined;
+  if (filterMonth) {
+    if (filterMonth.startsWith("Q")) {
+      filterMonths = getMonthsForQuarter(selectedOrg || null, filterMonth);
+    } else {
+      filterMonths = [filterMonth];
+    }
+  }
+
+  contractMap.forEach((contracts, contractCode) => {
+    // 如果指定了白名单，只处理匹配的合同
+    if (allowedContractNumbers && !allowedContractNumbers.has(contractCode)) {
+      return;
+    }
+
     contracts.forEach((contract) => {
       const allPlans = receivablePlanMap.get(String(contract.id)) || [];
 
       // 筛选：只保留 plannedMonth 或 actualMonth 与点击月份匹配的应收计划
       let matchedPlans: ReceivablePlan[];
-      if (filterMonth) {
+      if (filterMonths) {
         matchedPlans = allPlans.filter(
           (p) =>
-            p.plannedMonth === filterMonth || p.actualMonth === filterMonth,
+            (p.plannedMonth && filterMonths!.includes(p.plannedMonth)) ||
+            (p.actualMonth && filterMonths!.includes(p.actualMonth)),
         );
       } else {
         matchedPlans = allPlans;
       }
 
       // 如果该合同在当前月份没有匹配的应收计划，跳过
-      if (filterMonth && matchedPlans.length === 0) return;
+      if (filterMonths && matchedPlans.length === 0) return;
 
-      // 合同级别的汇总数据
+      // 合同级别的汇总数据（带汇率转换）
       let collectedAmount: number;
       let pendingAmount: number;
 
-      if (filterMonth) {
-        // 选中月份时：已回款/待回款基于当月匹配的应收计划
+      if (filterMonths) {
+        // 选中月份/季度时：已回款/待回款基于匹配的应收计划
         collectedAmount = matchedPlans.reduce(
-          (sum, p) => sum + (p.actualAmount || 0),
+          (sum, p) => sum + convert(p.actualAmount || 0, p.currencyId),
           0,
         );
         const plannedTotal = matchedPlans.reduce(
-          (sum, p) => sum + (p.plannedAmount || 0),
+          (sum, p) => sum + convert(p.plannedAmount || 0, p.currencyId),
           0,
         );
         pendingAmount = Math.max(plannedTotal - collectedAmount, 0);
       } else {
-        // 未选月份时：已回款基于全部应收计划，待回款 = 合同总额 - 已回款
+        // 未选月份/季度时：已回款基于全部应收计划，待回款 = 合同总额 - 已回款
         collectedAmount = allPlans.reduce(
-          (sum, p) => sum + (p.actualAmount || 0),
+          (sum, p) => sum + convert(p.actualAmount || 0, p.currencyId),
           0,
         );
         pendingAmount = Math.max(
-          contract.totalAmountWithTax - collectedAmount,
+          convert(contract.totalAmountWithTax, contract.currencyId) - collectedAmount,
           0,
         );
       }
 
-      // 判断回款状态（基于当月匹配的应收计划）
-      const plansForStatus = filterMonth ? matchedPlans : allPlans;
+      // 判断回款状态（基于匹配的应收计划）
+      const plansForStatus = filterMonths ? matchedPlans : allPlans;
       let status: CollectionStatus = "onTime";
 
       const planPlannedTotal = plansForStatus.reduce(
@@ -165,23 +192,37 @@ interface ContractsTableProps {
   contractMap: ContractMap;
   receivablePlanMap: ReceivablePlanMap;
   filterContext?: ChartFilterContext;
+  exchangeService?: ExchangeRateService | null;
+  targetCurrencyId?: string;
+  allowedContractNumbers?: Set<string>;
+  selectedOrg?: OrgNode | null;
 }
 
 export function ContractsTable({
   contractMap,
   receivablePlanMap,
   filterContext,
+  exchangeService,
+  targetCurrencyId,
+  allowedContractNumbers,
+  selectedOrg,
 }: ContractsTableProps) {
   const { t } = useLanguage();
   const { currencyCode } = useCurrency();
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
+  // 汇率转换辅助
+  const convertAmount = (amount: number, fromCurrencyId?: string): number => {
+    if (!exchangeService || !targetCurrencyId || !fromCurrencyId) return amount;
+    return exchangeService.convert(amount, fromCurrencyId, targetCurrencyId);
+  };
+
   const filterMonth =
     filterContext?.type === "collection" ? filterContext.month : undefined;
 
   const rows = useMemo(
-    () => buildContractRows(contractMap, receivablePlanMap, filterMonth),
-    [contractMap, receivablePlanMap, filterMonth],
+    () => buildContractRows(contractMap, receivablePlanMap, filterMonth, exchangeService, targetCurrencyId, allowedContractNumbers, selectedOrg),
+    [contractMap, receivablePlanMap, filterMonth, exchangeService, targetCurrencyId, allowedContractNumbers, selectedOrg],
   );
 
   const toggleRow = (contractId: string) => {
@@ -224,13 +265,13 @@ export function ContractsTable({
             <TableHead className="text-right">
               {t(
                 "contract-management|>contract-management-form|>contract-amount-excluding-tax",
-              )}
+              )}({getCurrencySymbol(currencyCode)})
             </TableHead>
             <TableHead className="min-w-[180px]">
-              {t("dashboard>collection>collected")}
+              {t("dashboard>collection>collected")}({getCurrencySymbol(currencyCode)})
             </TableHead>
             <TableHead className="text-right">
-              {t("dashboard>collection>pendingAmount")}
+              {t("dashboard>collection>pendingAmount")}({getCurrencySymbol(currencyCode)})
             </TableHead>
             <TableHead>
               {t("contract-management|>contract-management|>expiration-date")}
@@ -280,10 +321,7 @@ export function ContractsTable({
                     {row.contract.customer}
                   </TableCell>
                   <TableCell className="text-right font-mono">
-                    {formatCurrency(
-                      row.contract.totalAmountWithTax,
-                      currencyCode,
-                    )}
+                    {formatAmountNumber(convertAmount(row.contract.totalAmountWithTax, row.contract.currencyId))}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -294,12 +332,12 @@ export function ContractsTable({
                         />
                       </div>
                       <span className="font-mono text-xs whitespace-nowrap">
-                        {formatCurrency(row.collectedAmount, currencyCode)}
+                        {formatAmountNumber(row.collectedAmount)}
                       </span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right font-mono text-muted-foreground">
-                    {formatCurrency(row.pendingAmount, currencyCode)}
+                    {formatAmountNumber(row.pendingAmount)}
                   </TableCell>
                   <TableCell className="font-mono text-xs">
                     {row.contract.expiryDate}
@@ -345,7 +383,7 @@ export function ContractsTable({
                               <Check className="w-3.5 h-3.5 text-success flex-shrink-0" />
                               <span className="font-mono text-xs">{plan.actualDate}</span>
                               <span className="font-mono text-xs text-success">
-                                {formatCurrency(plan.actualAmount, currencyCode)}
+                                {formatAmountNumber(convertAmount(plan.actualAmount, plan.currencyId))}
                               </span>
                             </div>
                           ) : (
@@ -360,7 +398,7 @@ export function ContractsTable({
                             <div className="flex items-center justify-end gap-1.5">
                               <span className="font-mono text-xs">{plan.plannedDate}</span>
                               <span className="font-mono text-xs text-muted-foreground">
-                                {formatCurrency(planPending, currencyCode)}
+                                {formatAmountNumber(convertAmount(planPending, plan.currencyId))}
                               </span>
                             </div>
                           ) : (

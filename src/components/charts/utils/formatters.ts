@@ -100,6 +100,22 @@ export function formatCurrencyWithSymbol(
   return formatCurrency(value, currencyCode);
 }
 
+/**
+ * 格式化金额数字（不含币种符号），用于表格单元格
+ * 币种符号在列头显示
+ */
+export function formatAmountNumber(value: number): string {
+  const abs = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+  if (abs >= 1000000) {
+    return `${sign}${(abs / 1000000).toFixed(2)}M`;
+  }
+  if (abs >= 1000) {
+    return `${sign}${(abs / 1000).toFixed(2)}K`;
+  }
+  return `${sign}${Math.round(abs * 100) / 100}`;
+}
+
 export function formatPercentage(value: number, decimals = 0): string {
   return `${value.toFixed(decimals)}%`;
 }

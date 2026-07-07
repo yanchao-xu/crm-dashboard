@@ -28,6 +28,7 @@ interface HealthChartProps {
   isActive?: boolean;
   activeFilter?: ChartFilterContext;
   filterTags?: FilterTag[];
+  fiscalMonths?: string[];
 }
 
 export function HealthChart({
@@ -37,13 +38,14 @@ export function HealthChart({
   isActive,
   activeFilter,
   filterTags,
+  fiscalMonths,
 }: HealthChartProps) {
   const { t, language } = useLanguage();
   const { currencyCode } = useCurrency();
 
   // 提取阶段代码列表
   const stageCodes = stages.map((s) => s.code);
-  const { healthData, stats, stageKeys } = useHealthChartData(data, stageCodes);
+  const { healthData, stats, stageKeys } = useHealthChartData(data, stageCodes, fiscalMonths);
 
   const handleClick = (data: any) => {
     if (data && data.activeLabel && onSegmentClick) {

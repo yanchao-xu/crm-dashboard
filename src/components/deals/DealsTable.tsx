@@ -15,23 +15,34 @@ import { toast } from "sonner";
 import { ChartFilterContext } from "@/pages/Index";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { formatCurrency } from "@/components/charts/utils/formatters";
+import { formatAmountNumber, getCurrencySymbol } from "@/components/charts/utils/formatters";
 import type { OpportunityStage } from "@/services/api";
+import type { ExchangeRateService } from "@/services/exchangeRate";
 
 interface DealsTableProps {
   filterContext?: ChartFilterContext;
   deals?: Deal[];
   stages?: OpportunityStage[];
+  exchangeService?: ExchangeRateService | null;
+  targetCurrencyId?: string;
 }
 
 export function DealsTable({
   filterContext,
   deals: propDeals,
   stages = [],
+  exchangeService,
+  targetCurrencyId,
 }: DealsTableProps) {
   const { t, getText, language } = useLanguage();
   const { currencyCode } = useCurrency();
   const allDeals = propDeals || [];
+
+  // 汇率转换辅助
+  const convertAmount = (amount: number, fromCurrencyId?: string): number => {
+    if (!exchangeService || !targetCurrencyId || !fromCurrencyId) return amount;
+    return exchangeService.convert(amount, fromCurrencyId, targetCurrencyId);
+  };
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [filters, setFilters] = useState<FilterState>({
     stages: [],
@@ -189,10 +200,10 @@ export function DealsTable({
                   {t("dashboard>deals>deal")}
                 </TableHead>
                 <TableHead className="text-muted-foreground font-mono text-xs">
-                  {t("dashboard>deals>expectedTransactionAmount")}
+                  {t("dashboard>deals>expectedTransactionAmount")}({getCurrencySymbol(currencyCode)})
                 </TableHead>
                 <TableHead className="text-muted-foreground font-mono text-xs">
-                  {t("dashboard>deals>businessAmount")}
+                  {t("dashboard>deals>businessAmount")}({getCurrencySymbol(currencyCode)})
                 </TableHead>
                 <TableHead className="text-muted-foreground font-mono text-xs">
                   {t("dashboard>deals>stage")}
@@ -242,12 +253,12 @@ export function DealsTable({
                     </TableCell>
                     <TableCell>
                       <span className="font-mono text-sm">
-                        {formatCurrency(deal.value, currencyCode)}
+                        {formatAmountNumber(convertAmount(deal.value, deal.currencyId))}
                       </span>
                     </TableCell>
                     <TableCell>
                       <span className="font-mono text-sm">
-                        {formatCurrency(deal.businessAmount || 0, currencyCode)}
+                        {formatAmountNumber(convertAmount(deal.businessAmount || 0, deal.currencyId))}
                       </span>
                     </TableCell>
                     <TableCell>

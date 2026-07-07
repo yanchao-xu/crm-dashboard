@@ -23,6 +23,7 @@ import {
   calculateFunnelData,
   aggregateHealthDataByQuarter,
   getMonthsForQuarter,
+  getFiscalMonths,
   NO_PRODUCT_LINE_ID,
 } from "@/utils/orgFilter";
 import {
@@ -40,7 +41,7 @@ import {
 import { DealsTable } from "@/components/deals/DealsTable";
 import { ContractsTable } from "@/components/deals/ContractsTable";
 import { CollectionHealthChart } from "@/components/charts/CollectionHealthChart";
-import { calculateCollectionHealthFromApi } from "@/components/charts/CollectionHealthChart/useCollectionHealthData";
+import { calculateCollectionHealthFromApi, aggregateCollectionHealthByQuarter } from "@/components/charts/CollectionHealthChart/useCollectionHealthData";
 import {
   PeriodFilter,
   type PeriodMode,
@@ -106,6 +107,12 @@ const Index = () => {
     result = filterDealsByProduct(result, selectedProducts);
     return result;
   }, [selectedOrg, selectedProducts, deals]);
+
+  // 财年月份列表（供图表截止计算使用）
+  const fiscalMonths = useMemo(() => {
+    const orgForFiscal = selectedOrg || (orgStructure.id ? orgStructure : null);
+    return getFiscalMonths(orgForFiscal);
+  }, [selectedOrg, orgStructure]);
 
   // 健康度图表数据
   const filteredStackedHealthData = useMemo(() => {
@@ -246,14 +253,35 @@ const Index = () => {
   // 回款健康度图表数据
   const collectionHealthData = useMemo(() => {
     const orgForFiscal = selectedOrg || (orgStructure.id ? orgStructure : null);
-    return calculateCollectionHealthFromApi(
+    // 从 filteredDeals 提取关联的 contractNumber 白名单
+    const allowedContractNumbers = new Set(
+      filteredDeals
+        .map((d) => d.contractNumber)
+        .filter((cn): cn is string => !!cn && cn.trim() !== ""),
+    );
+    const monthlyData = calculateCollectionHealthFromApi(
       contractMap,
       receivablePlanMap,
       orgForFiscal,
       exchangeService,
       selectedCurrencyId,
+      allowedContractNumbers,
     );
-  }, [contractMap, receivablePlanMap, selectedOrg, orgStructure, exchangeService, selectedCurrencyId]);
+
+    if (periodMode === "quarter") {
+      return aggregateCollectionHealthByQuarter(monthlyData, orgForFiscal);
+    }
+    return monthlyData;
+  }, [contractMap, receivablePlanMap, selectedOrg, orgStructure, exchangeService, selectedCurrencyId, filteredDeals, periodMode]);
+
+  // 从 filteredDeals 提取关联的 contractNumber 白名单（供 ContractsTable 使用）
+  const allowedContractNumbers = useMemo(() => {
+    return new Set(
+      filteredDeals
+        .map((d) => d.contractNumber)
+        .filter((cn): cn is string => !!cn && cn.trim() !== ""),
+    );
+  }, [filteredDeals]);
   const getStageName = (code?: string) => {
     if (!code) return "";
     return opportunityStages.find((s) => s.code === code)?.name ?? code;
@@ -467,6 +495,7 @@ const Index = () => {
                 isActive={chartFilter?.type === "health"}
                 activeFilter={chartFilter}
                 filterTags={healthFilterTags}
+                fiscalMonths={fiscalMonths}
               />
               <FunnelChart
                 data={filteredFunnelData}
@@ -512,6 +541,8 @@ const Index = () => {
                         filterContext={chartFilter}
                         deals={monthFilteredDeals}
                         stages={opportunityStages}
+                        exchangeService={exchangeService}
+                        targetCurrencyId={selectedCurrencyId}
                       />
                     </div>
                   </motion.div>
@@ -564,6 +595,8 @@ const Index = () => {
                       filterContext={chartFilter}
                       deals={monthFilteredDeals}
                       stages={opportunityStages}
+                      exchangeService={exchangeService}
+                      targetCurrencyId={selectedCurrencyId}
                     />
                   </div>
                 </motion.div>
@@ -579,6 +612,7 @@ const Index = () => {
               isActive={chartFilter?.type === "collection"}
               activeFilter={chartFilter}
               filterTags={buildCommonTags()}
+              fiscalMonths={fiscalMonths}
             />
 
             {/* Contracts Table for Collection - Full Width */}
@@ -612,11 +646,18 @@ const Index = () => {
                       contractMap={contractMap}
                       receivablePlanMap={receivablePlanMap}
                       filterContext={chartFilter}
+                      exchangeService={exchangeService}
+                      targetCurrencyId={selectedCurrencyId}
+                      allowedContractNumbers={allowedContractNumbers}
+                      selectedOrg={selectedOrg}
                     />
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* 底部间距 */}
+            <div className="h-6" />
           </CurrencyProvider>
         </motion.div>
       </div>
