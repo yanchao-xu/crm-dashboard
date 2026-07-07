@@ -81,11 +81,13 @@ export function CollectionHealthChart({
                     label={t("dashboard>collection>actual")}
                     value={formatCurrency(totalActual, currencyCode)}
                     valueColor="text-chart-actual"
+                    infoText={t("dashboard>collection>actualInfo")}
                 />
                 <StatCard
                     label={t("dashboard>collection>target")}
                     value={formatCurrency(totalTarget, currencyCode)}
                     valueColor="text-chart-target"
+                    infoText={t("dashboard>collection>targetInfo")}
                 />
                 <StatCard
                     label={t("dashboard>collection>rate")}

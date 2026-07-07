@@ -108,6 +108,7 @@ export function filterDealsByProduct(
 }
 
 // Filter deals by month (for health chart click)
+// 支持月份标签 ("Apr") 或 yearMonth ("2026-04") 格式
 export function filterDealsByMonth(
   allDeals: Deal[],
   month: string | undefined,
@@ -115,6 +116,11 @@ export function filterDealsByMonth(
   if (!month) {
     return allDeals;
   }
+  // 如果是 yearMonth 格式 (YYYY-MM)，按 createdYearMonth 匹配
+  if (/^\d{4}-\d{2}$/.test(month)) {
+    return allDeals.filter((deal) => deal.createdYearMonth === month);
+  }
+  // 兼容旧的月份标签格式
   return allDeals.filter((deal) => deal.createdMonth === month);
 }
 
@@ -152,9 +158,70 @@ export function getFiscalMonths(orgNode: OrgNode | null): string[] {
   }
 }
 
+// 财年月份带年份信息的类型
+export interface FiscalMonthInfo {
+  label: string;      // "Apr" — 用于图表显示
+  yearMonth: string;  // "2026-04" — 用于数据匹配
+}
+
+// 根据财年起止日期生成带年份信息的月份列表，用于跨年财年的精确匹配
+export function getFiscalYearMonths(orgNode: OrgNode | null): FiscalMonthInfo[] {
+  const allMonths = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
+
+  const hasStart = !!orgNode?.theStartDateOfTheFiscalYear;
+  const hasEnd = !!orgNode?.theEndDateOfTheFiscalYear;
+
+  if (!hasStart && !hasEnd) {
+    // 没有财年配置时，默认使用当前自然年 Jan~Dec
+    const year = new Date().getFullYear();
+    return allMonths.map((m, i) => ({
+      label: m,
+      yearMonth: `${year}-${String(i + 1).padStart(2, "0")}`,
+    }));
+  }
+
+  try {
+    let startYear: number;
+    let startMonth: number; // 0-based
+
+    if (hasStart) {
+      const startDate = new Date(orgNode!.theStartDateOfTheFiscalYear!);
+      startYear = startDate.getFullYear();
+      startMonth = startDate.getMonth();
+    } else {
+      const endDate = new Date(orgNode!.theEndDateOfTheFiscalYear!);
+      const endMonth = endDate.getMonth();
+      startMonth = (endMonth - 11 + 12) % 12;
+      // 如果结束月小于起始月，说明起始年份是结束年份减 1
+      startYear = startMonth > endMonth ? endDate.getFullYear() - 1 : endDate.getFullYear();
+    }
+
+    const result: FiscalMonthInfo[] = [];
+    for (let i = 0; i < 12; i++) {
+      const monthIdx = (startMonth + i) % 12;
+      const year = startYear + Math.floor((startMonth + i) / 12);
+      result.push({
+        label: allMonths[monthIdx],
+        yearMonth: `${year}-${String(monthIdx + 1).padStart(2, "0")}`,
+      });
+    }
+    return result;
+  } catch {
+    const year = new Date().getFullYear();
+    return allMonths.map((m, i) => ({
+      label: m,
+      yearMonth: `${year}-${String(i + 1).padStart(2, "0")}`,
+    }));
+  }
+}
+
 /**
  * 将按月份/阶段聚合好的金额数据转换为图表数据点数组
  * 共用逻辑：monthlyData → StackedHealthDataPoint[]
+ * key 使用 yearMonth ("2026-04") 格式进行精确匹配，避免跨年数据错位
  */
 function buildHealthDataPoints(
   monthlyData: Map<string, Map<string, number>>,
@@ -163,14 +230,14 @@ function buildHealthDataPoints(
   exchangeService?: ExchangeRateService | null,
   targetCurrencyId?: string,
 ): StackedHealthDataPoint[] {
-  const months = getFiscalMonths(selectedOrg);
+  const fiscalYearMonths = getFiscalYearMonths(selectedOrg);
 
-  return months.map((month) => {
-    const stageData = monthlyData.get(month) || new Map();
+  return fiscalYearMonths.map(({ label, yearMonth }) => {
+    const stageData = monthlyData.get(yearMonth) || new Map();
 
     let target = 0;
     if (selectedOrg) {
-      const monthField = monthFieldMap[month];
+      const monthField = monthFieldMap[label];
       const monthValue = selectedOrg[monthField];
       target = typeof monthValue === "number" ? monthValue : 0;
       // 对组织目标金额做汇率转换
@@ -179,7 +246,7 @@ function buildHealthDataPoints(
       }
     }
 
-    const dataPoint: any = { month, target };
+    const dataPoint: any = { month: label, target };
 
     stages.forEach((stage) => {
       dataPoint[stage.code] = stageData.get(stage.code) || 0;
@@ -191,17 +258,19 @@ function buildHealthDataPoints(
 
 /**
  * 向 monthlyData 中累加金额
+ * key 为 yearMonth 格式 ("2026-04")，确保跨年时数据不会错位
  */
 function addToMonthlyData(
   monthlyData: Map<string, Map<string, number>>,
-  month: string,
+  yearMonth: string,
   stage: string,
   amount: number,
 ) {
-  if (!monthlyData.has(month)) {
-    monthlyData.set(month, new Map());
+  if (!yearMonth) return;
+  if (!monthlyData.has(yearMonth)) {
+    monthlyData.set(yearMonth, new Map());
   }
-  const stageData = monthlyData.get(month)!;
+  const stageData = monthlyData.get(yearMonth)!;
   stageData.set(stage, (stageData.get(stage) || 0) + amount);
 }
 
@@ -219,8 +288,9 @@ export function calculateStackedHealthData(
   const monthlyData = new Map<string, Map<string, number>>();
 
   filteredDeals.forEach((deal) => {
-    const month = deal.createdMonth || "Jan";
-    addToMonthlyData(monthlyData, month, deal.stage, getDealAmount(deal, amountMode, exchangeService, targetCurrencyId));
+    const yearMonth = deal.createdYearMonth;
+    if (!yearMonth) return;
+    addToMonthlyData(monthlyData, yearMonth, deal.stage, getDealAmount(deal, amountMode, exchangeService, targetCurrencyId));
   });
 
   return buildHealthDataPoints(monthlyData, selectedOrg, stages, exchangeService, targetCurrencyId);
@@ -246,13 +316,14 @@ export function calculateContractHealthData(
     if (!contracts || contracts.length === 0) return;
 
     contracts.forEach((contract) => {
-      const month = contract.signingMonth || deal.createdMonth || "Jan";
+      const yearMonth = contract.signingYearMonth || deal.createdYearMonth;
+      if (!yearMonth) return;
       let amount = contract.totalAmountWithTax;
       // 汇率转换：使用合同自身的 currencyId
       if (exchangeService && targetCurrencyId && contract.currencyId) {
         amount = exchangeService.convert(amount, contract.currencyId, targetCurrencyId);
       }
-      addToMonthlyData(monthlyData, month, deal.stage, amount);
+      addToMonthlyData(monthlyData, yearMonth, deal.stage, amount);
     });
   });
 
@@ -284,13 +355,14 @@ export function calculateReceivableHealthData(
       if (!plans || plans.length === 0) return;
 
       plans.forEach((plan) => {
-        const month = plan.actualMonth || deal.createdMonth || "Jan";
+        const yearMonth = plan.actualYearMonth || deal.createdYearMonth;
+        if (!yearMonth) return;
         let amount = plan.actualAmount;
         // 汇率转换：使用应收计划自身的 currencyId
         if (exchangeService && targetCurrencyId && plan.currencyId) {
           amount = exchangeService.convert(amount, plan.currencyId, targetCurrencyId);
         }
-        addToMonthlyData(monthlyData, month, deal.stage, amount);
+        addToMonthlyData(monthlyData, yearMonth, deal.stage, amount);
       });
     });
   });
@@ -336,8 +408,8 @@ export function calculateStagnationData(
           const plans = receivablePlanMap.get(String(contract.id));
           if (!plans) return;
           plans.forEach((plan) => {
-            const month = plan.actualMonth;
-            if (selectedMonths && selectedMonths.length > 0 && month && !selectedMonths.includes(month)) return;
+            const yearMonth = plan.actualYearMonth;
+            if (selectedMonths && selectedMonths.length > 0 && yearMonth && !selectedMonths.includes(yearMonth)) return;
             let amount = plan.actualAmount;
             if (exchangeService && targetCurrencyId && plan.currencyId) {
               amount = exchangeService.convert(amount, plan.currencyId, targetCurrencyId);
@@ -348,8 +420,8 @@ export function calculateStagnationData(
             amountByStageAndStatus!.get(deal.stage)![statusKey] += amount;
           });
         } else {
-          const month = contract.signingMonth;
-          if (selectedMonths && selectedMonths.length > 0 && month && !selectedMonths.includes(month)) return;
+          const yearMonth = contract.signingYearMonth;
+          if (selectedMonths && selectedMonths.length > 0 && yearMonth && !selectedMonths.includes(yearMonth)) return;
           let amount = contract.totalAmountWithTax;
           if (exchangeService && targetCurrencyId && contract.currencyId) {
             amount = exchangeService.convert(amount, contract.currencyId, targetCurrencyId);
@@ -453,8 +525,8 @@ export function calculateFunnelData(
           const plans = receivablePlanMap.get(String(contract.id));
           if (!plans) return;
           plans.forEach((plan) => {
-            const month = plan.actualMonth;
-            if (selectedMonths && selectedMonths.length > 0 && month && !selectedMonths.includes(month)) return;
+            const yearMonth = plan.actualYearMonth;
+            if (selectedMonths && selectedMonths.length > 0 && yearMonth && !selectedMonths.includes(yearMonth)) return;
             let amount = plan.actualAmount;
             if (exchangeService && targetCurrencyId && plan.currencyId) {
               amount = exchangeService.convert(amount, plan.currencyId, targetCurrencyId);
@@ -462,8 +534,8 @@ export function calculateFunnelData(
             amountByStage!.set(deal.stage, (amountByStage!.get(deal.stage) || 0) + amount);
           });
         } else {
-          const month = contract.signingMonth;
-          if (selectedMonths && selectedMonths.length > 0 && month && !selectedMonths.includes(month)) return;
+          const yearMonth = contract.signingYearMonth;
+          if (selectedMonths && selectedMonths.length > 0 && yearMonth && !selectedMonths.includes(yearMonth)) return;
           let amount = contract.totalAmountWithTax;
           if (exchangeService && targetCurrencyId && contract.currencyId) {
             amount = exchangeService.convert(amount, contract.currencyId, targetCurrencyId);

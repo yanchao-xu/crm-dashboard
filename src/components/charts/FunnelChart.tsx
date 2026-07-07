@@ -74,6 +74,7 @@ export function FunnelChart({
           label={t("dashboard>chart>avgConversion")}
           value={`${stats.avgConversion}%`}
           valueColor={stats.isOverallHealthy ? "text-success" : "text-warning"}
+          infoText={t("dashboard>chart>avgConversionInfo")}
         />
       </div>
 

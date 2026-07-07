@@ -24,8 +24,8 @@ export const translations: Translations = {
     en: "Stage Conversion vs Target",
   },
   "dashboard>chart>funnelTooltip": {
-    zh: "计算逻辑：\n1. 每个阶段显示当前商机数量和金额\n2. 转化率 = 当前阶段商机数 ÷ 从第一个到当前阶段（含）的商机数之和\n3. 目标转化率来自组织设置\n4. 绿色表示实际转化率达到或超过目标，红色表示低于目标",
-    en: "Calculation Logic:\n1. Each stage shows current deal count and value\n2. Conversion rate = Current stage deals ÷ Sum of deals from first to current stage (inclusive)\n3. Target conversion rates come from organization settings\n4. Green indicates actual conversion meets or exceeds target, red indicates below target",
+    zh: "计算逻辑：\n1. 每个阶段显示当前商机数量和金额\n2. 实际转化率计算：\n   · 第一个阶段：该阶段商机数 ÷ 线索总数\n   · 中间阶段：该阶段商机数 ÷ 从第一个到当前阶段（含）的商机数之和\n   · 最后两个阶段：该阶段商机数 ÷ 全部阶段商机数之和\n3. 目标转化率来自组织节点配置（未配置则为0%）\n4. 绿色+上升箭头：实际转化率 ≥ 目标\n   红色+下降箭头：实际转化率 < 目标",
+    en: "Calculation logic:\n1. Each stage shows deal count and value\n2. Actual conversion rate:\n   · First stage: stage count ÷ total leads\n   · Middle stages: stage count ÷ sum of counts from first to current stage (inclusive)\n   · Last 2 stages: stage count ÷ sum of all stage counts\n3. Target conversion from org node config (0% if not set)\n4. Green + up arrow: actual ≥ target\n   Red + down arrow: actual < target",
   },
   "dashboard>chart>stagnation": { zh: "商机停滞分析", en: "Deal Stagnation" },
   "dashboard>chart>stagnationDesc": {
@@ -49,8 +49,20 @@ export const translations: Translations = {
   "dashboard>chart>onTrack": { zh: "正常", en: "ON TRACK" },
   "dashboard>chart>needsAttention": { zh: "需关注", en: "NEEDS ATTENTION" },
   "dashboard>chart>current": { zh: "当前", en: "Current" },
+  "dashboard>chart>currentInfo": {
+    zh: "从财年起始月到当前月（含），各月所有阶段商机金额的累加汇总。财年起始月由组织设置决定，未配置则为1月。\n· 预期金额模式：按商机创建月归类\n· 商业金额模式：按商机创建月归类\n· 合同金额模式：按合同签约日期(signingDate)归类\n· 实际回款模式：按应收计划实际回款日期(actualDate)归类",
+    en: "Sum of deal amounts across all stages from fiscal year start to current month (inclusive). Fiscal start is set by org config, defaults to Jan.\n· Expected/Business: by deal created month\n· Contract: by contract signing date\n· Receivable: by actual payment date",
+  },
   "dashboard>chart>target": { zh: "目标", en: "Target" },
+  "dashboard>chart>targetInfo": {
+    zh: "从财年起始月到当前月（含），各月目标业绩的累加汇总。目标值来自组织节点的月度配额设置，财年起始月由组织设置决定",
+    en: "Sum of monthly target values from fiscal year start to current month (inclusive). Targets from org monthly quotas, fiscal start set by org config",
+  },
   "dashboard>chart>attainment": { zh: "达成率", en: "Attainment" },
+  "dashboard>chart>attainmentInfo": {
+    zh: "达成率 = 当前值 ÷ 目标值 × 100%。≥90% 显示绿色（健康），<90% 显示红色（低于目标）",
+    en: "Attainment = Current ÷ Target × 100%. ≥90% shown green (healthy), <90% shown red (below target)",
+  },
   "dashboard>chart>theoreticalTarget": {
     zh: "理论目标",
     en: "Theoretical Target",
@@ -62,12 +74,20 @@ export const translations: Translations = {
   "dashboard>chart>totalPipeline": { zh: "总商机金额", en: "Total Pipeline" },
   "dashboard>chart>activeDeals": { zh: "活跃商机", en: "Active Deals" },
   "dashboard>chart>avgConversion": { zh: "平均转化", en: "Avg Conversion" },
+  "dashboard>chart>avgConversionInfo": {
+    zh: "所有阶段实际转化率的平均值。与目标差值 ≥ -5% 为正常（绿色），否则需关注（黄色）",
+    en: "Average of actual conversion rates across all stages. Gap ≥ -5% is on track (green), otherwise needs attention (yellow)",
+  },
   "dashboard>chart>aboveTarget": { zh: "高于目标", en: "Above Target" },
   "dashboard>chart>belowTargetLegend": { zh: "低于目标", en: "Below Target" },
   "dashboard>chart>zombieDeals": { zh: "僵尸商机", en: "ZOMBIE DEALS" },
   "dashboard>chart>lessThan30": {
     zh: "<30 天 (活跃)",
     en: "<30 days (Active)",
+  },
+  "dashboard>chart>stagnationInfo": {
+    zh: "按最近活动时间分类：活跃 <30天 | >30天 30~59天 | >60天 60~89天 | 僵尸 ≥90天",
+    en: "By last activity: Active <30d | >30d 30-59d | >60d 60-89d | Zombie ≥90d",
   },
   "dashboard>chart>moreThan30": { zh: ">30 天", en: ">30 days" },
   "dashboard>chart>moreThan60": { zh: ">60 天", en: ">60 days" },
@@ -92,7 +112,15 @@ export const translations: Translations = {
     en: "Target vs Actual Collection",
   },
   "dashboard>collection>target": { zh: "应收金额", en: "Target Collection" },
+  "dashboard>collection>targetInfo": {
+    zh: "从财年起始月到当前月（含），各月应收计划中 plannedAmount（计划回款金额）的累加汇总。财年起始月由组织设置决定",
+    en: "Sum of plannedAmount from receivable plans, from fiscal year start to current month (inclusive). Fiscal start set by org config",
+  },
   "dashboard>collection>actual": { zh: "实际回款", en: "Actual Collection" },
+  "dashboard>collection>actualInfo": {
+    zh: "从财年起始月到当前月（含），各月应收计划中 actualAmount（实际回款金额）的累加汇总。财年起始月由组织设置决定",
+    en: "Sum of actualAmount from receivable plans, from fiscal year start to current month (inclusive). Fiscal start set by org config",
+  },
   "dashboard>collection>rate": { zh: "回款率", en: "Collection Rate" },
   "dashboard>collection>pending": { zh: "待收金额", en: "Pending Collection" },
   "dashboard>collection>empty": {
@@ -112,10 +140,10 @@ export const translations: Translations = {
     en: "Customer",
   },
   "contract-management|>contract-management-form|>contract-amount-excluding-tax":
-    {
-      zh: "合同金额",
-      en: "Contract Value",
-    },
+  {
+    zh: "合同金额",
+    en: "Contract Value",
+  },
   "dashboard>collection>collected": { zh: "已回款", en: "Collected" },
   "dashboard>collection>pendingAmount": { zh: "待回款", en: "Pending" },
   "contract-management|>contract-management|>expiration-date": {
@@ -132,6 +160,26 @@ export const translations: Translations = {
   "dashboard>collection>status>onTime": { zh: "正常", en: "On Time" },
   "dashboard>collection>status>dueSoon": { zh: "即将到期", en: "Due Soon" },
   "dashboard>collection>status>overdue": { zh: "逾期", en: "Overdue" },
+  "dashboard>collection>statusLegendTitle": {
+    zh: "状态判断规则",
+    en: "Status Rules",
+  },
+  "dashboard>collection>statusLegend>completed": {
+    zh: "实际回款 ≥ 计划回款",
+    en: "Actual collection ≥ planned amount",
+  },
+  "dashboard>collection>statusLegend>onTime": {
+    zh: "未到期且距到期日 >14 天",
+    en: "Not due and >14 days until due date",
+  },
+  "dashboard>collection>statusLegend>dueSoon": {
+    zh: "距到期日 ≤14 天，尚未回款",
+    en: "≤14 days until due, not yet collected",
+  },
+  "dashboard>collection>statusLegend>overdue": {
+    zh: "已过到期日，尚未回款",
+    en: "Past due date, not yet collected",
+  },
   "dashboard>collection>plan": { zh: "计划", en: "Plan" },
   "dashboard>collection>actualLabel": { zh: "实际", en: "Actual" },
   "dashboard>collection>notCollected": { zh: "未回款", en: "Not collected" },

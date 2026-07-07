@@ -19,6 +19,7 @@ export interface Deal {
   owner: string;
   productLine?: string[];
   createdMonth?: string;
+  createdYearMonth?: string; // "2026-04" 格式，用于跨年财年匹配
   contractNumber?: string;
   currencyId?: string; // 结算币种 id，用于汇率匹配
 }
@@ -34,6 +35,7 @@ export interface Contract {
   signingDate: string;
   expiryDate: string; // 到期日期
   signingMonth?: string; // 解析后的月份 "Jan"~"Dec"
+  signingYearMonth?: string; // "2026-04" 格式，用于跨年财年匹配
   dealId?: string; // 关联的商机ID
   stage?: string; // 继承自商机的阶段
   currencyId?: string; // 结算币种 id，用于汇率匹配
@@ -46,9 +48,11 @@ export interface ReceivablePlan {
   actualAmount: number; // 实际回款金额
   actualDate: string; // 实际回款日期
   actualMonth?: string; // 解析后的月份 "Jan"~"Dec"
+  actualYearMonth?: string; // "2026-04" 格式，用于跨年财年匹配
   plannedAmount: number; // 计划应收金额
   plannedDate: string; // 计划应收日期
   plannedMonth?: string; // 解析后的月份 "Jan"~"Dec"
+  plannedYearMonth?: string; // "2026-04" 格式，用于跨年财年匹配
   paymentStage: string; // 款项阶段（如 "首款"、"尾款"）
   paymentOwner: string; // 负责人
   currencyId?: string; // 结算币种 id，用于汇率匹配

@@ -78,9 +78,12 @@ export class DashboardApiService {
   }
 
   // 获取商机数据（所有图表的数据源头）
-  async getOpportunity(): Promise<Deal[]> {
+  // dateFrom/dateTo 为财年范围，未传入时使用当前自然年
+  async getOpportunity(dateFrom?: string, dateTo?: string): Promise<Deal[]> {
     try {
       const currentYear = new Date().getFullYear();
+      const from = dateFrom || `${currentYear}-01-01`;
+      const to = dateTo || `${currentYear}-12-31`;
       const response = await this.restApi.get(
         "/form/api/v2/form-entity-data/opportunity-management/opportunity-management-form/list",
         {
@@ -91,8 +94,8 @@ export class DashboardApiService {
                   colId: "expectedDealTime",
                   filterType: "date",
                   type: "inRange",
-                  dateFrom: `${currentYear}-01-01`,
-                  dateTo: `${currentYear}-12-31`,
+                  dateFrom: from,
+                  dateTo: to,
                 },
                 // {
                 //   colId: "Status",
@@ -161,7 +164,7 @@ export class DashboardApiService {
                 "negotiationToLoss",
                 "theStartDateOfTheFiscalYear",
                 "theEndDateOfTheFiscalYear",
-                "settlementCurrency",
+                //"settlementCurrency",
               ],
             }),
           },
@@ -288,7 +291,16 @@ export class DashboardApiService {
               values: contractNumbers,
             },
           ],
-          selectColId: ["contractCode", "contractName", "customer", "contractOwner", "totalAmountWithTax", "signingDate", "expiryDate", "settlementCurrency"],
+          selectColId: [
+            "contractCode",
+            "contractName",
+            "customer",
+            "contractOwner",
+            "totalAmountWithTax",
+            "signingDate",
+            "expiryDate",
+            "settlementCurrency",
+          ],
         },
       );
       const rawData = response.results || response;
@@ -317,9 +329,13 @@ export class DashboardApiService {
       signingMonth: signingDate
         ? this.getMonthFromDate(signingDate)
         : undefined,
-      currencyId: item.settlementCurrency?.[0]?.id != null
-        ? String(item.settlementCurrency[0].id)
+      signingYearMonth: signingDate
+        ? this.getYearMonthFromDate(signingDate)
         : undefined,
+      currencyId:
+        item.settlementCurrency?.[0]?.id != null
+          ? String(item.settlementCurrency[0].id)
+          : undefined,
     };
   }
 
@@ -340,14 +356,27 @@ export class DashboardApiService {
               values: contractIds,
             },
           ],
-          selectColId: ["parentDataId", "actualAmount", "actualDate", "plannedAmount", "plannedDate", "paymentStage", "paymentOwner", "settlementCurrency"],
+          selectColId: [
+            "parentDataId",
+            "actualAmount",
+            "actualDate",
+            "plannedAmount",
+            "plannedDate",
+            "paymentStage",
+            "paymentOwner",
+            "settlementCurrency",
+          ],
         },
       );
       const rawData = response.results || response;
       if (Array.isArray(rawData)) {
         return rawData
           .map((item: any) => this.transformReceivablePlanData(item))
-          .filter((rp) => (rp.actualAmount > 0 && rp.actualDate) || (rp.plannedAmount > 0 && rp.plannedDate));
+          .filter(
+            (rp) =>
+              (rp.actualAmount > 0 && rp.actualDate) ||
+              (rp.plannedAmount > 0 && rp.plannedDate),
+          );
       }
       return [];
     } catch (error) {
@@ -409,7 +438,10 @@ export class DashboardApiService {
       return [];
     }
     return rawData
-      .filter((item: any) => item.fromCurrency?.[0] && item.toCurrency?.[0] && item.rate)
+      .filter(
+        (item: any) =>
+          item.fromCurrency?.[0] && item.toCurrency?.[0] && item.rate,
+      )
       .map((item: any) => ({
         fromCurrencyId: String(item.fromCurrency[0].value),
         toCurrencyId: String(item.toCurrency[0].value),
@@ -439,14 +471,23 @@ export class DashboardApiService {
       actualAmount: Number(item.actualAmount) || 0,
       actualDate,
       actualMonth: actualDate ? this.getMonthFromDate(actualDate) : undefined,
+      actualYearMonth: actualDate
+        ? this.getYearMonthFromDate(actualDate)
+        : undefined,
       plannedAmount: Number(item.plannedAmount) || 0,
       plannedDate,
-      plannedMonth: plannedDate ? this.getMonthFromDate(plannedDate) : undefined,
+      plannedMonth: plannedDate
+        ? this.getMonthFromDate(plannedDate)
+        : undefined,
+      plannedYearMonth: plannedDate
+        ? this.getYearMonthFromDate(plannedDate)
+        : undefined,
       paymentStage: item.paymentStage || "",
       paymentOwner: item.paymentOwner?.[0]?.label || "",
-      currencyId: item.settlementCurrency?.[0]?.id != null
-        ? String(item.settlementCurrency[0].id)
-        : undefined,
+      currencyId:
+        item.settlementCurrency?.[0]?.id != null
+          ? String(item.settlementCurrency[0].id)
+          : undefined,
     };
   }
 
@@ -463,6 +504,9 @@ export class DashboardApiService {
         item.expectedDealTime || item.creationTime || item.createdDate;
       const month = createdDate
         ? this.getMonthFromDate(createdDate)
+        : undefined;
+      const yearMonth = createdDate
+        ? this.getYearMonthFromDate(createdDate)
         : undefined;
 
       // 从 productLine 字段提取产品线 ID 列表
@@ -496,11 +540,13 @@ export class DashboardApiService {
         owner: item.opportunityOwner?.[0]?.label || "",
         productLine: productLineArr,
         createdMonth: month,
+        createdYearMonth: yearMonth,
         businessAmount: Number(item.businessAmount) || 0,
         contractNumber: item.contractNumber || undefined,
-        currencyId: item.settlementCurrency?.[0]?.id != null
-          ? String(item.settlementCurrency[0].id)
-          : undefined,
+        currencyId:
+          item.settlementCurrency?.[0]?.id != null
+            ? String(item.settlementCurrency[0].id)
+            : undefined,
       };
     });
 
@@ -544,9 +590,10 @@ export class DashboardApiService {
         },
         type: types.includes(itemType) ? itemType : "person",
         children: [],
-        currencyId: item.settlementCurrency?.[0]?.id != null
-          ? String(item.settlementCurrency[0].id)
-          : undefined,
+        currencyId:
+          item.settlementCurrency?.[0]?.id != null
+            ? String(item.settlementCurrency[0].id)
+            : undefined,
         janJanuary: item.janJanuary,
         febFebruary: item.febFebruary,
         marMarch: item.marMarch,
@@ -652,6 +699,17 @@ export class DashboardApiService {
       return months[date.getMonth()];
     } catch {
       return "Jan";
+    }
+  }
+
+  // 从日期字符串获取 "YYYY-MM" 格式的年月标识，用于跨年财年匹配
+  private getYearMonthFromDate(dateStr: string): string | undefined {
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return undefined;
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    } catch {
+      return undefined;
     }
   }
 }

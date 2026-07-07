@@ -238,7 +238,7 @@ export function DealsTable({
                     <TableCell>
                       <div>
                         <a
-                          href={`/ui/opportunity-management/form/opportunity-management-form/${deal.id}/view`}
+                          href={`/ui/opportunity-management/form/opportunity-management-form/layout/edit/${deal.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="font-medium text-sm text-primary hover:underline"

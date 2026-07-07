@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import type { Contract, ReceivablePlan, OrgNode } from "@/types";
@@ -20,6 +21,7 @@ import {
   ChevronRight,
   ChevronDown,
   Check,
+  Info,
 } from "lucide-react";
 
 type CollectionStatus = "completed" | "onTime" | "dueSoon" | "overdue";
@@ -281,7 +283,51 @@ export function ContractsTable({
                 "contract-management|>contract-management-form|>contract-manager",
               )}
             </TableHead>
-            <TableHead>{t("dashboard>collection>status")}</TableHead>
+            <TableHead>
+              <div className="flex items-center gap-1">
+                {t("dashboard>collection>status")}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center rounded-full p-0.5 hover:bg-muted transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Info className="w-3.5 h-3.5 text-muted-foreground" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-72 text-xs space-y-2">
+                    <p className="font-medium text-sm">{t("dashboard>collection>statusLegendTitle")}</p>
+                    <div className="space-y-1.5">
+                      <div className="flex items-start gap-2">
+                        <Badge variant="outline" className={`${statusStyles.completed} shrink-0 text-[10px] px-1.5 py-0`}>
+                          {t("dashboard>collection>status>completed")}
+                        </Badge>
+                        <span className="text-muted-foreground">{t("dashboard>collection>statusLegend>completed")}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Badge variant="outline" className={`${statusStyles.onTime} shrink-0 text-[10px] px-1.5 py-0`}>
+                          {t("dashboard>collection>status>onTime")}
+                        </Badge>
+                        <span className="text-muted-foreground">{t("dashboard>collection>statusLegend>onTime")}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Badge variant="outline" className={`${statusStyles.dueSoon} shrink-0 text-[10px] px-1.5 py-0`}>
+                          {t("dashboard>collection>status>dueSoon")}
+                        </Badge>
+                        <span className="text-muted-foreground">{t("dashboard>collection>statusLegend>dueSoon")}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Badge variant="outline" className={`${statusStyles.overdue} shrink-0 text-[10px] px-1.5 py-0`}>
+                          {t("dashboard>collection>status>overdue")}
+                        </Badge>
+                        <span className="text-muted-foreground">{t("dashboard>collection>statusLegend>overdue")}</span>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -311,11 +357,27 @@ export function ContractsTable({
                         <ChevronRight className="w-4 h-4 text-muted-foreground" />
                       ))}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {row.contract.contractCode}
+                  <TableCell className="font-mono text-xs">
+                    <a
+                      href={`/ui/contract-management/form/contract-management-form/layout/edit/${row.contract.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {row.contract.contractCode}
+                    </a>
                   </TableCell>
                   <TableCell className="font-medium">
-                    {row.contract.contractName}
+                    <a
+                      href={`/ui/contract-management/form/contract-management-form/layout/edit/${row.contract.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {row.contract.contractName}
+                    </a>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {row.contract.customer}

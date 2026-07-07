@@ -80,6 +80,10 @@ export function HealthChart({
     "hsl(280, 100%, 70%)",
     "hsl(330, 85%, 65%)",
     "hsl(142, 76%, 45%)",
+    "hsl(190, 85%, 50%)",
+    "hsl(350, 80%, 55%)",
+    "hsl(160, 70%, 45%)",
+    "hsl(270, 60%, 55%)",
   ];
   const getStageColor = (index: number) => {
     return defaultColors[index % defaultColors.length];
@@ -105,16 +109,19 @@ export function HealthChart({
           label={t("dashboard>chart>current")}
           value={formatCurrency(stats.latestActual, currencyCode)}
           valueColor="text-chart-actual"
+          infoText={t("dashboard>chart>currentInfo")}
         />
         <StatCard
           label={t("dashboard>chart>target")}
           value={formatCurrency(stats.latestTarget, currencyCode)}
           valueColor="text-chart-target"
+          infoText={t("dashboard>chart>targetInfo")}
         />
         <StatCard
           label={t("dashboard>chart>attainment")}
           value={`${stats.attainment}%`}
           valueColor={stats.isHealthy ? "text-success" : "text-danger"}
+          infoText={t("dashboard>chart>attainmentInfo")}
         />
       </div>
 

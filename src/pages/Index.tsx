@@ -24,6 +24,7 @@ import {
   aggregateHealthDataByQuarter,
   getMonthsForQuarter,
   getFiscalMonths,
+  getFiscalYearMonths,
   NO_PRODUCT_LINE_ID,
 } from "@/utils/orgFilter";
 import {
@@ -69,8 +70,9 @@ const Index = () => {
   const [selectedCurrency, setSelectedCurrency] = useState<string>("");
 
   // 从 API 获取数据（不使用 fallback）
-  const { data: deals, loading: dealsLoading, error: dealsError } = useDeals();
   const { data: orgStructure, loading: orgLoading } = useOrgStructure();
+  // 商机数据依赖组织树（需要财年范围）
+  const { data: deals, loading: dealsLoading, error: dealsError } = useDeals(orgStructure);
   const { data: productGroups, loading: productsLoading } = useProductGroups();
   const { data: opportunityStages, loading: stagesLoading } =
     useOpportunityStages();
@@ -172,14 +174,20 @@ const Index = () => {
   const monthFilteredDeals = useMemo(() => {
     if (chartFilter?.type === "health" && chartFilter.month) {
       const clickedLabel = chartFilter.month;
+      const orgForFiscal = selectedOrg || (orgStructure.id ? orgStructure : null);
+      const fiscalYearMonths = getFiscalYearMonths(orgForFiscal);
+
       if (clickedLabel.startsWith("Q")) {
-        const orgForQuarters =
-          selectedOrg || (orgStructure.id ? orgStructure : null);
-        return filterDealsByQuarter(
-          filteredDeals,
-          orgForQuarters,
-          clickedLabel,
-        );
+        // 季度模式：找到该季度对应的 yearMonth 列表，按 yearMonth 过滤
+        const quarterIdx = parseInt(clickedLabel.replace("Q", ""), 10) - 1;
+        const startIdx = quarterIdx * 3;
+        const yearMonths = fiscalYearMonths.slice(startIdx, startIdx + 3).map((m) => m.yearMonth);
+        return filteredDeals.filter((deal) => deal.createdYearMonth && yearMonths.includes(deal.createdYearMonth));
+      }
+      // 月模式：根据标签找到 yearMonth
+      const found = fiscalYearMonths.find((m) => m.label === clickedLabel);
+      if (found) {
+        return filterDealsByMonth(filteredDeals, found.yearMonth);
       }
       return filterDealsByMonth(filteredDeals, clickedLabel);
     }
@@ -191,11 +199,18 @@ const Index = () => {
   const selectedMonths = useMemo((): string[] | undefined => {
     if (!chartFilter?.month || chartFilter.type !== "health") return undefined;
     const clickedLabel = chartFilter.month;
+    const orgForFiscal = selectedOrg || (orgStructure.id ? orgStructure : null);
+    const fiscalYearMonths = getFiscalYearMonths(orgForFiscal);
+
     if (clickedLabel.startsWith("Q")) {
-      const orgForQuarters = selectedOrg || (orgStructure.id ? orgStructure : null);
-      return getMonthsForQuarter(orgForQuarters, clickedLabel);
+      // 季度模式：找到该季度对应的所有 yearMonth
+      const quarterIdx = parseInt(clickedLabel.replace("Q", ""), 10) - 1;
+      const startIdx = quarterIdx * 3;
+      return fiscalYearMonths.slice(startIdx, startIdx + 3).map((m) => m.yearMonth);
     }
-    return [clickedLabel];
+    // 月模式：根据点击的月份标签找到对应的 yearMonth
+    const found = fiscalYearMonths.find((m) => m.label === clickedLabel);
+    return found ? [found.yearMonth] : [clickedLabel];
   }, [chartFilter, selectedOrg, orgStructure]);
 
   const filteredFunnelData = useMemo(() => {

@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { InfoTooltip } from "./InfoTooltip";
 
 interface StatCardProps {
   label: string;
@@ -12,6 +12,8 @@ interface StatCardProps {
     border: string;
     text: string;
   };
+  /** 传入提示文本，支持 \n 换行，hover 显示 */
+  infoText?: string;
 }
 
 export function StatCard({
@@ -22,6 +24,7 @@ export function StatCard({
   isHighlighted,
   variant = "default",
   customColors,
+  infoText,
 }: StatCardProps) {
   const variantClasses = {
     default: "bg-secondary/50",
@@ -56,7 +59,10 @@ export function StatCard({
 
   return (
     <div className={baseClasses} onClick={onClick} style={style}>
-      <p className="data-label mb-1">{label}</p>
+      <div className="flex items-center gap-1 mb-1">
+        <p className="data-label">{label}</p>
+        {infoText && <InfoTooltip text={infoText} />}
+      </div>
       <p className={`data-value ${textColor}`}>{value}</p>
     </div>
   );

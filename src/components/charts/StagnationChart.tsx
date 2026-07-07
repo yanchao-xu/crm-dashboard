@@ -150,6 +150,7 @@ export function StagnationChart({
           onClick={() => handleStatClick("active")}
           isHighlighted={highlightedStatus === "active"}
           variant="success"
+          infoText={t("dashboard>chart>stagnationInfo")}
         />
         <StatCard
           label={t("dashboard>status>over30")}

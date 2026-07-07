@@ -14,6 +14,12 @@ const ALL_MONTHS = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
+// 财年月份带年份信息的类型
+interface FiscalMonthInfo {
+  label: string;      // "Apr" — 用于图表显示
+  yearMonth: string;  // "2026-04" — 用于数据匹配
+}
+
 /**
  * 根据组织树的财年配置，获取 12 个月的月份列表（从财年起始月开始排列）
  * 与 orgFilter.ts 中 getFiscalMonths 完全一致的逻辑
@@ -47,11 +53,62 @@ function getFiscalMonths(orgNode: OrgNode | null): string[] {
 }
 
 /**
+ * 根据组织树的财年配置，获取带年份信息的 12 个月份列表
+ * 用于跨年财年的精确数据匹配
+ */
+function getFiscalYearMonths(orgNode: OrgNode | null): FiscalMonthInfo[] {
+  const hasStart = !!orgNode?.theStartDateOfTheFiscalYear;
+  const hasEnd = !!orgNode?.theEndDateOfTheFiscalYear;
+
+  if (!hasStart && !hasEnd) {
+    const year = new Date().getFullYear();
+    return ALL_MONTHS.map((m, i) => ({
+      label: m,
+      yearMonth: `${year}-${String(i + 1).padStart(2, "0")}`,
+    }));
+  }
+
+  try {
+    let startYear: number;
+    let startMonth: number;
+
+    if (hasStart) {
+      const startDate = new Date(orgNode!.theStartDateOfTheFiscalYear!);
+      startYear = startDate.getFullYear();
+      startMonth = startDate.getMonth();
+    } else {
+      const endDate = new Date(orgNode!.theEndDateOfTheFiscalYear!);
+      const endMonth = endDate.getMonth();
+      startMonth = (endMonth - 11 + 12) % 12;
+      startYear = startMonth > endMonth ? endDate.getFullYear() - 1 : endDate.getFullYear();
+    }
+
+    const result: FiscalMonthInfo[] = [];
+    for (let i = 0; i < 12; i++) {
+      const monthIdx = (startMonth + i) % 12;
+      const year = startYear + Math.floor((startMonth + i) / 12);
+      result.push({
+        label: ALL_MONTHS[monthIdx],
+        yearMonth: `${year}-${String(monthIdx + 1).padStart(2, "0")}`,
+      });
+    }
+    return result;
+  } catch {
+    const year = new Date().getFullYear();
+    return ALL_MONTHS.map((m, i) => ({
+      label: m,
+      yearMonth: `${year}-${String(i + 1).padStart(2, "0")}`,
+    }));
+  }
+}
+
+/**
  * 根据合同和应收计划数据，计算回款健康度图表数据
  *
  * 横坐标：始终12个月，按组织财年的月份排列（与商机健康度一致）
  * target: 每根柱子的值 = 该月份所有应收计划的 plannedAmount 累加
  * actual: 每根柱子的值 = 该月份所有应收计划的 actualAmount 累加
+ * 使用 yearMonth ("2026-04") 进行精确匹配，避免跨年数据错位
  */
 export function calculateCollectionHealthFromApi(
   contractMap: ContractMap,
@@ -61,15 +118,15 @@ export function calculateCollectionHealthFromApi(
   targetCurrencyId?: string,
   allowedContractNumbers?: Set<string>,
 ): CollectionHealthDataPoint[] {
-  // 按财年获取 12 个月份列表
-  const fiscalMonths = getFiscalMonths(selectedOrg);
+  // 按财年获取带年份信息的 12 个月份列表
+  const fiscalYearMonths = getFiscalYearMonths(selectedOrg);
 
-  // 统计每月的 target（plannedAmount）和 actual（actualAmount）
+  // 统计每月的 target（plannedAmount）和 actual（actualAmount），key 为 yearMonth
   const monthlyTarget: Record<string, number> = {};
   const monthlyActual: Record<string, number> = {};
-  fiscalMonths.forEach((m) => {
-    monthlyTarget[m] = 0;
-    monthlyActual[m] = 0;
+  fiscalYearMonths.forEach(({ yearMonth }) => {
+    monthlyTarget[yearMonth] = 0;
+    monthlyActual[yearMonth] = 0;
   });
 
   // 遍历所有合同中的应收计划
@@ -88,27 +145,27 @@ export function calculateCollectionHealthFromApi(
             ? exchangeService.getRate(plan.currencyId, targetCurrencyId)
             : 1;
 
-        // target: 按 plannedDate 的月份归类 plannedAmount
-        if (plan.plannedMonth && plan.plannedAmount > 0) {
-          if (monthlyTarget[plan.plannedMonth] !== undefined) {
-            monthlyTarget[plan.plannedMonth] += plan.plannedAmount * rate;
+        // target: 按 plannedDate 的 yearMonth 归类 plannedAmount
+        if (plan.plannedYearMonth && plan.plannedAmount > 0) {
+          if (monthlyTarget[plan.plannedYearMonth] !== undefined) {
+            monthlyTarget[plan.plannedYearMonth] += plan.plannedAmount * rate;
           }
         }
 
-        // actual: 按 actualDate 的月份归类 actualAmount
-        if (plan.actualMonth && plan.actualAmount > 0) {
-          if (monthlyActual[plan.actualMonth] !== undefined) {
-            monthlyActual[plan.actualMonth] += plan.actualAmount * rate;
+        // actual: 按 actualDate 的 yearMonth 归类 actualAmount
+        if (plan.actualYearMonth && plan.actualAmount > 0) {
+          if (monthlyActual[plan.actualYearMonth] !== undefined) {
+            monthlyActual[plan.actualYearMonth] += plan.actualAmount * rate;
           }
         }
       });
     });
   });
 
-  return fiscalMonths.map((month) => ({
-    month,
-    target: Math.round(monthlyTarget[month]),
-    actual: Math.round(monthlyActual[month]),
+  return fiscalYearMonths.map(({ label, yearMonth }) => ({
+    month: label,
+    target: Math.round(monthlyTarget[yearMonth]),
+    actual: Math.round(monthlyActual[yearMonth]),
   }));
 }
 
