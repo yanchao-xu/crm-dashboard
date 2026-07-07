@@ -164,7 +164,7 @@ export class DashboardApiService {
                 "negotiationToLoss",
                 "theStartDateOfTheFiscalYear",
                 "theEndDateOfTheFiscalYear",
-                //"settlementCurrency",
+                "settlementCurrency",
               ],
             }),
           },
