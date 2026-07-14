@@ -185,6 +185,15 @@ export const translations: Translations = {
   "dashboard>collection>notCollected": { zh: "未回款", en: "Not collected" },
   "dashboard>collection>onTimeLabel": { zh: "准时", en: "On time" },
   "dashboard>collection>delayed": { zh: "延迟{days}天", en: "Delayed {days}d" },
+  "dashboard>collection>nativePlan": { zh: "当月原生计划", en: "Native Plan" },
+  "dashboard>collection>rolledOverdue": { zh: "滚动逾期", en: "Rolled Overdue" },
+  "dashboard>collection>totalReceivable": { zh: "应收总额", en: "Total Receivable" },
+  "dashboard>collection>rollingSource": { zh: "滚动来源", en: "Rolling Source" },
+  "dashboard>collection>rollingFrom": { zh: "来自 {month}", en: "From {month}" },
+  "dashboard>collection>chartTooltip": {
+    zh: "计算逻辑：\n蓝色柱（当月原生计划）：该月 plannedDate 对应的应收计划 plannedAmount 之和\n橙色柱（滚动逾期）：前期逾期未回款金额逐月累积滚入（逾期金额 = plannedAmount - actualAmount）\n紫色柱（实际回款）：该月 actualDate 对应的 actualAmount 之和\n\n逾期判定：当前日期 > plannedDate 且未全额回款\n滚动规则：月底仍未回款则从下月起逐月累加，直到当前月",
+    en: "Calculation:\\nBlue (Native Plan): Sum of plannedAmount for plans with plannedDate in this month\\nOrange (Rolled Overdue): Accumulated overdue from prior months (overdue = plannedAmount - actualAmount)\\nPurple (Actual): Sum of actualAmount for plans with actualDate in this month\\n\\nOverdue: current date > plannedDate and not fully collected\\nRolling: If not collected by month-end, rolls forward each month until current month",
+  },
   "dashboard>filter>collectionMonth": {
     zh: "{month} 月回款合同",
     en: "Contracts for {month}",

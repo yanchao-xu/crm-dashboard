@@ -41,8 +41,9 @@ import {
 } from "@/hooks/useApiData";
 import { DealsTable } from "@/components/deals/DealsTable";
 import { ContractsTable } from "@/components/deals/ContractsTable";
-import { CollectionHealthChart } from "@/components/charts/CollectionHealthChart";
+import { CollectionHealthChart, type HiddenSeries } from "@/components/charts/CollectionHealthChart";
 import { calculateCollectionHealthFromApi, aggregateCollectionHealthByQuarter } from "@/components/charts/CollectionHealthChart/useCollectionHealthData";
+import type { MonthlyRollingMap } from "@/components/charts/CollectionHealthChart/useCollectionHealthData";
 import {
   PeriodFilter,
   type PeriodMode,
@@ -58,11 +59,13 @@ export type ChartFilterContext = {
   stage?: string;
   activityStatus?: string;
   month?: string;
+  segment?: "native" | "overdue" | "all"; // 回款图表分段筛选
 } | null;
 
 const Index = () => {
   const { t, getText } = useLanguage();
   const [chartFilter, setChartFilter] = useState<ChartFilterContext>(null);
+  const [hiddenSeries, setHiddenSeries] = useState<HiddenSeries>(new Set());
   const [selectedOrg, setSelectedOrg] = useState<OrgNode | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [periodMode, setPeriodMode] = useState<PeriodMode>("month");
@@ -266,7 +269,7 @@ const Index = () => {
   }, [monthFilteredDeals, filteredDeals, opportunityStages, amountMode, contractMap, receivablePlanMap, selectedMonths, exchangeService, selectedCurrencyId]);
 
   // 回款健康度图表数据
-  const collectionHealthData = useMemo(() => {
+  const { chartData: collectionHealthData, rollingMap } = useMemo(() => {
     const orgForFiscal = selectedOrg || (orgStructure.id ? orgStructure : null);
     // 从 filteredDeals 提取关联的 contractNumber 白名单
     const allowedContractNumbers = new Set(
@@ -274,7 +277,7 @@ const Index = () => {
         .map((d) => d.contractNumber)
         .filter((cn): cn is string => !!cn && cn.trim() !== ""),
     );
-    const monthlyData = calculateCollectionHealthFromApi(
+    const result = calculateCollectionHealthFromApi(
       contractMap,
       receivablePlanMap,
       orgForFiscal,
@@ -283,10 +286,11 @@ const Index = () => {
       allowedContractNumbers,
     );
 
+    let chartData = result.chartData;
     if (periodMode === "quarter") {
-      return aggregateCollectionHealthByQuarter(monthlyData, orgForFiscal);
+      chartData = aggregateCollectionHealthByQuarter(chartData, orgForFiscal);
     }
-    return monthlyData;
+    return { chartData, rollingMap: result.rollingMap };
   }, [contractMap, receivablePlanMap, selectedOrg, orgStructure, exchangeService, selectedCurrencyId, filteredDeals, periodMode]);
 
   // 从 filteredDeals 提取关联的 contractNumber 白名单（供 ContractsTable 使用）
@@ -621,9 +625,10 @@ const Index = () => {
             {/* Collection Health Chart - Full Width */}
             <CollectionHealthChart
               data={collectionHealthData}
-              onMonthClick={(month) =>
-                setChartFilter({ type: "collection", month })
+              onMonthClick={(month, segment) =>
+                setChartFilter({ type: "collection", month, segment: segment || "all" })
               }
+              onHiddenSeriesChange={setHiddenSeries}
               isActive={chartFilter?.type === "collection"}
               activeFilter={chartFilter}
               filterTags={buildCommonTags()}
@@ -665,6 +670,8 @@ const Index = () => {
                       targetCurrencyId={selectedCurrencyId}
                       allowedContractNumbers={allowedContractNumbers}
                       selectedOrg={selectedOrg}
+                      rollingMap={rollingMap}
+                      hiddenSeries={hiddenSeries}
                     />
                   </div>
                 </motion.div>

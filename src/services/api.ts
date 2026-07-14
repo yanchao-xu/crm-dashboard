@@ -347,8 +347,6 @@ export class DashboardApiService {
       const response = await this.restApi.post(
         "/form/api/v3/form-entity-data/contract-management/receivable-plan-form/list",
         {
-          startRow: 0,
-          endRow: 10000,
           filterModel: [
             {
               colId: "parentDataId",
@@ -418,8 +416,6 @@ export class DashboardApiService {
       const response = await this.restApi.post(
         "/form/api/v3/form-entity-data/basic-system-setting/exchange-rate-management-form/list",
         {
-          startRow: 0,
-          endRow: 10000,
           selectColId: ["fromCurrency", "toCurrency", "rate"],
         },
       );

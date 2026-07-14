@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
     BarChart,
     Bar,
@@ -22,12 +23,16 @@ import {
 } from "./CollectionHealthChart/useCollectionHealthData";
 import type { ChartFilterContext } from "@/pages/Index";
 
-const targetColor = "hsl(217, 91%, 60%)";
+const nativePlanColor = "hsl(217, 91%, 60%)";
+const rolledOverdueColor = "hsl(25, 95%, 53%)";
 const actualColor = "hsl(252, 87%, 67%)";
+
+export type HiddenSeries = Set<"nativePlan" | "rolledOverdue" | "actual">;
 
 interface CollectionHealthChartProps {
     data: CollectionHealthDataPoint[];
-    onMonthClick?: (month: string) => void;
+    onMonthClick?: (month: string, segment?: "native" | "overdue") => void;
+    onHiddenSeriesChange?: (hidden: HiddenSeries) => void;
     isActive?: boolean;
     activeFilter?: ChartFilterContext;
     filterTags?: FilterTag[];
@@ -37,6 +42,7 @@ interface CollectionHealthChartProps {
 export function CollectionHealthChart({
     data,
     onMonthClick,
+    onHiddenSeriesChange,
     isActive,
     activeFilter,
     filterTags,
@@ -44,6 +50,7 @@ export function CollectionHealthChart({
 }: CollectionHealthChartProps) {
     const { t, language } = useLanguage();
     const { currencyCode } = useCurrency();
+    const [hiddenSeries, setHiddenSeries] = useState<HiddenSeries>(new Set());
 
     const { totalTarget, totalActual, rate, isHealthy } =
         useCollectionHealthData(data, fiscalMonths);
@@ -54,16 +61,30 @@ export function CollectionHealthChart({
     const selectedMonth =
         activeFilter?.type === "collection" ? activeFilter.month : null;
 
-    const handleClick = (e: any) => {
+    const handleChartClick = (e: any) => {
         if (e && e.activeLabel && onMonthClick) {
             onMonthClick(e.activeLabel);
         }
+    };
+
+    const toggleSeries = (series: "nativePlan" | "rolledOverdue" | "actual") => {
+        setHiddenSeries((prev) => {
+            const next = new Set(prev);
+            if (next.has(series)) {
+                next.delete(series);
+            } else {
+                next.add(series);
+            }
+            onHiddenSeriesChange?.(next);
+            return next;
+        });
     };
 
     return (
         <ChartCard
             title={t("dashboard>collection>title")}
             description={t("dashboard>collection>desc")}
+            titleTooltip={t("dashboard>collection>chartTooltip")}
             status={{
                 label: isHealthy
                     ? t("dashboard>chart>healthy")
@@ -102,7 +123,7 @@ export function CollectionHealthChart({
                     <BarChart
                         data={data}
                         margin={chartMargins.default}
-                        onClick={handleClick}
+                        onClick={handleChartClick}
                         barGap={4}
                     >
                         <CartesianGrid
@@ -128,60 +149,119 @@ export function CollectionHealthChart({
                             cursor={{ fill: chartTheme.cursor }}
                         />
 
-                        <Bar
-                            dataKey="target"
-                            name={t("dashboard>collection>target")}
-                            radius={[4, 4, 0, 0]}
-                        >
-                            {data.map((entry, index) => (
-                                <Cell
-                                    key={`target-${index}`}
-                                    fill={targetColor}
-                                    opacity={
-                                        selectedMonth && selectedMonth !== entry.month ? 0.3 : 1
-                                    }
-                                />
-                            ))}
-                        </Bar>
-                        <Bar
-                            dataKey="actual"
-                            name={t("dashboard>collection>actual")}
-                            radius={[4, 4, 0, 0]}
-                        >
-                            {data.map((entry, index) => (
-                                <Cell
-                                    key={`actual-${index}`}
-                                    fill={actualColor}
-                                    opacity={
-                                        selectedMonth && selectedMonth !== entry.month ? 0.3 : 1
-                                    }
-                                />
-                            ))}
-                        </Bar>
+                        {/* 原生计划（蓝色底部） */}
+                        {!hiddenSeries.has("nativePlan") && (
+                            <Bar
+                                dataKey="nativePlan"
+                                stackId="target"
+                                name={t("dashboard>collection>nativePlan")}
+                            >
+                                {data.map((entry, index) => (
+                                    <Cell
+                                        key={`native-${index}`}
+                                        fill={nativePlanColor}
+                                        opacity={
+                                            selectedMonth && selectedMonth !== entry.month ? 0.3 : 1
+                                        }
+                                        cursor="pointer"
+                                    />
+                                ))}
+                            </Bar>
+                        )}
+
+                        {/* 滚动逾期（橙色顶部） */}
+                        {!hiddenSeries.has("rolledOverdue") && (
+                            <Bar
+                                dataKey="rolledOverdue"
+                                stackId="target"
+                                name={t("dashboard>collection>rolledOverdue")}
+                                radius={[4, 4, 0, 0]}
+                            >
+                                {data.map((entry, index) => (
+                                    <Cell
+                                        key={`overdue-${index}`}
+                                        fill={rolledOverdueColor}
+                                        opacity={
+                                            selectedMonth && selectedMonth !== entry.month ? 0.3 : 1
+                                        }
+                                        cursor="pointer"
+                                    />
+                                ))}
+                            </Bar>
+                        )}
+
+                        {/* 实际回款（紫色独立柱） */}
+                        {!hiddenSeries.has("actual") && (
+                            <Bar
+                                dataKey="actual"
+                                name={t("dashboard>collection>actual")}
+                                radius={[4, 4, 0, 0]}
+                            >
+                                {data.map((entry, index) => (
+                                    <Cell
+                                        key={`actual-${index}`}
+                                        fill={actualColor}
+                                        opacity={
+                                            selectedMonth && selectedMonth !== entry.month ? 0.3 : 1
+                                        }
+                                    />
+                                ))}
+                            </Bar>
+                        )}
                     </BarChart>
                 </ResponsiveContainer>
             </div>
 
-            {/* Legend */}
+            {/* Legend - clickable */}
             <div className="flex items-center gap-6 mt-4 pt-4 border-t border-border">
-                <div className="flex items-center gap-2">
+                <button
+                    type="button"
+                    className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => toggleSeries("nativePlan")}
+                >
                     <div
-                        className="w-3 h-3 rounded-sm"
-                        style={{ backgroundColor: targetColor }}
+                        className="w-3 h-3 rounded-sm transition-opacity"
+                        style={{
+                            backgroundColor: nativePlanColor,
+                            opacity: hiddenSeries.has("nativePlan") ? 0.3 : 1,
+                        }}
                     />
-                    <span className="text-xs text-muted-foreground">
-                        {t("dashboard>collection>target")}
+                    <span className={`text-xs transition-opacity ${hiddenSeries.has("nativePlan") ? "line-through text-muted-foreground/50" : "text-muted-foreground"}`}>
+                        {t("dashboard>collection>nativePlan")}
                     </span>
-                </div>
-                <div className="flex items-center gap-2">
+                </button>
+                <button
+                    type="button"
+                    className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => toggleSeries("rolledOverdue")}
+                >
                     <div
-                        className="w-3 h-3 rounded-sm"
-                        style={{ backgroundColor: actualColor }}
+                        className="w-3 h-3 rounded-sm transition-opacity"
+                        style={{
+                            backgroundColor: rolledOverdueColor,
+                            opacity: hiddenSeries.has("rolledOverdue") ? 0.3 : 1,
+                        }}
                     />
-                    <span className="text-xs text-muted-foreground">
+                    <span className={`text-xs transition-opacity ${hiddenSeries.has("rolledOverdue") ? "line-through text-muted-foreground/50" : "text-muted-foreground"}`}>
+                        {t("dashboard>collection>rolledOverdue")}
+                    </span>
+                </button>
+                <button
+                    type="button"
+                    className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => toggleSeries("actual")}
+                >
+                    <div
+                        className="w-3 h-3 rounded-sm transition-opacity"
+                        style={{
+                            backgroundColor: actualColor,
+                            opacity: hiddenSeries.has("actual") ? 0.3 : 1,
+                        }}
+                    />
+                    <span className={`text-xs transition-opacity ${hiddenSeries.has("actual") ? "line-through text-muted-foreground/50" : "text-muted-foreground"}`}>
                         {t("dashboard>collection>actual")}
                     </span>
-                </div>
+                </button>
             </div>
         </ChartCard>
     );

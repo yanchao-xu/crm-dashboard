@@ -16,6 +16,8 @@ import type { ContractMap, ReceivablePlanMap } from "@/hooks/useApiData";
 import type { ChartFilterContext } from "@/pages/Index";
 import { formatAmountNumber, getCurrencySymbol } from "@/components/charts/utils/formatters";
 import type { ExchangeRateService } from "@/services/exchangeRate";
+import type { MonthlyRollingMap } from "@/components/charts/CollectionHealthChart/useCollectionHealthData";
+import type { HiddenSeries } from "@/components/charts/CollectionHealthChart";
 import { getMonthsForQuarter } from "@/utils/orgFilter";
 import {
   ChevronRight,
@@ -39,12 +41,13 @@ interface ContractRowData {
   collectedAmount: number;
   pendingAmount: number;
   status: CollectionStatus;
+  rollingSourceMonth?: string | null; // 滚动来源月份
 }
 
 /**
  * 从合同和应收计划数据中构建表格行数据
  */
-function buildContractRows(
+export function buildContractRows(
   contractMap: ContractMap,
   receivablePlanMap: ReceivablePlanMap,
   filterMonth?: string,
@@ -52,6 +55,9 @@ function buildContractRows(
   targetCurrencyId?: string,
   allowedContractNumbers?: Set<string>,
   selectedOrg?: OrgNode | null,
+  rollingMap?: MonthlyRollingMap,
+  filterSegment?: "native" | "overdue" | "all",
+  hiddenSeries?: HiddenSeries,
 ): ContractRowData[] {
   const rows: ContractRowData[] = [];
 
@@ -79,13 +85,44 @@ function buildContractRows(
     contracts.forEach((contract) => {
       const allPlans = receivablePlanMap.get(String(contract.id)) || [];
 
-      // 筛选：只保留 plannedMonth 或 actualMonth 与点击月份匹配的应收计划
+      // 筛选：保留 plannedMonth 或 actualMonth 与点击月份匹配的应收计划
+      // 同时也包含通过 rollingMap 滚动到该月的逾期应收计划
       let matchedPlans: ReceivablePlan[];
       if (filterMonths) {
+        // 从 rollingMap 中找出滚动到【当前选中月份】的 planId 集合
+        const rolledPlanIds = new Set<string>();
+        if (rollingMap && filterMonth) {
+          // rollingMap key 是 yearMonth（如 "2026-06"），filterMonth 是标签（如 "Jun"）或季度（"Q2"）
+          // 需要找到 key 中月份部分匹配 filterMonths 的条目
+          const monthAbbrToNum: Record<string, string> = {
+            Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06",
+            Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12",
+          };
+
+          for (const [yearMonth, entries] of rollingMap) {
+            // 从 yearMonth（如 "2026-06"）提取月份部分，看是否匹配 filterMonths
+            const monthNum = yearMonth.split("-")[1]; // "06"
+            const matchesFilter = filterMonths.some(
+              (fm) => monthAbbrToNum[fm] === monthNum,
+            );
+            if (!matchesFilter) continue;
+
+            entries.forEach((entry) => {
+              if (
+                entry.contractId === contract.id &&
+                entry.rollingSourceMonth !== null
+              ) {
+                rolledPlanIds.add(entry.planId);
+              }
+            });
+          }
+        }
+
         matchedPlans = allPlans.filter(
           (p) =>
             (p.plannedMonth && filterMonths!.includes(p.plannedMonth)) ||
-            (p.actualMonth && filterMonths!.includes(p.actualMonth)),
+            (p.actualMonth && filterMonths!.includes(p.actualMonth)) ||
+            rolledPlanIds.has(p.id),
         );
       } else {
         matchedPlans = allPlans;
@@ -93,6 +130,47 @@ function buildContractRows(
 
       // 如果该合同在当前月份没有匹配的应收计划，跳过
       if (filterMonths && matchedPlans.length === 0) return;
+
+      // 按 segment 筛选（基于 rollingMap）
+      if (filterSegment && filterSegment !== "all" && rollingMap && filterMonth) {
+        // 获取该月的滚动合同信息
+        // 需要根据 filterMonth（月标签如 "Jul"）找到对应的 rollingMap entries
+        // rollingMap key 是 yearMonth，但我们从 filterMonth 标签匹配
+        const rollingEntries = Array.from(rollingMap.values()).flat();
+        const contractRollingInfos = rollingEntries.filter(
+          (info) => info.contractId === contract.id,
+        );
+
+        if (filterSegment === "overdue") {
+          // 仅展示滚动逾期合同
+          const hasOverdueRolling = contractRollingInfos.some(
+            (info) => info.isOverdue && info.rollingSourceMonth !== null,
+          );
+          if (!hasOverdueRolling) return;
+        } else if (filterSegment === "native") {
+          // 仅展示原生计划合同（非滚动）
+          const isOnlyRolledIn = contractRollingInfos.length > 0 &&
+            contractRollingInfos.every((info) => info.rollingSourceMonth !== null);
+          if (isOnlyRolledIn) return;
+        }
+      }
+
+      // 按 hiddenSeries 过滤：隐藏原生计划或滚动逾期对应的合同
+      if (hiddenSeries && hiddenSeries.size > 0 && rollingMap) {
+        const rollingEntries2 = Array.from(rollingMap.values()).flat();
+        const contractInfos = rollingEntries2.filter(
+          (info) => info.contractId === contract.id,
+        );
+        const hasNative = contractInfos.some((info) => info.rollingSourceMonth === null);
+        const hasRolled = contractInfos.some((info) => info.rollingSourceMonth !== null);
+
+        // 如果原生计划和逾期都被隐藏了，跳过该合同
+        if (hiddenSeries.has("nativePlan") && hiddenSeries.has("rolledOverdue")) return;
+        // 如果只隐藏了原生计划，且该合同只有原生计划（无滚动），跳过
+        if (hiddenSeries.has("nativePlan") && !hiddenSeries.has("rolledOverdue") && hasNative && !hasRolled) return;
+        // 如果只隐藏了逾期，且该合同只有滚动逾期（无原生计划），跳过
+        if (hiddenSeries.has("rolledOverdue") && !hiddenSeries.has("nativePlan") && !hasNative && hasRolled) return;
+      }
 
       // 合同级别的汇总数据（带汇率转换）
       let collectedAmount: number;
@@ -156,12 +234,25 @@ function buildContractRows(
         }
       }
 
+      // 查找该合同的滚动来源信息
+      let rollingSourceMonth: string | null = null;
+      if (rollingMap) {
+        const allEntries = Array.from(rollingMap.values()).flat();
+        const contractEntry = allEntries.find(
+          (info) => info.contractId === contract.id && info.rollingSourceMonth !== null,
+        );
+        if (contractEntry) {
+          rollingSourceMonth = contractEntry.rollingSourceMonth;
+        }
+      }
+
       rows.push({
         contract,
         plans: matchedPlans,
         collectedAmount,
         pendingAmount,
         status,
+        rollingSourceMonth,
       });
     });
   });
@@ -198,6 +289,8 @@ interface ContractsTableProps {
   targetCurrencyId?: string;
   allowedContractNumbers?: Set<string>;
   selectedOrg?: OrgNode | null;
+  rollingMap?: MonthlyRollingMap;
+  hiddenSeries?: HiddenSeries;
 }
 
 export function ContractsTable({
@@ -208,6 +301,8 @@ export function ContractsTable({
   targetCurrencyId,
   allowedContractNumbers,
   selectedOrg,
+  rollingMap,
+  hiddenSeries,
 }: ContractsTableProps) {
   const { t } = useLanguage();
   const { currencyCode } = useCurrency();
@@ -221,10 +316,12 @@ export function ContractsTable({
 
   const filterMonth =
     filterContext?.type === "collection" ? filterContext.month : undefined;
+  const filterSegment =
+    filterContext?.type === "collection" ? filterContext.segment : undefined;
 
   const rows = useMemo(
-    () => buildContractRows(contractMap, receivablePlanMap, filterMonth, exchangeService, targetCurrencyId, allowedContractNumbers, selectedOrg),
-    [contractMap, receivablePlanMap, filterMonth, exchangeService, targetCurrencyId, allowedContractNumbers, selectedOrg],
+    () => buildContractRows(contractMap, receivablePlanMap, filterMonth, exchangeService, targetCurrencyId, allowedContractNumbers, selectedOrg, rollingMap, filterSegment, hiddenSeries),
+    [contractMap, receivablePlanMap, filterMonth, exchangeService, targetCurrencyId, allowedContractNumbers, selectedOrg, rollingMap, filterSegment, hiddenSeries],
   );
 
   const toggleRow = (contractId: string) => {
@@ -328,6 +425,7 @@ export function ContractsTable({
                 </Popover>
               </div>
             </TableHead>
+            <TableHead>{t("dashboard>collection>rollingSource")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -415,6 +513,9 @@ export function ContractsTable({
                       {t(`dashboard>collection>status>${row.status}`)}
                     </Badge>
                   </TableCell>
+                  <TableCell>
+                    <span className="text-xs text-muted-foreground">—</span>
+                  </TableCell>
                 </TableRow>
 
                 {/* 展开的应收计划明细行 */}
@@ -422,10 +523,39 @@ export function ContractsTable({
                   row.plans.map((plan) => {
                     const planPending = Math.max(plan.plannedAmount - plan.actualAmount, 0);
                     const planStatus = getPlanStatus(plan);
+
+                    // 查找该应收计划在当前选中月份的滚动来源
+                    let planRollingSource: string | null = null;
+                    if (rollingMap && filterMonth) {
+                      const monthAbbrToNum: Record<string, string> = {
+                        Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06",
+                        Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12",
+                      };
+                      const targetMonthNum = monthAbbrToNum[filterMonth];
+                      for (const [yearMonth, entries] of rollingMap) {
+                        const monthNum = yearMonth.split("-")[1];
+                        if (monthNum !== targetMonthNum) continue;
+
+                        const entry = entries.find(
+                          (info) => info.planId === plan.id && info.rollingSourceMonth !== null,
+                        );
+                        if (entry) {
+                          planRollingSource = entry.rollingSourceMonth;
+                          break;
+                        }
+                      }
+                    }
+
+                    // 按 hiddenSeries 过滤应收计划行
+                    if (hiddenSeries && hiddenSeries.size > 0) {
+                      if (hiddenSeries.has("rolledOverdue") && planRollingSource) return null;
+                      if (hiddenSeries.has("nativePlan") && !planRollingSource) return null;
+                    }
+
                     return (
                       <TableRow
                         key={`plan-${plan.id}`}
-                        className="bg-muted/30 hover:bg-muted/50"
+                        className={`hover:bg-muted/50 ${planRollingSource ? "bg-warning/5" : "bg-muted/30"}`}
                       >
                         <TableCell />
                         {/* 款项阶段 */}
@@ -481,6 +611,14 @@ export function ContractsTable({
                           >
                             {t(`dashboard>collection>status>${planStatus}`)}
                           </Badge>
+                        </TableCell>
+                        {/* 滚动来源 */}
+                        <TableCell>
+                          {planRollingSource ? (
+                            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-xs">
+                              ← {planRollingSource}
+                            </Badge>
+                          ) : null}
                         </TableCell>
                       </TableRow>
                     );

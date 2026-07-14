@@ -1,6 +1,7 @@
 import { formatCurrency } from "../utils/formatters";
 
-const targetColor = "hsl(217, 91%, 60%)";
+const nativePlanColor = "hsl(217, 91%, 60%)";
+const rolledOverdueColor = "hsl(25, 95%, 53%)";
 const actualColor = "hsl(252, 87%, 67%)";
 
 interface CollectionHealthTooltipProps {
@@ -20,25 +21,50 @@ export function CollectionHealthTooltip({
 }: CollectionHealthTooltipProps) {
     if (!active || !payload || payload.length === 0) return null;
 
-    const target = payload.find((p: any) => p.dataKey === "target")?.value || 0;
+    const nativePlan = payload.find((p: any) => p.dataKey === "nativePlan")?.value || 0;
+    const rolledOverdue = payload.find((p: any) => p.dataKey === "rolledOverdue")?.value || 0;
     const actual = payload.find((p: any) => p.dataKey === "actual")?.value || 0;
+    const target = nativePlan + rolledOverdue;
     const rate = target > 0 ? Math.round((actual / target) * 100) : 0;
     const pending = Math.max(target - actual, 0);
     const isHealthy = actual >= target * 0.9;
 
     return (
-        <div className="glass-card p-3 border border-border min-w-[200px]">
+        <div className="glass-card p-3 border border-border min-w-[220px]">
             <p className="font-mono text-sm text-muted-foreground mb-2">{label}</p>
             <div className="space-y-1">
                 <div className="flex items-center gap-2">
                     <div
                         className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: targetColor }}
+                        style={{ backgroundColor: nativePlanColor }}
                     />
+                    <span className="text-xs text-muted-foreground flex-1">
+                        {t("dashboard>collection>nativePlan")}:
+                    </span>
+                    <span className="font-mono text-xs">
+                        {formatCurrency(nativePlan, currencyCode)}
+                    </span>
+                </div>
+                {rolledOverdue > 0 && (
+                    <div className="flex items-center gap-2">
+                        <div
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: rolledOverdueColor }}
+                        />
+                        <span className="text-xs text-muted-foreground flex-1">
+                            {t("dashboard>collection>rolledOverdue")}:
+                        </span>
+                        <span className="font-mono text-xs text-warning">
+                            {formatCurrency(rolledOverdue, currencyCode)}
+                        </span>
+                    </div>
+                )}
+                <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-muted-foreground/50" />
                     <span className="text-xs text-muted-foreground flex-1">
                         {t("dashboard>collection>target")}:
                     </span>
-                    <span className="font-mono text-xs">
+                    <span className="font-mono text-xs font-medium">
                         {formatCurrency(target, currencyCode)}
                     </span>
                 </div>
