@@ -274,6 +274,14 @@ export const translations: Translations = {
     zh: "实际回款金额",
     en: "Actual Payment",
   },
+  "dashboard>filter>amountCurrencyInfo": {
+    zh: "产品线和金额模式不影响「回款健康度」和「月回款合同」图表",
+    en: "Product Line and Amount Mode do not affect the Collection Health and Monthly Contract charts",
+  },
+  "dashboard>filter>currency": {
+    zh: "币种",
+    en: "Currency",
+  },
 
   // Deals
   "dashboard>deals>responsible": {

@@ -144,6 +144,7 @@ export class DashboardApiService {
                 "name",
                 "organizationType",
                 "organizationId",
+                "memberName",
                 "janJanuary",
                 "febFebruary",
                 "marMarch",
@@ -246,9 +247,11 @@ export class DashboardApiService {
     }
   }
   // 获取线索总数（用于漏斗图第一阶段转化率计算）
-  async getLeadCount(): Promise<number> {
+  async getLeadCount(dateFrom?: string, dateTo?: string): Promise<number> {
     try {
       const currentYear = new Date().getFullYear();
+      const from = dateFrom || `${currentYear}-01-01`;
+      const to = dateTo || `${currentYear}-12-31`;
       const response = await this.restApi.get(
         "/form/api/v2/form-entity-data/lead-management/lead-management-form/list",
         {
@@ -259,8 +262,8 @@ export class DashboardApiService {
                   colId: "expectedDealTime",
                   filterType: "date",
                   type: "inRange",
-                  dateFrom: `${currentYear}-01-01`,
-                  dateTo: `${currentYear}-12-31`,
+                  dateFrom: from,
+                  dateTo: to,
                 },
               ],
               selectColId: ["expectedDealTime"],
@@ -314,6 +317,44 @@ export class DashboardApiService {
     }
   }
 
+  // 根据签约日期范围获取合同数据（用于回款健康度，独立于商机）
+  async getContractsByDateRange(dateFrom: string, dateTo: string): Promise<Contract[]> {
+    try {
+      const response = await this.restApi.post(
+        "/form/api/v3/form-entity-data/contract-management/contract-management-form/list",
+        {
+          filterModel: [
+            {
+              colId: "signingDate",
+              filterType: "date",
+              type: "inRange",
+              dateFrom,
+              dateTo,
+            },
+          ],
+          selectColId: [
+            "contractCode",
+            "contractName",
+            "customer",
+            "contractOwner",
+            "totalAmountWithTax",
+            "signingDate",
+            "expiryDate",
+            "settlementCurrency",
+          ],
+        },
+      );
+      const rawData = response.results || response;
+      if (Array.isArray(rawData)) {
+        return rawData.map((item: any) => this.transformContractData(item));
+      }
+      return [];
+    } catch (error) {
+      console.error("Failed to fetch contracts by date range:", error);
+      return [];
+    }
+  }
+
   // 转换合同数据
   private transformContractData(item: any): Contract {
     const signingDate = item.signingDate || "";
@@ -322,7 +363,7 @@ export class DashboardApiService {
       contractCode: item.contractCode || "",
       contractName: item.contractName || "",
       customer: item.customer?.[0]?.label || "",
-      owner: item.contractOwner?.[0]?.label || "",
+      owner: item.contractOwner?.[0]?.value || item.contractOwner?.[0]?.label || "",
       totalAmountWithTax: Number(item.totalAmountWithTax) || 0,
       signingDate,
       expiryDate: item.expiryDate || "",
@@ -380,6 +421,28 @@ export class DashboardApiService {
     } catch (error) {
       console.error("Failed to fetch receivable plans:", error);
       return [];
+    }
+  }
+
+  // 获取公司基础配置中的默认结算币种 code
+  async getCompanyDefaultCurrency(): Promise<string | null> {
+    try {
+      const response = await this.restApi.post(
+        "/form/api/v3/form-entity-data/basic-system-setting/company-basic-config/list",
+        {
+          selectColId: ["settlementCurrency"],
+        },
+      );
+
+      const results = response.results || response;
+      if (Array.isArray(results) && results.length > 0) {
+        const currencyCode = results[0].settlementCurrency?.[0]?.code;
+        return currencyCode || null;
+      }
+      return null;
+    } catch (error) {
+      console.error("Failed to fetch company default currency:", error);
+      return null;
     }
   }
 
@@ -533,7 +596,7 @@ export class DashboardApiService {
         stage: item.opportunityStage?.[0]?.code,
         lastActivityDays,
         probability: Number(item.winRate) || 0,
-        owner: item.opportunityOwner?.[0]?.label || "",
+        owner: item.opportunityOwner?.[0]?.value || item.opportunityOwner?.[0]?.label || "",
         productLine: productLineArr,
         createdMonth: month,
         createdYearMonth: yearMonth,
@@ -586,6 +649,7 @@ export class DashboardApiService {
         },
         type: types.includes(itemType) ? itemType : "person",
         children: [],
+        memberEmail: item.memberName?.[0]?.email || undefined,
         currencyId:
           item.settlementCurrency?.[0]?.id != null
             ? String(item.settlementCurrency[0].id)

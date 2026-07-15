@@ -69,59 +69,78 @@ function useApiData<T>(fetchFn: (() => Promise<T>) | null, emptyData: T) {
   return { data, loading, error };
 }
 
-// 获取商机数据（依赖组织树确定财年范围）
-export function useDeals(orgStructure: OrgNode) {
+// 根据组织节点的财年月日 + 用户选中的年份，计算实际的 dateFrom / dateTo
+export function computeFiscalRange(
+  orgStructure: OrgNode,
+  selectedYear: number,
+): { dateFrom: string; dateTo: string } {
+  const orgForFiscal = orgStructure.theStartDateOfTheFiscalYear
+    ? orgStructure
+    : orgStructure.children?.[0] || orgStructure;
+  const startStr = orgForFiscal.theStartDateOfTheFiscalYear;
+  const endStr = orgForFiscal.theEndDateOfTheFiscalYear;
+
+  if (startStr) {
+    // 取月-日部分，与 selectedYear 拼接
+    const startDate = new Date(startStr);
+    const startMonth = startDate.getMonth(); // 0-based
+    const dateFrom = `${selectedYear}-${String(startMonth + 1).padStart(2, "0")}-01`;
+
+    if (endStr) {
+      const endDate = new Date(endStr);
+      const endMonth = endDate.getMonth();
+      // 如果结束月 < 开始月，说明跨年（结束在 selectedYear + 1）
+      const endYear = endMonth < startMonth ? selectedYear + 1 : selectedYear;
+      const lastDay = new Date(endYear, endMonth + 1, 0).getDate();
+      const dateTo = `${endYear}-${String(endMonth + 1).padStart(2, "0")}-${lastDay}`;
+      return { dateFrom, dateTo };
+    } else {
+      // 只有开始月，结束为开始 + 12 个月 - 1 天
+      const endDate = new Date(selectedYear, startMonth + 12, 0);
+      const dateTo = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, "0")}-${endDate.getDate()}`;
+      return { dateFrom, dateTo };
+    }
+  } else if (endStr) {
+    // 只有结束日期，推算开始
+    const endDate = new Date(endStr);
+    const endMonth = endDate.getMonth();
+    const startMonth = (endMonth - 11 + 12) % 12;
+    // 如果开始月 > 结束月，说明开始在 selectedYear，结束在 selectedYear + 1
+    const startYear = startMonth > endMonth ? selectedYear : selectedYear;
+    const endYear = startMonth > endMonth ? selectedYear + 1 : selectedYear;
+    const dateFrom = `${startYear}-${String(startMonth + 1).padStart(2, "0")}-01`;
+    const lastDay = new Date(endYear, endMonth + 1, 0).getDate();
+    const dateTo = `${endYear}-${String(endMonth + 1).padStart(2, "0")}-${lastDay}`;
+    return { dateFrom, dateTo };
+  }
+
+  // 都没有，fallback 到 selectedYear 自然年
+  return {
+    dateFrom: `${selectedYear}-01-01`,
+    dateTo: `${selectedYear}-12-31`,
+  };
+}
+
+// 获取商机数据（依赖组织树确定财年月日 + selectedYear 确定年份）
+export function useDeals(orgStructure: OrgNode, selectedYear: number) {
   const restApi = useOptionalRestApi();
   const { language } = useLanguage();
   const [data, setData] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const hasFetchedRef = useRef(false);
+  const prevKeyRef = useRef<string>("");
 
   useEffect(() => {
     if (!restApi) return;
     // 等待组织树加载完毕（需要有 id 表示已拿到数据）
     if (!orgStructure.id) return;
-    if (hasFetchedRef.current) return;
-    hasFetchedRef.current = true;
 
-    // 从组织树根节点提取财年日期范围
-    // 如果是虚拟根节点（多根情况），从第一个子节点取
-    let dateFrom: string | undefined;
-    let dateTo: string | undefined;
+    const { dateFrom, dateTo } = computeFiscalRange(orgStructure, selectedYear);
 
-    const orgForFiscal = orgStructure.theStartDateOfTheFiscalYear
-      ? orgStructure
-      : orgStructure.children?.[0] || orgStructure;
-    const startStr = orgForFiscal.theStartDateOfTheFiscalYear;
-    const endStr = orgForFiscal.theEndDateOfTheFiscalYear;
-
-    if (startStr) {
-      // 有财年开始日期，直接使用
-      const startDate = new Date(startStr);
-      dateFrom = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}-01`;
-
-      if (endStr) {
-        // 有结束日期
-        const endDate = new Date(endStr);
-        // 取结束月最后一天
-        const lastDay = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0).getDate();
-        dateTo = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, "0")}-${lastDay}`;
-      } else {
-        // 只有开始日期，结束为开始 + 12个月 - 1天
-        const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 12, 0);
-        dateTo = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, "0")}-${endDate.getDate()}`;
-      }
-    } else if (endStr) {
-      // 只有结束日期，推算开始
-      const endDate = new Date(endStr);
-      const startMonth = (endDate.getMonth() - 11 + 12) % 12;
-      const startYear = startMonth > endDate.getMonth() ? endDate.getFullYear() - 1 : endDate.getFullYear();
-      dateFrom = `${startYear}-${String(startMonth + 1).padStart(2, "0")}-01`;
-      const lastDay = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0).getDate();
-      dateTo = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, "0")}-${lastDay}`;
-    }
-    // 如果都没有，dateFrom/dateTo 为 undefined，api 内部 fallback 到当前自然年
+    // 防止相同参数重复请求
+    const key = `${dateFrom}_${dateTo}`;
+    if (key === prevKeyRef.current) return;
+    prevKeyRef.current = key;
 
     let mounted = true;
     const apiService = new DashboardApiService(restApi, language);
@@ -152,7 +171,7 @@ export function useDeals(orgStructure: OrgNode) {
     return () => {
       mounted = false;
     };
-  }, [restApi, orgStructure, language]);
+  }, [restApi, orgStructure, language, selectedYear]);
 
   return { data, loading, error };
 }
@@ -223,21 +242,49 @@ export function useOpportunityStages() {
   return useApiData(apiService ? fetchFn : null, []);
 }
 // 获取线索总数
-export function useLeadCount() {
+export function useLeadCount(orgStructure: OrgNode, selectedYear: number) {
   const restApi = useOptionalRestApi();
   const { language } = useLanguage();
+  const [data, setData] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const prevKeyRef = useRef<string>("");
 
-  const apiService = useMemo(
-    () => (restApi ? new DashboardApiService(restApi, language) : null),
-    [restApi, language],
-  );
+  useEffect(() => {
+    if (!restApi) return;
+    if (!orgStructure.id) return;
 
-  const fetchFn = useCallback(
-    () => (apiService ? apiService.getLeadCount() : Promise.resolve(0)),
-    [apiService],
-  );
+    const { dateFrom, dateTo } = computeFiscalRange(orgStructure, selectedYear);
+    const key = `lead_${dateFrom}_${dateTo}`;
+    if (key === prevKeyRef.current) return;
+    prevKeyRef.current = key;
 
-  return useApiData(apiService ? fetchFn : null, 0);
+    let mounted = true;
+    const apiService = new DashboardApiService(restApi, language);
+
+    const fetchLeadCount = async () => {
+      setLoading(true);
+      try {
+        const result = await apiService.getLeadCount(dateFrom, dateTo);
+        if (mounted) {
+          setData(result);
+          setError(null);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err as Error);
+          setData(0);
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    fetchLeadCount();
+    return () => { mounted = false; };
+  }, [restApi, orgStructure, selectedYear, language]);
+
+  return { data, loading, error };
 }
 
 // 获取币种列表
@@ -256,6 +303,24 @@ export function useCurrencies() {
   );
 
   return useApiData<CurrencyItem[]>(apiService ? fetchFn : null, []);
+}
+
+// 获取公司基础配置中的默认结算币种 code
+export function useCompanyDefaultCurrency() {
+  const restApi = useOptionalRestApi();
+  const { language } = useLanguage();
+
+  const apiService = useMemo(
+    () => (restApi ? new DashboardApiService(restApi, language) : null),
+    [restApi, language],
+  );
+
+  const fetchFn = useCallback(
+    () => (apiService ? apiService.getCompanyDefaultCurrency() : Promise.resolve(null)),
+    [apiService],
+  );
+
+  return useApiData<string | null>(apiService ? fetchFn : null, null);
 }
 
 // 获取汇率表
@@ -358,6 +423,68 @@ export function useContracts(deals: Deal[]) {
       mounted = false;
     };
   }, [restApi, deals, language]);
+
+  return { contracts, loading };
+}
+
+// 根据财年范围独立获取合同数据（不依赖商机，用于回款健康度）
+export function useContractsByFiscalYear(orgStructure: OrgNode, selectedYear: number) {
+  const restApi = useOptionalRestApi();
+  const { language } = useLanguage();
+  const [contracts, setContracts] = useState<ContractMap>(new Map());
+  const [loading, setLoading] = useState(false);
+  const prevKeyRef = useRef<string>("");
+
+  useEffect(() => {
+    if (!restApi) return;
+    // 等待组织树加载完毕
+    if (!orgStructure.id) return;
+
+    const { dateFrom, dateTo } = computeFiscalRange(orgStructure, selectedYear);
+
+    // 防止相同参数重复请求
+    const key = `${dateFrom}_${dateTo}`;
+    if (key === prevKeyRef.current) return;
+    prevKeyRef.current = key;
+
+    let mounted = true;
+    const apiService = new DashboardApiService(restApi, language);
+
+    const fetchContracts = async () => {
+      setLoading(true);
+      try {
+        const allContracts = await apiService.getContractsByDateRange(dateFrom, dateTo);
+
+        if (mounted) {
+          // 按 contractCode 分组
+          const map: ContractMap = new Map();
+          allContracts.forEach((contract) => {
+            const code = contract.contractCode;
+            if (!map.has(code)) {
+              map.set(code, []);
+            }
+            map.get(code)!.push(contract);
+          });
+          setContracts(map);
+        }
+      } catch (error) {
+        console.error("Failed to fetch contracts by fiscal year:", error);
+        if (mounted) {
+          setContracts(new Map());
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchContracts();
+
+    return () => {
+      mounted = false;
+    };
+  }, [restApi, orgStructure, language, selectedYear]);
 
   return { contracts, loading };
 }

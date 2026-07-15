@@ -52,8 +52,8 @@ export function getOwnersInOrg(node: OrgNode): string[] {
   const owners: string[] = [];
 
   function collectOwners(n: OrgNode) {
-    if (n.type === "person") {
-      owners.push(n.name.en);
+    if (n.type === "person" && n.memberEmail) {
+      owners.push(n.memberEmail);
     }
     if (n.children) {
       n.children.forEach(collectOwners);
@@ -165,7 +165,8 @@ export interface FiscalMonthInfo {
 }
 
 // 根据财年起止日期生成带年份信息的月份列表，用于跨年财年的精确匹配
-export function getFiscalYearMonths(orgNode: OrgNode | null): FiscalMonthInfo[] {
+// selectedYear: 用户选中的年份，用于替代组织配置中的年份部分
+export function getFiscalYearMonths(orgNode: OrgNode | null, selectedYear?: number): FiscalMonthInfo[] {
   const allMonths = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
@@ -175,8 +176,8 @@ export function getFiscalYearMonths(orgNode: OrgNode | null): FiscalMonthInfo[] 
   const hasEnd = !!orgNode?.theEndDateOfTheFiscalYear;
 
   if (!hasStart && !hasEnd) {
-    // 没有财年配置时，默认使用当前自然年 Jan~Dec
-    const year = new Date().getFullYear();
+    // 没有财年配置时，使用 selectedYear 或当前自然年 Jan~Dec
+    const year = selectedYear ?? new Date().getFullYear();
     return allMonths.map((m, i) => ({
       label: m,
       yearMonth: `${year}-${String(i + 1).padStart(2, "0")}`,
@@ -189,14 +190,19 @@ export function getFiscalYearMonths(orgNode: OrgNode | null): FiscalMonthInfo[] 
 
     if (hasStart) {
       const startDate = new Date(orgNode!.theStartDateOfTheFiscalYear!);
-      startYear = startDate.getFullYear();
       startMonth = startDate.getMonth();
+      // 使用 selectedYear 替代配置中的年份
+      startYear = selectedYear ?? startDate.getFullYear();
     } else {
       const endDate = new Date(orgNode!.theEndDateOfTheFiscalYear!);
       const endMonth = endDate.getMonth();
       startMonth = (endMonth - 11 + 12) % 12;
-      // 如果结束月小于起始月，说明起始年份是结束年份减 1
-      startYear = startMonth > endMonth ? endDate.getFullYear() - 1 : endDate.getFullYear();
+      if (selectedYear != null) {
+        // 开始月 > 结束月 表示跨年，开始年份就是 selectedYear
+        startYear = selectedYear;
+      } else {
+        startYear = startMonth > endMonth ? endDate.getFullYear() - 1 : endDate.getFullYear();
+      }
     }
 
     const result: FiscalMonthInfo[] = [];
@@ -210,7 +216,7 @@ export function getFiscalYearMonths(orgNode: OrgNode | null): FiscalMonthInfo[] 
     }
     return result;
   } catch {
-    const year = new Date().getFullYear();
+    const year = selectedYear ?? new Date().getFullYear();
     return allMonths.map((m, i) => ({
       label: m,
       yearMonth: `${year}-${String(i + 1).padStart(2, "0")}`,
@@ -229,8 +235,9 @@ function buildHealthDataPoints(
   stages: OpportunityStage[],
   exchangeService?: ExchangeRateService | null,
   targetCurrencyId?: string,
+  selectedYear?: number,
 ): StackedHealthDataPoint[] {
-  const fiscalYearMonths = getFiscalYearMonths(selectedOrg);
+  const fiscalYearMonths = getFiscalYearMonths(selectedOrg, selectedYear);
 
   return fiscalYearMonths.map(({ label, yearMonth }) => {
     const stageData = monthlyData.get(yearMonth) || new Map();
@@ -282,6 +289,7 @@ export function calculateStackedHealthData(
   amountMode: AmountMode = "expectedAmount",
   exchangeService?: ExchangeRateService | null,
   targetCurrencyId?: string,
+  selectedYear?: number,
 ): StackedHealthDataPoint[] {
   if (stages.length === 0) return [];
 
@@ -293,7 +301,7 @@ export function calculateStackedHealthData(
     addToMonthlyData(monthlyData, yearMonth, deal.stage, getDealAmount(deal, amountMode, exchangeService, targetCurrencyId));
   });
 
-  return buildHealthDataPoints(monthlyData, selectedOrg, stages, exchangeService, targetCurrencyId);
+  return buildHealthDataPoints(monthlyData, selectedOrg, stages, exchangeService, targetCurrencyId, selectedYear);
 }
 
 // 计算合同金额模式下的健康度图表数据
@@ -304,6 +312,7 @@ export function calculateContractHealthData(
   contractMap: ContractMap,
   exchangeService?: ExchangeRateService | null,
   targetCurrencyId?: string,
+  selectedYear?: number,
 ): StackedHealthDataPoint[] {
   if (stages.length === 0) return [];
 
@@ -327,7 +336,7 @@ export function calculateContractHealthData(
     });
   });
 
-  return buildHealthDataPoints(monthlyData, selectedOrg, stages, exchangeService, targetCurrencyId);
+  return buildHealthDataPoints(monthlyData, selectedOrg, stages, exchangeService, targetCurrencyId, selectedYear);
 }
 
 // 计算实际回款金额模式下的健康度图表数据
@@ -339,6 +348,7 @@ export function calculateReceivableHealthData(
   receivablePlanMap: ReceivablePlanMap,
   exchangeService?: ExchangeRateService | null,
   targetCurrencyId?: string,
+  selectedYear?: number,
 ): StackedHealthDataPoint[] {
   if (stages.length === 0) return [];
 
@@ -367,7 +377,7 @@ export function calculateReceivableHealthData(
     });
   });
 
-  return buildHealthDataPoints(monthlyData, selectedOrg, stages, exchangeService, targetCurrencyId);
+  return buildHealthDataPoints(monthlyData, selectedOrg, stages, exchangeService, targetCurrencyId, selectedYear);
 }
 
 // Recalculate stagnation data based on filtered deals

@@ -78,13 +78,14 @@ function getFiscalMonths(orgNode: OrgNode | null): string[] {
 
 /**
  * 根据组织树的财年配置，获取带年份信息的 12 个月份列表
+ * selectedYear: 用户选中的年份，用于替代组织配置中的年份部分
  */
-function getFiscalYearMonths(orgNode: OrgNode | null): FiscalMonthInfo[] {
+function getFiscalYearMonths(orgNode: OrgNode | null, selectedYear?: number): FiscalMonthInfo[] {
   const hasStart = !!orgNode?.theStartDateOfTheFiscalYear;
   const hasEnd = !!orgNode?.theEndDateOfTheFiscalYear;
 
   if (!hasStart && !hasEnd) {
-    const year = new Date().getFullYear();
+    const year = selectedYear ?? new Date().getFullYear();
     return ALL_MONTHS.map((m, i) => ({
       label: m,
       yearMonth: `${year}-${String(i + 1).padStart(2, "0")}`,
@@ -97,13 +98,17 @@ function getFiscalYearMonths(orgNode: OrgNode | null): FiscalMonthInfo[] {
 
     if (hasStart) {
       const startDate = new Date(orgNode!.theStartDateOfTheFiscalYear!);
-      startYear = startDate.getFullYear();
       startMonth = startDate.getMonth();
+      startYear = selectedYear ?? startDate.getFullYear();
     } else {
       const endDate = new Date(orgNode!.theEndDateOfTheFiscalYear!);
       const endMonth = endDate.getMonth();
       startMonth = (endMonth - 11 + 12) % 12;
-      startYear = startMonth > endMonth ? endDate.getFullYear() - 1 : endDate.getFullYear();
+      if (selectedYear != null) {
+        startYear = selectedYear;
+      } else {
+        startYear = startMonth > endMonth ? endDate.getFullYear() - 1 : endDate.getFullYear();
+      }
     }
 
     const result: FiscalMonthInfo[] = [];
@@ -117,7 +122,7 @@ function getFiscalYearMonths(orgNode: OrgNode | null): FiscalMonthInfo[] {
     }
     return result;
   } catch {
-    const year = new Date().getFullYear();
+    const year = selectedYear ?? new Date().getFullYear();
     return ALL_MONTHS.map((m, i) => ({
       label: m,
       yearMonth: `${year}-${String(i + 1).padStart(2, "0")}`,
@@ -208,8 +213,9 @@ export function calculateCollectionHealthFromApi(
   exchangeService: ExchangeRateService | null,
   targetCurrencyId?: string,
   allowedContractNumbers?: Set<string>,
+  selectedYear?: number,
 ): CollectionHealthResult {
-  const fiscalYearMonths = getFiscalYearMonths(selectedOrg);
+  const fiscalYearMonths = getFiscalYearMonths(selectedOrg, selectedYear);
   const now = new Date();
 
   // 初始化每月数据

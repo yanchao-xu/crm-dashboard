@@ -4,7 +4,8 @@ import { HealthChart } from "@/components/charts/HealthChart";
 import { StagnationChart } from "@/components/charts/StagnationChart";
 import { OrgFilter } from "@/components/filters/OrgFilter";
 import { ProductTeamFilter } from "@/components/filters/ProductTeamFilter";
-import { X, Loader2 } from "lucide-react";
+import { YearFilter } from "@/components/filters/YearFilter";
+import { X, Loader2, Info } from "lucide-react";
 import { FunnelChart } from "@/components/charts/FunnelChart";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -25,6 +26,7 @@ import {
   getMonthsForQuarter,
   getFiscalMonths,
   getFiscalYearMonths,
+  getOwnersInOrg,
   NO_PRODUCT_LINE_ID,
 } from "@/utils/orgFilter";
 import {
@@ -38,6 +40,8 @@ import {
   useCurrencies,
   useExchangeRates,
   useExchangeRateService,
+  useContractsByFiscalYear,
+  useCompanyDefaultCurrency,
 } from "@/hooks/useApiData";
 import { DealsTable } from "@/components/deals/DealsTable";
 import { ContractsTable } from "@/components/deals/ContractsTable";
@@ -71,16 +75,18 @@ const Index = () => {
   const [periodMode, setPeriodMode] = useState<PeriodMode>("month");
   const [amountMode, setAmountMode] = useState<AmountMode>("expectedAmount");
   const [selectedCurrency, setSelectedCurrency] = useState<string>("");
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   // 从 API 获取数据（不使用 fallback）
   const { data: orgStructure, loading: orgLoading } = useOrgStructure();
-  // 商机数据依赖组织树（需要财年范围）
-  const { data: deals, loading: dealsLoading, error: dealsError } = useDeals(orgStructure);
+  // 商机数据依赖组织树（需要财年范围）+ 用户选中的年份
+  const { data: deals, loading: dealsLoading, error: dealsError } = useDeals(orgStructure, selectedYear);
   const { data: productGroups, loading: productsLoading } = useProductGroups();
   const { data: opportunityStages, loading: stagesLoading } =
     useOpportunityStages();
-  const { data: leadCount } = useLeadCount();
+  const { data: leadCount } = useLeadCount(orgStructure, selectedYear);
   const { data: currencies, loading: currenciesLoading } = useCurrencies();
+  const { data: companyDefaultCurrency, loading: companyDefaultCurrencyLoading } = useCompanyDefaultCurrency();
 
   // 获取汇率表
   const { data: exchangeRates } = useExchangeRates();
@@ -93,18 +99,40 @@ const Index = () => {
     return found?.id;
   }, [selectedCurrency, currencies]);
 
-  // 币种加载完成后，如果还没选择，设置第一个为默认值
+  // 币种加载完成后，设置默认值：优先使用公司配置的结算币种，否则用列表第一项
   useEffect(() => {
-    if (currencies.length > 0 && !selectedCurrency) {
-      setSelectedCurrency(currencies[0].code);
+    if (currencies.length > 0 && !companyDefaultCurrencyLoading && !selectedCurrency) {
+      if (companyDefaultCurrency && currencies.some((c) => c.code === companyDefaultCurrency)) {
+        setSelectedCurrency(companyDefaultCurrency);
+      } else {
+        setSelectedCurrency(currencies[0].code);
+      }
     }
-  }, [currencies, selectedCurrency]);
+  }, [currencies, selectedCurrency, companyDefaultCurrency, companyDefaultCurrencyLoading]);
 
   // 获取合同数据（依赖 deals 加载完成）
   const { contracts: contractMap, loading: contractsLoading } = useContracts(deals);
 
   // 获取应收计划数据（依赖合同数据加载完成）
   const { receivablePlans: receivablePlanMap, loading: receivablesLoading } = useReceivablePlans(contractMap);
+
+  // 回款健康度独立数据源：按财年 signingDate 范围获取合同（不依赖商机）
+  const { contracts: collectionContractMap, loading: collectionContractsLoading } = useContractsByFiscalYear(orgStructure, selectedYear);
+  const { receivablePlans: collectionReceivablePlanMap, loading: collectionReceivablesLoading } = useReceivablePlans(collectionContractMap);
+
+  // 按组织过滤回款合同
+  const filteredCollectionContractMap = useMemo(() => {
+    if (!selectedOrg) return collectionContractMap;
+    const owners = getOwnersInOrg(selectedOrg);
+    const filtered = new Map() as typeof collectionContractMap;
+    collectionContractMap.forEach((contracts, code) => {
+      const matched = contracts.filter((c) => owners.includes(c.owner));
+      if (matched.length > 0) {
+        filtered.set(code, matched);
+      }
+    });
+    return filtered;
+  }, [collectionContractMap, selectedOrg]);
 
   // Calculate filtered data based on selected organization and products
   const filteredDeals = useMemo(() => {
@@ -133,6 +161,7 @@ const Index = () => {
         contractMap,
         exchangeService,
         selectedCurrencyId,
+        selectedYear,
       );
     } else if (amountMode === "receivableAmount") {
       // 实际回款金额模式：按应收计划 actualDate 归类月份
@@ -144,6 +173,7 @@ const Index = () => {
         receivablePlanMap,
         exchangeService,
         selectedCurrencyId,
+        selectedYear,
       );
     } else {
       monthlyData = calculateStackedHealthData(
@@ -153,6 +183,7 @@ const Index = () => {
         amountMode,
         exchangeService,
         selectedCurrencyId,
+        selectedYear,
       );
     }
 
@@ -171,6 +202,7 @@ const Index = () => {
     receivablePlanMap,
     exchangeService,
     selectedCurrencyId,
+    selectedYear,
   ]);
 
   // 点击柱子后过滤 deals（月或季度标签）
@@ -178,7 +210,7 @@ const Index = () => {
     if (chartFilter?.type === "health" && chartFilter.month) {
       const clickedLabel = chartFilter.month;
       const orgForFiscal = selectedOrg || (orgStructure.id ? orgStructure : null);
-      const fiscalYearMonths = getFiscalYearMonths(orgForFiscal);
+      const fiscalYearMonths = getFiscalYearMonths(orgForFiscal, selectedYear);
 
       if (clickedLabel.startsWith("Q")) {
         // 季度模式：找到该季度对应的 yearMonth 列表，按 yearMonth 过滤
@@ -195,7 +227,7 @@ const Index = () => {
       return filterDealsByMonth(filteredDeals, clickedLabel);
     }
     return filteredDeals;
-  }, [filteredDeals, chartFilter, selectedOrg, orgStructure]);
+  }, [filteredDeals, chartFilter, selectedOrg, orgStructure, selectedYear]);
 
   // 销售漏斗数据
   // target conversion 来自选中的组织节点，未选中时使用根节点
@@ -203,7 +235,7 @@ const Index = () => {
     if (!chartFilter?.month || chartFilter.type !== "health") return undefined;
     const clickedLabel = chartFilter.month;
     const orgForFiscal = selectedOrg || (orgStructure.id ? orgStructure : null);
-    const fiscalYearMonths = getFiscalYearMonths(orgForFiscal);
+    const fiscalYearMonths = getFiscalYearMonths(orgForFiscal, selectedYear);
 
     if (clickedLabel.startsWith("Q")) {
       // 季度模式：找到该季度对应的所有 yearMonth
@@ -214,7 +246,7 @@ const Index = () => {
     // 月模式：根据点击的月份标签找到对应的 yearMonth
     const found = fiscalYearMonths.find((m) => m.label === clickedLabel);
     return found ? [found.yearMonth] : [clickedLabel];
-  }, [chartFilter, selectedOrg, orgStructure]);
+  }, [chartFilter, selectedOrg, orgStructure, selectedYear]);
 
   const filteredFunnelData = useMemo(() => {
     const orgForConversion =
@@ -268,22 +300,17 @@ const Index = () => {
     );
   }, [monthFilteredDeals, filteredDeals, opportunityStages, amountMode, contractMap, receivablePlanMap, selectedMonths, exchangeService, selectedCurrencyId]);
 
-  // 回款健康度图表数据
+  // 回款健康度图表数据（独立于商机，直接使用按财年 signingDate 过滤的合同）
   const { chartData: collectionHealthData, rollingMap } = useMemo(() => {
     const orgForFiscal = selectedOrg || (orgStructure.id ? orgStructure : null);
-    // 从 filteredDeals 提取关联的 contractNumber 白名单
-    const allowedContractNumbers = new Set(
-      filteredDeals
-        .map((d) => d.contractNumber)
-        .filter((cn): cn is string => !!cn && cn.trim() !== ""),
-    );
     const result = calculateCollectionHealthFromApi(
-      contractMap,
-      receivablePlanMap,
+      filteredCollectionContractMap,
+      collectionReceivablePlanMap,
       orgForFiscal,
       exchangeService,
       selectedCurrencyId,
-      allowedContractNumbers,
+      undefined, // 不再需要 allowedContractNumbers
+      selectedYear,
     );
 
     let chartData = result.chartData;
@@ -291,9 +318,9 @@ const Index = () => {
       chartData = aggregateCollectionHealthByQuarter(chartData, orgForFiscal);
     }
     return { chartData, rollingMap: result.rollingMap };
-  }, [contractMap, receivablePlanMap, selectedOrg, orgStructure, exchangeService, selectedCurrencyId, filteredDeals, periodMode]);
+  }, [filteredCollectionContractMap, collectionReceivablePlanMap, selectedOrg, orgStructure, exchangeService, selectedCurrencyId, periodMode, selectedYear]);
 
-  // 从 filteredDeals 提取关联的 contractNumber 白名单（供 ContractsTable 使用）
+  // 从 filteredDeals 提取关联的 contractNumber 白名单（供其他图表使用）
   const allowedContractNumbers = useMemo(() => {
     return new Set(
       filteredDeals
@@ -307,7 +334,7 @@ const Index = () => {
   };
 
   // 构建每个图表的筛选条件标签
-  const currentYear = String(new Date().getFullYear());
+  const currentYear = String(selectedYear);
 
   const buildCommonTags = useCallback((): FilterTag[] => {
     const tags: FilterTag[] = [{ label: currentYear }];
@@ -330,7 +357,7 @@ const Index = () => {
       });
     }
     return tags;
-  }, [selectedOrg, selectedProducts, productGroups, getText, t]);
+  }, [selectedOrg, selectedProducts, productGroups, getText, t, currentYear]);
 
   const healthFilterTags = useMemo((): FilterTag[] => {
     const tags = buildCommonTags();
@@ -473,19 +500,18 @@ const Index = () => {
         >
           {/* Filters Row */}
           <div className="flex flex-wrap items-center gap-3">
+            <YearFilter
+              value={selectedYear}
+              onChange={(year) => {
+                setSelectedYear(year);
+                setChartFilter(null);
+              }}
+            />
             <OrgFilter
               selectedOrg={selectedOrg}
               onOrgChange={setSelectedOrg}
               orgStructure={orgStructure}
               loading={orgLoading}
-            />
-            <ProductTeamFilter
-              selectedProducts={selectedProducts}
-              onProductsChange={setSelectedProducts}
-              productOptions={[
-                { id: NO_PRODUCT_LINE_ID, name: t("dashboard>filter>noProductLine") },
-                ...productGroups,
-              ]}
             />
             <PeriodFilter
               value={periodMode}
@@ -494,13 +520,43 @@ const Index = () => {
                 setChartFilter(null);
               }}
             />
-            <AmountModeFilter value={amountMode} onChange={setAmountMode} />
             <CurrencyFilter
               value={selectedCurrency}
               onChange={setSelectedCurrency}
               options={currencies}
               loading={currenciesLoading}
             />
+            <div className="flex items-center gap-2 border-l border-border pl-3">
+              <ProductTeamFilter
+                selectedProducts={selectedProducts}
+                onProductsChange={setSelectedProducts}
+                productOptions={[
+                  { id: NO_PRODUCT_LINE_ID, name: t("dashboard>filter>noProductLine") },
+                  ...productGroups,
+                ]}
+              />
+              <AmountModeFilter value={amountMode} onChange={setAmountMode} />
+              <div
+                className="relative inline-flex"
+                onMouseEnter={(e) => {
+                  const target = e.currentTarget.querySelector("[data-tooltip]");
+                  if (target) (target as HTMLElement).style.display = "block";
+                }}
+                onMouseLeave={(e) => {
+                  const target = e.currentTarget.querySelector("[data-tooltip]");
+                  if (target) (target as HTMLElement).style.display = "none";
+                }}
+              >
+                <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
+                <div
+                  data-tooltip=""
+                  className="absolute left-0 top-full mt-2 z-50 w-56 p-2.5 rounded-lg bg-popover border border-border shadow-lg text-xs text-popover-foreground whitespace-pre-line"
+                  style={{ display: "none" }}
+                >
+                  {t("dashboard>filter>amountCurrencyInfo")}
+                </div>
+              </div>
+            </div>
           </div>
           <CurrencyProvider currencyCode={selectedCurrency}>
             {/* Top Charts Row */}
@@ -663,12 +719,11 @@ const Index = () => {
                       </Button>
                     </div>
                     <ContractsTable
-                      contractMap={contractMap}
-                      receivablePlanMap={receivablePlanMap}
+                      contractMap={filteredCollectionContractMap}
+                      receivablePlanMap={collectionReceivablePlanMap}
                       filterContext={chartFilter}
                       exchangeService={exchangeService}
                       targetCurrencyId={selectedCurrencyId}
-                      allowedContractNumbers={allowedContractNumbers}
                       selectedOrg={selectedOrg}
                       rollingMap={rollingMap}
                       hiddenSeries={hiddenSeries}

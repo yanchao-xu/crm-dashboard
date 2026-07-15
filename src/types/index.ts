@@ -108,6 +108,7 @@ export interface OrgNode {
   type: "company" | "district" | "team" | "person"; //todo 来自于数据字典
   conversionSettings?: ConversionSettings;
   children?: OrgNode[];
+  memberEmail?: string; // person 节点关联的用户 email（来自 memberName[0].email）
   currencyId?: string; // 结算币种 id，用于汇率匹配（目标值的币种）
   janJanuary?: number;
   febFebruary?: number;
