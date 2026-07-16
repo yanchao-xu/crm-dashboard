@@ -211,7 +211,7 @@ export function calculateCollectionHealthFromApi(
   receivablePlanMap: ReceivablePlanMap,
   selectedOrg: OrgNode | null,
   exchangeService: ExchangeRateService | null,
-  targetCurrencyId?: string,
+  targetCurrencyCode?: string,
   allowedContractNumbers?: Set<string>,
   selectedYear?: number,
 ): CollectionHealthResult {
@@ -231,9 +231,9 @@ export function calculateCollectionHealthFromApi(
     rollingMap.set(yearMonth, []);
   });
 
-  const getRate = (currencyId?: string): number => {
-    if (!exchangeService || !targetCurrencyId || !currencyId) return 1;
-    return exchangeService.getRate(currencyId, targetCurrencyId);
+  const getRate = (currencyCode?: string): number => {
+    if (!exchangeService || !targetCurrencyCode || !currencyCode) return 1;
+    return exchangeService.getRate(currencyCode, targetCurrencyCode);
   };
 
   const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -257,7 +257,7 @@ export function calculateCollectionHealthFromApi(
     contracts.forEach((contract) => {
       const plans = receivablePlanMap.get(String(contract.id)) || [];
       plans.forEach((plan) => {
-        const rate = getRate(plan.currencyId);
+        const rate = getRate(plan.currencyCode);
         const { status, overdueAmount, shouldRoll } = determineOverdueStatus(plan, now);
 
         allPlanInfos.push({ plan, contract, rate, status, overdueAmount, shouldRoll });

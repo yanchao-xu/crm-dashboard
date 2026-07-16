@@ -324,6 +324,7 @@ export function useCompanyDefaultCurrency() {
 }
 
 // 获取汇率表
+// 获取汇率表
 export function useExchangeRates() {
   const restApi = useOptionalRestApi();
   const { language } = useLanguage();
@@ -341,14 +342,15 @@ export function useExchangeRates() {
   return useApiData<ExchangeRate[]>(apiService ? fetchFn : null, []);
 }
 
-// 汇率转换服务实例（依赖汇率表数据）
+// 汇率转换服务实例（依赖汇率表数据和币种列表）
 export function useExchangeRateService(
   exchangeRates: ExchangeRate[],
+  currencies: CurrencyItem[] = [],
 ): ExchangeRateService | null {
   return useMemo(() => {
     if (exchangeRates.length === 0) return null;
-    return new ExchangeRateService(exchangeRates);
-  }, [exchangeRates]);
+    return new ExchangeRateService(exchangeRates, currencies);
+  }, [exchangeRates, currencies]);
 }
 
 

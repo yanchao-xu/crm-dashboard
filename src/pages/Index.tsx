@@ -90,14 +90,10 @@ const Index = () => {
 
   // 获取汇率表
   const { data: exchangeRates } = useExchangeRates();
-  const exchangeService = useExchangeRateService(exchangeRates);
+  const exchangeService = useExchangeRateService(exchangeRates, currencies);
 
-  // 根据选中的币种 code 找到对应的 id（用于汇率匹配）
-  const selectedCurrencyId = useMemo(() => {
-    if (!selectedCurrency || currencies.length === 0) return undefined;
-    const found = currencies.find((c) => c.code === selectedCurrency);
-    return found?.id;
-  }, [selectedCurrency, currencies]);
+  // 选中的币种 code 直接用于汇率匹配
+  const selectedCurrencyCode = selectedCurrency || undefined;
 
   // 币种加载完成后，设置默认值：优先使用公司配置的结算币种，否则用列表第一项
   useEffect(() => {
@@ -160,7 +156,7 @@ const Index = () => {
         opportunityStages,
         contractMap,
         exchangeService,
-        selectedCurrencyId,
+        selectedCurrencyCode,
         selectedYear,
       );
     } else if (amountMode === "receivableAmount") {
@@ -172,7 +168,7 @@ const Index = () => {
         contractMap,
         receivablePlanMap,
         exchangeService,
-        selectedCurrencyId,
+        selectedCurrencyCode,
         selectedYear,
       );
     } else {
@@ -182,7 +178,7 @@ const Index = () => {
         opportunityStages,
         amountMode,
         exchangeService,
-        selectedCurrencyId,
+        selectedCurrencyCode,
         selectedYear,
       );
     }
@@ -201,7 +197,7 @@ const Index = () => {
     contractMap,
     receivablePlanMap,
     exchangeService,
-    selectedCurrencyId,
+    selectedCurrencyCode,
     selectedYear,
   ]);
 
@@ -265,7 +261,7 @@ const Index = () => {
       selectedMonths,
       dealsForAmount,
       exchangeService,
-      selectedCurrencyId,
+      selectedCurrencyCode,
     );
   }, [
     monthFilteredDeals,
@@ -279,7 +275,7 @@ const Index = () => {
     receivablePlanMap,
     selectedMonths,
     exchangeService,
-    selectedCurrencyId,
+    selectedCurrencyCode,
   ]);
 
   // 商机停滞分析数据
@@ -296,9 +292,9 @@ const Index = () => {
       selectedMonths,
       dealsForAmount,
       exchangeService,
-      selectedCurrencyId,
+      selectedCurrencyCode,
     );
-  }, [monthFilteredDeals, filteredDeals, opportunityStages, amountMode, contractMap, receivablePlanMap, selectedMonths, exchangeService, selectedCurrencyId]);
+  }, [monthFilteredDeals, filteredDeals, opportunityStages, amountMode, contractMap, receivablePlanMap, selectedMonths, exchangeService, selectedCurrencyCode]);
 
   // 回款健康度图表数据（独立于商机，直接使用按财年 signingDate 过滤的合同）
   const { chartData: collectionHealthData, rollingMap } = useMemo(() => {
@@ -308,7 +304,7 @@ const Index = () => {
       collectionReceivablePlanMap,
       orgForFiscal,
       exchangeService,
-      selectedCurrencyId,
+      selectedCurrencyCode,
       undefined, // 不再需要 allowedContractNumbers
       selectedYear,
     );
@@ -318,7 +314,7 @@ const Index = () => {
       chartData = aggregateCollectionHealthByQuarter(chartData, orgForFiscal);
     }
     return { chartData, rollingMap: result.rollingMap };
-  }, [filteredCollectionContractMap, collectionReceivablePlanMap, selectedOrg, orgStructure, exchangeService, selectedCurrencyId, periodMode, selectedYear]);
+  }, [filteredCollectionContractMap, collectionReceivablePlanMap, selectedOrg, orgStructure, exchangeService, selectedCurrencyCode, periodMode, selectedYear]);
 
   // 从 filteredDeals 提取关联的 contractNumber 白名单（供其他图表使用）
   const allowedContractNumbers = useMemo(() => {
@@ -617,7 +613,7 @@ const Index = () => {
                         deals={monthFilteredDeals}
                         stages={opportunityStages}
                         exchangeService={exchangeService}
-                        targetCurrencyId={selectedCurrencyId}
+                        targetCurrencyCode={selectedCurrencyCode}
                       />
                     </div>
                   </motion.div>
@@ -671,7 +667,7 @@ const Index = () => {
                       deals={monthFilteredDeals}
                       stages={opportunityStages}
                       exchangeService={exchangeService}
-                      targetCurrencyId={selectedCurrencyId}
+                      targetCurrencyCode={selectedCurrencyCode}
                     />
                   </div>
                 </motion.div>
@@ -723,7 +719,7 @@ const Index = () => {
                       receivablePlanMap={collectionReceivablePlanMap}
                       filterContext={chartFilter}
                       exchangeService={exchangeService}
-                      targetCurrencyId={selectedCurrencyId}
+                      targetCurrencyCode={selectedCurrencyCode}
                       selectedOrg={selectedOrg}
                       rollingMap={rollingMap}
                       hiddenSeries={hiddenSeries}

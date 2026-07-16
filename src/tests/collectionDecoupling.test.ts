@@ -99,7 +99,7 @@ function createRealDeal(overrides: Partial<Deal> = {}): Deal {
     owner: "jeff.hu@forlandholding.com", // 来自 opportunityOwner[0].value
     createdYearMonth: "2026-07",
     contractNumber: "20260706-1529",
-    currencyId: "25887",
+    currencyCode: "CNY",
     ...overrides,
   };
 }
@@ -117,7 +117,7 @@ function createRealContract(overrides: Partial<Contract> = {}): Contract {
     expiryDate: "2026-08-31",
     signingMonth: "Jul",
     signingYearMonth: "2026-07",
-    currencyId: "25887",
+    currencyCode: "CNY",
     ...overrides,
   };
 }
@@ -137,7 +137,7 @@ function createRealPlan(overrides: Partial<ReceivablePlan> = {}): ReceivablePlan
     plannedYearMonth: "2026-06",
     paymentStage: "预付款(30%)",
     paymentOwner: "胡剑飞",
-    currencyId: "25887",
+    currencyCode: "CNY",
     ...overrides,
   };
 }

@@ -24,7 +24,7 @@ interface DealsTableProps {
   deals?: Deal[];
   stages?: OpportunityStage[];
   exchangeService?: ExchangeRateService | null;
-  targetCurrencyId?: string;
+  targetCurrencyCode?: string;
 }
 
 export function DealsTable({
@@ -32,16 +32,16 @@ export function DealsTable({
   deals: propDeals,
   stages = [],
   exchangeService,
-  targetCurrencyId,
+  targetCurrencyCode,
 }: DealsTableProps) {
   const { t, getText, language } = useLanguage();
   const { currencyCode } = useCurrency();
   const allDeals = propDeals || [];
 
   // 汇率转换辅助
-  const convertAmount = (amount: number, fromCurrencyId?: string): number => {
-    if (!exchangeService || !targetCurrencyId || !fromCurrencyId) return amount;
-    return exchangeService.convert(amount, fromCurrencyId, targetCurrencyId);
+  const convertAmount = (amount: number, fromCurrencyCode?: string): number => {
+    if (!exchangeService || !targetCurrencyCode || !fromCurrencyCode) return amount;
+    return exchangeService.convert(amount, fromCurrencyCode, targetCurrencyCode);
   };
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [filters, setFilters] = useState<FilterState>({
@@ -253,12 +253,12 @@ export function DealsTable({
                     </TableCell>
                     <TableCell>
                       <span className="font-mono text-sm">
-                        {formatAmountNumber(convertAmount(deal.value, deal.currencyId))}
+                        {formatAmountNumber(convertAmount(deal.value, deal.currencyCode))}
                       </span>
                     </TableCell>
                     <TableCell>
                       <span className="font-mono text-sm">
-                        {formatAmountNumber(convertAmount(deal.businessAmount || 0, deal.currencyId))}
+                        {formatAmountNumber(convertAmount(deal.businessAmount || 0, deal.currencyCode))}
                       </span>
                     </TableCell>
                     <TableCell>

@@ -52,7 +52,7 @@ export function buildContractRows(
   receivablePlanMap: ReceivablePlanMap,
   filterMonth?: string,
   exchangeService?: ExchangeRateService | null,
-  targetCurrencyId?: string,
+  targetCurrencyCode?: string,
   allowedContractNumbers?: Set<string>,
   selectedOrg?: OrgNode | null,
   rollingMap?: MonthlyRollingMap,
@@ -61,9 +61,9 @@ export function buildContractRows(
 ): ContractRowData[] {
   const rows: ContractRowData[] = [];
 
-  const convert = (amount: number, fromCurrencyId?: string): number => {
-    if (!exchangeService || !targetCurrencyId || !fromCurrencyId) return amount;
-    return exchangeService.convert(amount, fromCurrencyId, targetCurrencyId);
+  const convert = (amount: number, fromCurrencyCode?: string): number => {
+    if (!exchangeService || !targetCurrencyCode || !fromCurrencyCode) return amount;
+    return exchangeService.convert(amount, fromCurrencyCode, targetCurrencyCode);
   };
 
   // 如果 filterMonth 是季度标签（Q1~Q4），展开为对应的月份列表
@@ -179,22 +179,22 @@ export function buildContractRows(
       if (filterMonths) {
         // 选中月份/季度时：已回款/待回款基于匹配的应收计划
         collectedAmount = matchedPlans.reduce(
-          (sum, p) => sum + convert(p.actualAmount || 0, p.currencyId),
+          (sum, p) => sum + convert(p.actualAmount || 0, p.currencyCode),
           0,
         );
         const plannedTotal = matchedPlans.reduce(
-          (sum, p) => sum + convert(p.plannedAmount || 0, p.currencyId),
+          (sum, p) => sum + convert(p.plannedAmount || 0, p.currencyCode),
           0,
         );
         pendingAmount = Math.max(plannedTotal - collectedAmount, 0);
       } else {
         // 未选月份/季度时：已回款基于全部应收计划，待回款 = 合同总额 - 已回款
         collectedAmount = allPlans.reduce(
-          (sum, p) => sum + convert(p.actualAmount || 0, p.currencyId),
+          (sum, p) => sum + convert(p.actualAmount || 0, p.currencyCode),
           0,
         );
         pendingAmount = Math.max(
-          convert(contract.totalAmountWithTax, contract.currencyId) - collectedAmount,
+          convert(contract.totalAmountWithTax, contract.currencyCode) - collectedAmount,
           0,
         );
       }
@@ -286,7 +286,7 @@ interface ContractsTableProps {
   receivablePlanMap: ReceivablePlanMap;
   filterContext?: ChartFilterContext;
   exchangeService?: ExchangeRateService | null;
-  targetCurrencyId?: string;
+  targetCurrencyCode?: string;
   allowedContractNumbers?: Set<string>;
   selectedOrg?: OrgNode | null;
   rollingMap?: MonthlyRollingMap;
@@ -298,7 +298,7 @@ export function ContractsTable({
   receivablePlanMap,
   filterContext,
   exchangeService,
-  targetCurrencyId,
+  targetCurrencyCode,
   allowedContractNumbers,
   selectedOrg,
   rollingMap,
@@ -309,9 +309,9 @@ export function ContractsTable({
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   // 汇率转换辅助
-  const convertAmount = (amount: number, fromCurrencyId?: string): number => {
-    if (!exchangeService || !targetCurrencyId || !fromCurrencyId) return amount;
-    return exchangeService.convert(amount, fromCurrencyId, targetCurrencyId);
+  const convertAmount = (amount: number, fromCurrencyCode?: string): number => {
+    if (!exchangeService || !targetCurrencyCode || !fromCurrencyCode) return amount;
+    return exchangeService.convert(amount, fromCurrencyCode, targetCurrencyCode);
   };
 
   const filterMonth =
@@ -320,8 +320,8 @@ export function ContractsTable({
     filterContext?.type === "collection" ? filterContext.segment : undefined;
 
   const rows = useMemo(
-    () => buildContractRows(contractMap, receivablePlanMap, filterMonth, exchangeService, targetCurrencyId, allowedContractNumbers, selectedOrg, rollingMap, filterSegment, hiddenSeries),
-    [contractMap, receivablePlanMap, filterMonth, exchangeService, targetCurrencyId, allowedContractNumbers, selectedOrg, rollingMap, filterSegment, hiddenSeries],
+    () => buildContractRows(contractMap, receivablePlanMap, filterMonth, exchangeService, targetCurrencyCode, allowedContractNumbers, selectedOrg, rollingMap, filterSegment, hiddenSeries),
+    [contractMap, receivablePlanMap, filterMonth, exchangeService, targetCurrencyCode, allowedContractNumbers, selectedOrg, rollingMap, filterSegment, hiddenSeries],
   );
 
   const toggleRow = (contractId: string) => {
@@ -481,7 +481,7 @@ export function ContractsTable({
                     {row.contract.customer}
                   </TableCell>
                   <TableCell className="text-right font-mono">
-                    {formatAmountNumber(convertAmount(row.contract.totalAmountWithTax, row.contract.currencyId))}
+                    {formatAmountNumber(convertAmount(row.contract.totalAmountWithTax, row.contract.currencyCode))}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -575,7 +575,7 @@ export function ContractsTable({
                               <Check className="w-3.5 h-3.5 text-success flex-shrink-0" />
                               <span className="font-mono text-xs">{plan.actualDate}</span>
                               <span className="font-mono text-xs text-success">
-                                {formatAmountNumber(convertAmount(plan.actualAmount, plan.currencyId))}
+                                {formatAmountNumber(convertAmount(plan.actualAmount, plan.currencyCode))}
                               </span>
                             </div>
                           ) : (
@@ -590,7 +590,7 @@ export function ContractsTable({
                             <div className="flex items-center justify-end gap-1.5">
                               <span className="font-mono text-xs">{plan.plannedDate}</span>
                               <span className="font-mono text-xs text-muted-foreground">
-                                {formatAmountNumber(convertAmount(planPending, plan.currencyId))}
+                                {formatAmountNumber(convertAmount(planPending, plan.currencyCode))}
                               </span>
                             </div>
                           ) : (

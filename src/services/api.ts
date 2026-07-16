@@ -373,10 +373,7 @@ export class DashboardApiService {
       signingYearMonth: signingDate
         ? this.getYearMonthFromDate(signingDate)
         : undefined,
-      currencyId:
-        item.settlementCurrency?.[0]?.id != null
-          ? String(item.settlementCurrency[0].id)
-          : undefined,
+      currencyCode: this.extractCurrencyCode(item.settlementCurrency),
     };
   }
 
@@ -474,8 +471,13 @@ export class DashboardApiService {
   }
 
   // 获取汇率表
-  async getExchangeRates(): Promise<ExchangeRate[]> {
+  async getExchangeRates(currencies?: CurrencyItem[]): Promise<ExchangeRate[]> {
     try {
+      // 如果没传入币种列表，内部自行获取
+      const currencyList = currencies && currencies.length > 0
+        ? currencies
+        : await this.getCurrencies();
+
       const response = await this.restApi.post(
         "/form/api/v3/form-entity-data/basic-system-setting/exchange-rate-management-form/list",
         {
@@ -484,15 +486,37 @@ export class DashboardApiService {
       );
 
       const rawData = response.results || response;
-      return this.transformExchangeRateData(rawData);
+      return this.transformExchangeRateData(rawData, currencyList);
     } catch (error) {
       console.error("Failed to fetch exchange rates:", error);
       return [];
     }
   }
 
+  // 解析 settlementCurrency 字段的币种 code
+  // 优先取 code 字段（新数据），fallback 取 value（可能是 code 也可能是 id）
+  private extractCurrencyCode(settlementCurrency: any[] | undefined): string | undefined {
+    if (!settlementCurrency || settlementCurrency.length === 0) return undefined;
+    const item = settlementCurrency[0];
+    if (item.code) return item.code;
+    if (item.value != null) return String(item.value);
+    return undefined;
+  }
+
+  // 解析汇率表中的币种 value：可能是 id("25887") 也可能是 code("CNY")
+  // 通过币种字典统一转成 code
+  private resolveCurrencyCode(value: string | number, currencies: CurrencyItem[]): string | undefined {
+    const strValue = String(value);
+    // 先当 code 找
+    const byCode = currencies.find(c => c.code === strValue);
+    if (byCode) return byCode.code;
+    // 找不到就当 id 找（兼容 id 可能是数字或字符串）
+    const byId = currencies.find(c => String(c.id) === strValue);
+    return byId?.code;
+  }
+
   // 转换汇率数据
-  private transformExchangeRateData(rawData: any[]): ExchangeRate[] {
+  private transformExchangeRateData(rawData: any[], currencies: CurrencyItem[]): ExchangeRate[] {
     if (!Array.isArray(rawData)) {
       return [];
     }
@@ -502,10 +526,11 @@ export class DashboardApiService {
           item.fromCurrency?.[0] && item.toCurrency?.[0] && item.rate,
       )
       .map((item: any) => ({
-        fromCurrencyId: String(item.fromCurrency[0].value),
-        toCurrencyId: String(item.toCurrency[0].value),
+        fromCurrencyCode: this.resolveCurrencyCode(item.fromCurrency[0].value, currencies) || "",
+        toCurrencyCode: this.resolveCurrencyCode(item.toCurrency[0].value, currencies) || "",
         rate: Number(item.rate) || 0,
-      }));
+      }))
+      .filter((r) => r.fromCurrencyCode && r.toCurrencyCode);
   }
 
   // 转换币种数据
@@ -543,10 +568,7 @@ export class DashboardApiService {
         : undefined,
       paymentStage: item.paymentStage || "",
       paymentOwner: item.paymentOwner?.[0]?.label || "",
-      currencyId:
-        item.settlementCurrency?.[0]?.id != null
-          ? String(item.settlementCurrency[0].id)
-          : undefined,
+      currencyCode: this.extractCurrencyCode(item.settlementCurrency),
     };
   }
 
@@ -602,10 +624,7 @@ export class DashboardApiService {
         createdYearMonth: yearMonth,
         businessAmount: Number(item.businessAmount) || 0,
         contractNumber: item.contractNumber || undefined,
-        currencyId:
-          item.settlementCurrency?.[0]?.id != null
-            ? String(item.settlementCurrency[0].id)
-            : undefined,
+        currencyCode: this.extractCurrencyCode(item.settlementCurrency),
       };
     });
 
@@ -650,10 +669,7 @@ export class DashboardApiService {
         type: types.includes(itemType) ? itemType : "person",
         children: [],
         memberEmail: item.memberName?.[0]?.email || undefined,
-        currencyId:
-          item.settlementCurrency?.[0]?.id != null
-            ? String(item.settlementCurrency[0].id)
-            : undefined,
+        currencyCode: this.extractCurrencyCode(item.settlementCurrency),
         janJanuary: item.janJanuary,
         febFebruary: item.febFebruary,
         marMarch: item.marMarch,

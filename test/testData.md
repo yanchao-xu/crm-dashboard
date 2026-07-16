@@ -1,5 +1,7 @@
 ### rest1 组织树
 
+settlementCurrency 用的是code
+
 #### api
 
 <https://fld.ceta.crm.duxing.cn/form/api/v2/form-entity-data/basic-system-setting/self-organization-info-form/list>
@@ -1551,7 +1553,7 @@
 }
 ```
 
-### rest5 货币
+### rest5 货币数据字典
 
 #### api
 
@@ -2030,6 +2032,8 @@
 
 ### rest7 商机
 
+settlementCurrency 用的是code
+
 #### api
 
 <https://fld.ceta.crm.duxing.cn/form/api/v2/form-entity-data/opportunity-management/opportunity-management-form/list>
@@ -2069,8 +2073,243 @@
 
 ```json
 {
-  "count": 14,
+  "count": 17,
   "results": [
+    {
+      "creationTime": "2026-07-14 14:29:08",
+      "expectedTransactionAmount": 10000000,
+      "flowInstanceId": null,
+      "opportunityStage": [
+        {
+          "pbcToken": "basic-system-setting",
+          "code": "Intentional Communication",
+          "label_i18n_zh-CN": "初步判断",
+          "formEntityToken": "data-dictionary",
+          "label_i18n_en-US": "Qualification",
+          "handle": "opportunityStage-Intentional Communication",
+          "remark": null,
+          "label_i18n_ja-JP": "意向確認",
+          "label": "初步判断",
+          "id": 21274,
+          "value": "21274"
+        }
+      ],
+      "productLine": [],
+      "threadId": null,
+      "formEntityId": 1494,
+      "createdTime": "2026-07-14T06:29:08.904+00:00",
+      "parallelStreamIndex": 0,
+      "id": 32942,
+      "businessAmount": 0,
+      "expectedDealTime": "2026-10-01",
+      "formEntityName": "Opportunity Management Form",
+      "updatedTime": null,
+      "pbcToken": "opportunity-management",
+      "opportunityName": "无机制芯",
+      "opportunityOwner": [
+        {
+          "pbcToken": "user-management-new",
+          "uid": "10255",
+          "formEntityToken": "system-user-form",
+          "directReportManager": [
+            {
+              "pbcToken": "user-management-new",
+              "uid": "10253",
+              "phone": "18601581501",
+              "formEntityToken": "system-user-form",
+              "label": "王晗丞",
+              "id": 293,
+              "value": "293",
+              "email": "hc.wang@forlandholding.com"
+            }
+          ],
+          "organization": [
+            {
+              "value": "21733",
+              "label": "华东业务部",
+              "i18nLabel": {}
+            }
+          ],
+          "label": "薛培锋",
+          "value": "295"
+        }
+      ],
+      "updateUserId": null,
+      "userId": 10249,
+      "customerName": [
+        {
+          "pbcToken": "customer-management",
+          "address": null,
+          "formEntityToken": "customer-management-form",
+          "label": "广东鸿图科技股份有限公司",
+          "id": 32929,
+          "value": "32929"
+        }
+      ],
+      "objectVersion": 0,
+      "settlementCurrency": [
+        {
+          "pbcToken": "basic-system-setting",
+          "code": "CNY",
+          "label_i18n_zh-CN": "人民币",
+          "formEntityToken": "data-dictionary",
+          "label_i18n_en-US": "CNY",
+          "label": "人民币",
+          "id": 25887,
+          "value": "CNY"
+        }
+      ],
+      "deleted": false,
+      "formEntityToken": "opportunity-management-form",
+      "winRate": 25,
+      "nodeId": null
+    },
+    {
+      "creationTime": "2026-07-14 10:17:17",
+      "expectedTransactionAmount": 3000000,
+      "flowInstanceId": null,
+      "opportunityStage": [
+        {
+          "pbcToken": "basic-system-setting",
+          "code": "proposal",
+          "label_i18n_zh-CN": "报价",
+          "formEntityToken": "data-dictionary",
+          "label_i18n_en-US": "Proposal",
+          "handle": "opportunityStage-proposal",
+          "remark": null,
+          "label_i18n_ja-JP": "見積提示",
+          "label": "报价",
+          "id": 21272,
+          "value": "21272"
+        }
+      ],
+      "productLine": [],
+      "threadId": null,
+      "formEntityId": 1494,
+      "createdTime": "2026-07-14T02:17:18.022+00:00",
+      "parallelStreamIndex": 1,
+      "id": 32777,
+      "businessAmount": 0,
+      "expectedDealTime": "2026-07-31",
+      "formEntityName": "Opportunity Management Form",
+      "updatedTime": null,
+      "pbcToken": "opportunity-management",
+      "opportunityName": "自动制芯线",
+      "opportunityOwner": [
+        {
+          "pbcToken": "user-management-new",
+          "uid": "10255",
+          "formEntityToken": "system-user-form",
+          "directReportManager": [
+            {
+              "pbcToken": "user-management-new",
+              "uid": "10253",
+              "phone": "18601581501",
+              "formEntityToken": "system-user-form",
+              "label": "王晗丞",
+              "id": 293,
+              "value": "293",
+              "email": "hc.wang@forlandholding.com"
+            }
+          ],
+          "organization": [
+            {
+              "value": "21733",
+              "label": "华东业务部",
+              "i18nLabel": {}
+            }
+          ],
+          "label": "薛培锋",
+          "value": "295"
+        }
+      ],
+      "updateUserId": null,
+      "userId": 10249,
+      "customerName": [
+        {
+          "pbcToken": "customer-management",
+          "address": null,
+          "formEntityToken": "customer-management-form",
+          "label": "湖南嘉力机械有限公司",
+          "value": "32583"
+        }
+      ],
+      "objectVersion": 0,
+      "settlementCurrency": [],
+      "deleted": false,
+      "formEntityToken": "opportunity-management-form",
+      "winRate": 30,
+      "nodeId": null
+    },
+    {
+      "creationTime": "2026-07-14T01:43:56.155Z",
+      "expectedTransactionAmount": 7000000,
+      "flowInstanceId": null,
+      "opportunityStage": [
+        {
+          "pbcToken": "basic-system-setting",
+          "code": "proposal",
+          "label_i18n_zh-CN": "报价",
+          "formEntityToken": "data-dictionary",
+          "label_i18n_en-US": "Proposal",
+          "handle": "opportunityStage-proposal",
+          "remark": null,
+          "label_i18n_ja-JP": "見積提示",
+          "label": "报价",
+          "id": 21272,
+          "value": "21272"
+        }
+      ],
+      "productLine": [],
+      "threadId": null,
+      "formEntityId": 1494,
+      "createdTime": "2026-07-14T01:44:30.064+00:00",
+      "parallelStreamIndex": 2,
+      "id": 32768,
+      "businessAmount": 0,
+      "expectedDealTime": "2026-09-01",
+      "formEntityName": "Opportunity Management Form",
+      "updatedTime": "2026-07-14T01:45:28.471+00:00",
+      "pbcToken": "opportunity-management",
+      "opportunityName": "卡钳后处理项目",
+      "opportunityOwner": [
+        {
+          "pbcToken": "user-management-new",
+          "formEntityToken": "system-user-form",
+          "label": "王晗丞",
+          "value": "hc.wang@forlandholding.com"
+        }
+      ],
+      "updateUserId": 10253,
+      "userId": 10253,
+      "customerName": [
+        {
+          "pbcToken": "customer-management",
+          "address": null,
+          "formEntityToken": "customer-management-form",
+          "label": "三友未来（重庆）智能汽车底盘科技有限公司",
+          "id": 32767,
+          "value": "32767"
+        }
+      ],
+      "objectVersion": 1,
+      "settlementCurrency": [
+        {
+          "pbcToken": "basic-system-setting",
+          "code": "CNY",
+          "label_i18n_zh-CN": "人民币",
+          "formEntityToken": "data-dictionary",
+          "label_i18n_en-US": "CNY",
+          "label": "人民币",
+          "id": 25887,
+          "value": "CNY"
+        }
+      ],
+      "deleted": false,
+      "formEntityToken": "opportunity-management-form",
+      "winRate": 50,
+      "nodeId": null
+    },
     {
       "creationTime": "2026-07-13T07:27:20.643Z",
       "expectedTransactionAmount": 1000000,
@@ -2103,7 +2342,7 @@
       "threadId": null,
       "formEntityId": 1494,
       "createdTime": "2026-07-13T07:28:22.666+00:00",
-      "parallelStreamIndex": 0,
+      "parallelStreamIndex": 3,
       "id": 32031,
       "businessAmount": 0,
       "expectedDealTime": "2026-08-31",
@@ -2172,12 +2411,12 @@
       "threadId": null,
       "formEntityId": 1494,
       "createdTime": "2026-07-13T04:26:23.443+00:00",
-      "parallelStreamIndex": 1,
+      "parallelStreamIndex": 4,
       "id": 30247,
       "businessAmount": 0,
       "expectedDealTime": "2026-08-01",
       "formEntityName": "Opportunity Management Form",
-      "updatedTime": "2026-07-13T04:44:07.646+00:00",
+      "updatedTime": "2026-07-15T10:14:13.625+00:00",
       "pbcToken": "opportunity-management",
       "opportunityName": "制芯自动化生产线",
       "opportunityOwner": [
@@ -2200,7 +2439,7 @@
           "value": "25874"
         }
       ],
-      "objectVersion": 5,
+      "objectVersion": 7,
       "settlementCurrency": [
         {
           "pbcToken": "basic-system-setting",
@@ -2251,7 +2490,7 @@
       "threadId": null,
       "formEntityId": 1494,
       "createdTime": "2026-07-13T02:35:20.049+00:00",
-      "parallelStreamIndex": 2,
+      "parallelStreamIndex": 5,
       "id": 30074,
       "businessAmount": 0,
       "expectedDealTime": "2026-07-20",
@@ -2321,12 +2560,12 @@
       "threadId": null,
       "formEntityId": 1494,
       "createdTime": "2026-07-06T07:52:22.538+00:00",
-      "parallelStreamIndex": 3,
+      "parallelStreamIndex": 6,
       "id": 27814,
-      "businessAmount": 0,
+      "businessAmount": 9643.4,
       "expectedDealTime": "2026-07-06",
       "formEntityName": "Opportunity Management Form",
-      "updatedTime": "2026-07-13T01:47:40.726+00:00",
+      "updatedTime": "2026-07-15T10:18:55.903+00:00",
       "pbcToken": "opportunity-management",
       "opportunityName": "测试报价20260706！！！",
       "opportunityOwner": [
@@ -2337,7 +2576,7 @@
           "value": "Admin@fld.com"
         }
       ],
-      "updateUserId": 10249,
+      "updateUserId": 10248,
       "userId": 10248,
       "customerName": [
         {
@@ -2349,14 +2588,17 @@
           "value": "24115"
         }
       ],
-      "objectVersion": 3,
+      "objectVersion": 4,
       "settlementCurrency": [
         {
           "pbcToken": "basic-system-setting",
+          "code": "CNY",
+          "label_i18n_zh-CN": "人民币",
           "formEntityToken": "data-dictionary",
+          "label_i18n_en-US": "CNY",
           "label": "人民币",
           "id": 25887,
-          "value": "25887"
+          "value": "CNY"
         }
       ],
       "deleted": false,
@@ -2386,12 +2628,12 @@
       "threadId": null,
       "formEntityId": 1494,
       "createdTime": "2026-07-06T07:29:15.916+00:00",
-      "parallelStreamIndex": 4,
+      "parallelStreamIndex": 7,
       "id": 27785,
       "businessAmount": 28250.0,
       "expectedDealTime": "2026-07-16",
       "formEntityName": "Opportunity Management Form",
-      "updatedTime": "2026-07-06T09:45:42.608+00:00",
+      "updatedTime": "2026-07-15T05:37:16.395+00:00",
       "pbcToken": "opportunity-management",
       "opportunityName": "Opporunity from lead1528",
       "opportunityOwner": [
@@ -2402,7 +2644,7 @@
           "value": "Admin@fld.com"
         }
       ],
-      "updateUserId": 10248,
+      "updateUserId": 10249,
       "contractNumber": "20260706-1529",
       "userId": 10248,
       "customerName": [
@@ -2415,7 +2657,7 @@
           "value": "24115"
         }
       ],
-      "objectVersion": 7,
+      "objectVersion": 9,
       "settlementCurrency": [
         {
           "pbcToken": "basic-system-setting",
@@ -2465,7 +2707,7 @@
       "threadId": null,
       "formEntityId": 1494,
       "createdTime": "2026-07-03T01:14:09.041+00:00",
-      "parallelStreamIndex": 5,
+      "parallelStreamIndex": 8,
       "id": 27243,
       "businessAmount": 0,
       "expectedDealTime": "2026-07-06",
@@ -2536,7 +2778,7 @@
       "threadId": null,
       "formEntityId": 1494,
       "createdTime": "2026-07-01T01:11:32.889+00:00",
-      "parallelStreamIndex": 6,
+      "parallelStreamIndex": 9,
       "id": 26554,
       "businessAmount": 0,
       "expectedDealTime": "2026-09-01",
@@ -2604,7 +2846,7 @@
       "threadId": null,
       "formEntityId": 1494,
       "createdTime": "2026-06-30T11:36:05.461+00:00",
-      "parallelStreamIndex": 7,
+      "parallelStreamIndex": 10,
       "id": 26439,
       "businessAmount": 0,
       "expectedDealTime": "2026-06-30",
@@ -2682,7 +2924,7 @@
       "threadId": null,
       "formEntityId": 1494,
       "createdTime": "2026-06-30T07:24:56.512+00:00",
-      "parallelStreamIndex": 8,
+      "parallelStreamIndex": 11,
       "id": 26315,
       "businessAmount": 0,
       "expectedDealTime": "2026-06-01",
@@ -2759,7 +3001,7 @@
       "threadId": null,
       "formEntityId": 1494,
       "createdTime": "2026-06-29T07:44:31.405+00:00",
-      "parallelStreamIndex": 9,
+      "parallelStreamIndex": 12,
       "id": 26081,
       "businessAmount": 0,
       "expectedDealTime": "2026-10-01",
@@ -2829,12 +3071,12 @@
       "threadId": null,
       "formEntityId": 1494,
       "createdTime": "2026-06-29T07:43:31.109+00:00",
-      "parallelStreamIndex": 10,
+      "parallelStreamIndex": 13,
       "id": 26080,
       "businessAmount": 0,
       "expectedDealTime": "2026-08-01",
       "formEntityName": "Opportunity Management Form",
-      "updatedTime": "2026-07-13T05:56:59.695+00:00",
+      "updatedTime": "2026-07-14T01:48:21.599+00:00",
       "pbcToken": "opportunity-management",
       "opportunityName": "自动化制芯生产线（冷芯）",
       "opportunityOwner": [
@@ -2857,7 +3099,7 @@
           "value": "25934"
         }
       ],
-      "objectVersion": 2,
+      "objectVersion": 4,
       "settlementCurrency": [
         {
           "pbcToken": "basic-system-setting",
@@ -2873,7 +3115,7 @@
       "deleted": false,
       "formEntityToken": "opportunity-management-form",
       "nodeId": null,
-      "eventDate": "2026/7/13 13:56:39"
+      "eventDate": "2026/7/14 09:47:56"
     },
     {
       "creationTime": "2026-06-29T07:25:04.432Z",
@@ -2907,7 +3149,7 @@
       "threadId": null,
       "formEntityId": 1494,
       "createdTime": "2026-06-29T07:25:51.041+00:00",
-      "parallelStreamIndex": 11,
+      "parallelStreamIndex": 14,
       "id": 26066,
       "businessAmount": 0,
       "expectedDealTime": "2026-08-01",
@@ -2986,7 +3228,7 @@
       "threadId": null,
       "formEntityId": 1494,
       "createdTime": "2026-06-29T03:14:25.408+00:00",
-      "parallelStreamIndex": 12,
+      "parallelStreamIndex": 15,
       "id": 25764,
       "businessAmount": 0,
       "expectedDealTime": "2026-07-03",
@@ -3065,7 +3307,7 @@
       "threadId": null,
       "formEntityId": 1494,
       "createdTime": "2026-06-29T03:12:10.971+00:00",
-      "parallelStreamIndex": 13,
+      "parallelStreamIndex": 16,
       "id": 25759,
       "businessAmount": 0,
       "expectedDealTime": "2026-07-03",
@@ -3118,6 +3360,8 @@
 ```
 
 ### rest8 合同
+
+settlementCurrency 用的是code
 
 #### api
 
@@ -3274,6 +3518,8 @@
 ```
 
 ### rest9 应收
+
+settlementCurrency 用的是code
 
 #### api
 
@@ -3657,6 +3903,8 @@
 ```
 
 ### rest10 企业基本信息
+
+settlementCurrency 用的是code
 
 #### api
 

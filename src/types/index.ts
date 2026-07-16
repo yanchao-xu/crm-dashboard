@@ -21,7 +21,7 @@ export interface Deal {
   createdMonth?: string;
   createdYearMonth?: string; // "2026-04" 格式，用于跨年财年匹配
   contractNumber?: string;
-  currencyId?: string; // 结算币种 id，用于汇率匹配
+  currencyCode?: string; // 结算币种 code (如 "CNY")，用于汇率匹配
 }
 
 // 合同相关类型
@@ -38,7 +38,7 @@ export interface Contract {
   signingYearMonth?: string; // "2026-04" 格式，用于跨年财年匹配
   dealId?: string; // 关联的商机ID
   stage?: string; // 继承自商机的阶段
-  currencyId?: string; // 结算币种 id，用于汇率匹配
+  currencyCode?: string; // 结算币种 code (如 "CNY")，用于汇率匹配
 }
 
 // 应收计划相关类型
@@ -55,7 +55,7 @@ export interface ReceivablePlan {
   plannedYearMonth?: string; // "2026-04" 格式，用于跨年财年匹配
   paymentStage: string; // 款项阶段（如 "首款"、"尾款"）
   paymentOwner: string; // 负责人
-  currencyId?: string; // 结算币种 id，用于汇率匹配
+  currencyCode?: string; // 结算币种 code (如 "CNY")，用于汇率匹配
 }
 
 // 图表数据类型
@@ -109,7 +109,7 @@ export interface OrgNode {
   conversionSettings?: ConversionSettings;
   children?: OrgNode[];
   memberEmail?: string; // person 节点关联的用户 email（来自 memberName[0].email）
-  currencyId?: string; // 结算币种 id，用于汇率匹配（目标值的币种）
+  currencyCode?: string; // 结算币种 code (如 "CNY")，用于汇率匹配（目标值的币种）
   janJanuary?: number;
   febFebruary?: number;
   marMarch?: number;
@@ -134,16 +134,16 @@ export interface OrgNode {
 
 // 汇率相关类型
 export interface ExchangeRate {
-  fromCurrencyId: string; // 数据字典 id (如 "21173")
-  toCurrencyId: string;   // 数据字典 id (如 "21174")
-  rate: number;           // fromCurrency / toCurrency 的汇率
+  fromCurrencyCode: string; // 币种 code (如 "JPY")
+  toCurrencyCode: string;   // 币种 code (如 "CNY")
+  rate: number;             // fromCurrency / toCurrency 的汇率
 }
 
 // 币种相关类型
 export interface CurrencyItem {
-  id: string;    // 数据字典 id，用于汇率表匹配
-  code: string;
-  name: string; // 已按当前语言解析好的展示名
+  id: string;    // 数据字典 id
+  code: string;  // 币种 code (如 "CNY")，用于汇率匹配
+  name: string;  // 已按当前语言解析好的展示名
 }
 
 // 产品相关类型
