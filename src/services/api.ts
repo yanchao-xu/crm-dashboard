@@ -743,15 +743,13 @@ export class DashboardApiService {
     if (!Array.isArray(rawData)) {
       return [];
     }
-    return rawData
-      .map((item) => {
-        const name = this.getI18nValue(item, "codeName");
-        return {
-          code: item.code,
-          name,
-        };
-      })
-      .reverse();
+    return rawData.map((item) => {
+      const name = this.getI18nValue(item, "codeName");
+      return {
+        code: item.code,
+        name,
+      };
+    });
   }
 
   // 从日期字符串获取月份
