@@ -41,17 +41,17 @@ export function YearFilter({ value, onChange }: YearFilterProps) {
 
     return (
         <div className="flex items-center gap-1.5">
-            <CalendarDays className="w-4 h-4 text-muted-foreground" />
             <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
                     <button
                         className={cn(
-                            "flex h-9 w-[90px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background",
+                            "flex h-9 w-[110px] items-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background",
                             "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                         )}
                     >
-                        <span>{value}</span>
-                        <ChevronDown className="h-4 w-4 opacity-50" />
+                        <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <span className="flex-1 text-left">{value}</span>
+                        <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
                     </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[140px] p-2" align="start">

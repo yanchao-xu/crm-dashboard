@@ -20,9 +20,9 @@ export function AmountModeFilter({ value, onChange }: AmountModeFilterProps) {
 
     return (
         <div className="flex items-center gap-1.5">
-            <DollarSign className="w-4 h-4 text-muted-foreground" />
             <Select value={value} onValueChange={(v) => onChange(v as AmountMode)}>
-                <SelectTrigger className="h-9 w-[140px] text-sm bot-dashboard-bg">
+                <SelectTrigger className="h-9 w-[140px] text-sm bot-dashboard-bg gap-1.5">
+                    <DollarSign className="w-4 h-4 text-muted-foreground shrink-0" />
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

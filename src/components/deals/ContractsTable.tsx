@@ -503,7 +503,7 @@ export function ContractsTable({
                     {row.contract.expiryDate}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {row.contract.owner}
+                    {row.contract.ownerName || row.contract.owner}
                   </TableCell>
                   <TableCell>
                     <Badge

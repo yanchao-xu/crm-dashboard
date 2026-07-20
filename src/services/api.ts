@@ -363,7 +363,8 @@ export class DashboardApiService {
       contractCode: item.contractCode || "",
       contractName: item.contractName || "",
       customer: item.customer?.[0]?.label || "",
-      owner: item.contractOwner?.[0]?.value || item.contractOwner?.[0]?.label || "",
+      owner: this.extractOwnerKey(item.contractOwner),
+      ownerName: this.extractOwnerName(item.contractOwner),
       totalAmountWithTax: Number(item.totalAmountWithTax) || 0,
       signingDate,
       expiryDate: item.expiryDate || "",
@@ -618,7 +619,8 @@ export class DashboardApiService {
         stage: item.opportunityStage?.[0]?.code,
         lastActivityDays,
         probability: Number(item.winRate) || 0,
-        owner: item.opportunityOwner?.[0]?.value || item.opportunityOwner?.[0]?.label || "",
+        owner: this.extractOwnerKey(item.opportunityOwner),
+        ownerName: this.extractOwnerName(item.opportunityOwner),
         productLine: productLineArr,
         createdMonth: month,
         createdYearMonth: yearMonth,
@@ -669,6 +671,12 @@ export class DashboardApiService {
         type: types.includes(itemType) ? itemType : "person",
         children: [],
         memberEmail: item.memberName?.[0]?.email || undefined,
+        memberId:
+          item.memberName?.[0]?.value !== undefined && item.memberName?.[0]?.value !== null
+            ? String(item.memberName[0].value)
+            : item.memberName?.[0]?.id !== undefined && item.memberName?.[0]?.id !== null
+              ? String(item.memberName[0].id)
+              : undefined,
         currencyCode: this.extractCurrencyCode(item.settlementCurrency),
         janJanuary: item.janJanuary,
         febFebruary: item.febFebruary,
@@ -750,6 +758,27 @@ export class DashboardApiService {
         name,
       };
     });
+  }
+
+  // 提取负责人匹配键（用于组织筛选，统一转字符串，兼容 id 数字/字符串、email 两种 value 格式）
+  private extractOwnerKey(
+    ownerArr?: { value?: string | number; label?: string }[],
+  ): string {
+    const item = ownerArr?.[0];
+    if (!item) return "";
+    if (item.value !== undefined && item.value !== null && item.value !== "") {
+      return String(item.value);
+    }
+    return item.label || "";
+  }
+
+  // 提取负责人显示名（用于表格展示，直接取 label，不依赖组织树覆盖范围）
+  private extractOwnerName(
+    ownerArr?: { value?: string | number; label?: string }[],
+  ): string {
+    const item = ownerArr?.[0];
+    if (!item) return "";
+    return item.label || (item.value !== undefined ? String(item.value) : "");
   }
 
   // 从日期字符串获取月份

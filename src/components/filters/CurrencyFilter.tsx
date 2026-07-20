@@ -30,9 +30,9 @@ export function CurrencyFilter({
 
     return (
         <div className="flex items-center gap-1.5">
-            <Coins className="w-4 h-4 text-muted-foreground" />
             <Select value={value} onValueChange={onChange} disabled={loading}>
-                <SelectTrigger className="h-9 w-[120px] text-sm bot-dashboard-bg">
+                <SelectTrigger className="h-9 w-[120px] text-sm bot-dashboard-bg gap-1.5">
+                    <Coins className="w-4 h-4 text-muted-foreground shrink-0" />
                     <SelectValue placeholder={t("dashboard>filter>currency")} />
                 </SelectTrigger>
                 <SelectContent>

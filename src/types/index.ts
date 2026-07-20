@@ -16,7 +16,8 @@ export interface Deal {
   stage: string;
   lastActivityDays: number;
   probability: number;
-  owner: string;
+  owner: string; // 负责人匹配键（id 或 email，用于组织筛选）
+  ownerName?: string; // 负责人显示名（直接来自 label，与组织树是否覆盖无关）
   productLine?: string[];
   createdMonth?: string;
   createdYearMonth?: string; // "2026-04" 格式，用于跨年财年匹配
@@ -30,7 +31,8 @@ export interface Contract {
   contractCode: string;
   contractName: string; // 合同名称
   customer: string; // 客户（甲方名称）
-  owner: string; // 负责人
+  owner: string; // 负责人匹配键（id 或 email，用于组织筛选）
+  ownerName?: string; // 负责人显示名（直接来自 label，与组织树是否覆盖无关）
   totalAmountWithTax: number;
   signingDate: string;
   expiryDate: string; // 到期日期
@@ -109,6 +111,7 @@ export interface OrgNode {
   conversionSettings?: ConversionSettings;
   children?: OrgNode[];
   memberEmail?: string; // person 节点关联的用户 email（来自 memberName[0].email）
+  memberId?: string; // person 节点关联的用户 id（来自 memberName[0].value/id，统一转字符串）
   currencyCode?: string; // 结算币种 code (如 "CNY")，用于汇率匹配（目标值的币种）
   janJanuary?: number;
   febFebruary?: number;

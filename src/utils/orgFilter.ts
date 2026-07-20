@@ -47,13 +47,15 @@ export function getDealAmount(
   return amount;
 }
 
-// Get all person names (owners) under an organization node
+// Get all person identifiers (email + id) under an organization node,
+// 用于匹配 deal.owner / contract.owner（可能是 email 也可能是 id 字符串）
 export function getOwnersInOrg(node: OrgNode): string[] {
   const owners: string[] = [];
 
   function collectOwners(n: OrgNode) {
-    if (n.type === "person" && n.memberEmail) {
-      owners.push(n.memberEmail);
+    if (n.type === "person") {
+      if (n.memberEmail) owners.push(n.memberEmail);
+      if (n.memberId) owners.push(n.memberId);
     }
     if (n.children) {
       n.children.forEach(collectOwners);

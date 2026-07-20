@@ -100,11 +100,14 @@ export function DealsTable({
 
   const ownerOptions = useMemo(() => {
     const owners = [...new Set(allDeals.map((d) => d.owner))];
-    return owners.map((owner) => ({
-      value: owner,
-      label: owner,
-      count: allDeals.filter((d) => d.owner === owner).length,
-    }));
+    return owners.map((owner) => {
+      const dealWithOwner = allDeals.find((d) => d.owner === owner);
+      return {
+        value: owner,
+        label: dealWithOwner?.ownerName || owner,
+        count: allDeals.filter((d) => d.owner === owner).length,
+      };
+    });
   }, [allDeals]);
 
   // Filter deals based on chart context and manual filters
@@ -291,7 +294,7 @@ export function DealsTable({
                     </TableCell>
                     <TableCell>
                       <span className="text-sm text-muted-foreground">
-                        {deal.owner}
+                        {deal.ownerName || deal.owner}
                       </span>
                     </TableCell>
                   </motion.tr>
