@@ -26,7 +26,7 @@ import {
   getMonthsForQuarter,
   getFiscalMonths,
   getFiscalYearMonths,
-  getOwnersInOrg,
+  filterReceivablePlansByOrg,
   NO_PRODUCT_LINE_ID,
 } from "@/utils/orgFilter";
 import {
@@ -40,7 +40,7 @@ import {
   useCurrencies,
   useExchangeRates,
   useExchangeRateService,
-  useContractsByFiscalYear,
+  useCollectionDataByFiscalYear,
   useCompanyDefaultCurrency,
 } from "@/hooks/useApiData";
 import { DealsTable } from "@/components/deals/DealsTable";
@@ -112,23 +112,17 @@ const Index = () => {
   // 获取应收计划数据（依赖合同数据加载完成）
   const { receivablePlans: receivablePlanMap, loading: receivablesLoading } = useReceivablePlans(contractMap);
 
-  // 回款健康度独立数据源：按财年 signingDate 范围获取合同（不依赖商机）
-  const { contracts: collectionContractMap, loading: collectionContractsLoading } = useContractsByFiscalYear(orgStructure, selectedYear);
-  const { receivablePlans: collectionReceivablePlanMap, loading: collectionReceivablesLoading } = useReceivablePlans(collectionContractMap);
+  // 回款模块独立数据源：按财年 plannedDate 获取应收，再通过 parentDataId 反查合同
+  const {
+    contracts: collectionContractMap,
+    receivablePlans: collectionReceivablePlanMap,
+  } = useCollectionDataByFiscalYear(selectedOrg || orgStructure, selectedYear);
 
-  // 按组织过滤回款合同
-  const filteredCollectionContractMap = useMemo(() => {
-    if (!selectedOrg) return collectionContractMap;
-    const owners = getOwnersInOrg(selectedOrg);
-    const filtered = new Map() as typeof collectionContractMap;
-    collectionContractMap.forEach((contracts, code) => {
-      const matched = contracts.filter((c) => owners.includes(c.owner));
-      if (matched.length > 0) {
-        filtered.set(code, matched);
-      }
-    });
-    return filtered;
-  }, [collectionContractMap, selectedOrg]);
+  // 回款组织筛选以应收计划的 paymentOwner 为准；未选组织时保留未分配负责人
+  const filteredCollectionReceivablePlanMap = useMemo(
+    () => filterReceivablePlansByOrg(collectionReceivablePlanMap, selectedOrg),
+    [collectionReceivablePlanMap, selectedOrg],
+  );
 
   // Calculate filtered data based on selected organization and products
   const filteredDeals = useMemo(() => {
@@ -296,16 +290,16 @@ const Index = () => {
     );
   }, [monthFilteredDeals, filteredDeals, opportunityStages, amountMode, contractMap, receivablePlanMap, selectedMonths, exchangeService, selectedCurrencyCode]);
 
-  // 回款健康度图表数据（独立于商机，直接使用按财年 signingDate 过滤的合同）
+  // 回款健康度图表数据：应收计划为主数据，合同仅用于明细展示
   const { chartData: collectionHealthData, rollingMap } = useMemo(() => {
     const orgForFiscal = selectedOrg || (orgStructure.id ? orgStructure : null);
     const result = calculateCollectionHealthFromApi(
-      filteredCollectionContractMap,
-      collectionReceivablePlanMap,
+      collectionContractMap,
+      filteredCollectionReceivablePlanMap,
       orgForFiscal,
       exchangeService,
       selectedCurrencyCode,
-      undefined, // 不再需要 allowedContractNumbers
+      undefined,
       selectedYear,
     );
 
@@ -314,7 +308,7 @@ const Index = () => {
       chartData = aggregateCollectionHealthByQuarter(chartData, orgForFiscal);
     }
     return { chartData, rollingMap: result.rollingMap };
-  }, [filteredCollectionContractMap, collectionReceivablePlanMap, selectedOrg, orgStructure, exchangeService, selectedCurrencyCode, periodMode, selectedYear]);
+  }, [collectionContractMap, filteredCollectionReceivablePlanMap, selectedOrg, orgStructure, exchangeService, selectedCurrencyCode, periodMode, selectedYear]);
 
   // 从 filteredDeals 提取关联的 contractNumber 白名单（供其他图表使用）
   const allowedContractNumbers = useMemo(() => {
@@ -715,8 +709,8 @@ const Index = () => {
                       </Button>
                     </div>
                     <ContractsTable
-                      contractMap={filteredCollectionContractMap}
-                      receivablePlanMap={collectionReceivablePlanMap}
+                      contractMap={collectionContractMap}
+                      receivablePlanMap={filteredCollectionReceivablePlanMap}
                       filterContext={chartFilter}
                       exchangeService={exchangeService}
                       targetCurrencyCode={selectedCurrencyCode}

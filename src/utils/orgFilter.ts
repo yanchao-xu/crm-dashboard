@@ -48,7 +48,7 @@ export function getDealAmount(
 }
 
 // Get all person identifiers (email + id) under an organization node,
-// 用于匹配 deal.owner / contract.owner（可能是 email 也可能是 id 字符串）
+// 用于匹配 deal.owner / contract.owner / receivablePlan.paymentOwner
 export function getOwnersInOrg(node: OrgNode): string[] {
   const owners: string[] = [];
 
@@ -64,6 +64,41 @@ export function getOwnersInOrg(node: OrgNode): string[] {
 
   collectOwners(node);
   return owners;
+}
+
+/**
+ * 按应收计划的回款负责人过滤。
+ * 未选择组织时保留所有计划；选择组织后，无负责人或负责人不匹配的计划会被排除。
+ */
+export function filterReceivablePlansByOrg(
+  allPlans: ReceivablePlanMap,
+  selectedOrg: OrgNode | null,
+): ReceivablePlanMap {
+  if (!selectedOrg) return allPlans;
+
+  const orgOwnerKeys = new Set(
+    getOwnersInOrg(selectedOrg).map((key) => key.trim().toLowerCase()),
+  );
+  const filtered: ReceivablePlanMap = new Map();
+
+  allPlans.forEach((plans, contractId) => {
+    const matched = plans.filter((plan) => {
+      const keys = plan.paymentOwnerKeys?.length
+        ? plan.paymentOwnerKeys
+        : plan.paymentOwner
+          ? [plan.paymentOwner]
+          : [];
+      return keys.some((key) =>
+        orgOwnerKeys.has(String(key).trim().toLowerCase()),
+      );
+    });
+
+    if (matched.length > 0) {
+      filtered.set(contractId, matched);
+    }
+  });
+
+  return filtered;
 }
 
 // Filter deals by organization

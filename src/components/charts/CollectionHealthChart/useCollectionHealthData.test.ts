@@ -639,3 +639,39 @@ describe("calculateCollectionHealthFromApi - 真实场景：截图数据复现",
     expect(jul.rolledOverdue).toBe(8475 + 475);
   });
 });
+
+
+describe("calculateCollectionHealthFromApi - 应收优先", () => {
+  it("合同元数据缺失时仍按应收计划的 plannedDate 和 actualDate 统计金额", () => {
+    const org = createOrgNode();
+    const plan = createPlan({
+      id: "orphan-plan",
+      parentDataId: "missing-contract",
+      plannedAmount: 10000,
+      plannedDate: "2026-04-10",
+      plannedMonth: "Apr",
+      plannedYearMonth: "2026-04",
+      actualAmount: 8000,
+      actualDate: "2026-05-06",
+      actualMonth: "May",
+      actualYearMonth: "2026-05",
+    });
+
+    const { chartData, rollingMap } = calculateCollectionHealthFromApi(
+      new Map(),
+      buildReceivablePlanMap([plan]),
+      org,
+      null,
+      undefined,
+      undefined,
+      2026,
+    );
+
+    expect(chartData.find((point) => point.month === "Apr")!)
+      .toMatchObject({ nativePlan: 10000, actual: 0 });
+    expect(chartData.find((point) => point.month === "May")!)
+      .toMatchObject({ nativePlan: 0, actual: 8000 });
+    expect(rollingMap.get("2026-04")?.[0])
+      .toMatchObject({ contractId: "missing-contract", contractCode: "" });
+  });
+});

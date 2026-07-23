@@ -355,11 +355,58 @@ export class DashboardApiService {
     }
   }
 
+  // 根据合同ID批量获取合同数据（用于应收计划反查合同）
+  async getContractsByIds(contractIds: string[]): Promise<Contract[]> {
+    const uniqueIds = [...new Set(contractIds.map(String).filter(Boolean))];
+    if (uniqueIds.length === 0) return [];
+
+    const contracts: Contract[] = [];
+    const batchSize = 500;
+
+    try {
+      for (let i = 0; i < uniqueIds.length; i += batchSize) {
+        const ids = uniqueIds.slice(i, i + batchSize);
+        const response = await this.restApi.post(
+          "/form/api/v3/form-entity-data/contract-management/contract-management-form/list",
+          {
+            startRow: 0,
+            endRow: ids.length,
+            filterModel: [
+              {
+                colId: "id",
+                filterType: "set",
+                values: ids,
+              },
+            ],
+            selectColId: [
+              "contractCode",
+              "contractName",
+              "customer",
+              "contractOwner",
+              "totalAmountWithTax",
+              "signingDate",
+              "expiryDate",
+              "settlementCurrency",
+            ],
+          },
+        );
+        const rawData = response.results || response;
+        if (Array.isArray(rawData)) {
+          contracts.push(...rawData.map((item: any) => this.transformContractData(item)));
+        }
+      }
+      return contracts;
+    } catch (error) {
+      console.error("Failed to fetch contracts by ids:", error);
+      return [];
+    }
+  }
+
   // 转换合同数据
   private transformContractData(item: any): Contract {
     const signingDate = item.signingDate || "";
     return {
-      id: item.id,
+      id: String(item.id),
       contractCode: item.contractCode || "",
       contractName: item.contractName || "",
       customer: item.customer?.[0]?.label || "",
@@ -376,6 +423,64 @@ export class DashboardApiService {
         : undefined,
       currencyCode: this.extractCurrencyCode(item.settlementCurrency),
     };
+  }
+
+  // 根据计划收款日期范围分页获取应收计划（用于回款模块）
+  async getReceivablePlansByDateRange(
+    dateFrom: string,
+    dateTo: string,
+  ): Promise<ReceivablePlan[]> {
+    const rawPlans: any[] = [];
+    const pageSize = 1000;
+    let startRow = 0;
+
+    try {
+      while (true) {
+        const response = await this.restApi.post(
+          "/form/api/v3/form-entity-data/contract-management/receivable-plan-form/list",
+          {
+            startRow,
+            endRow: startRow + pageSize,
+            filterModel: [
+              {
+                colId: "plannedDate",
+                filterType: "date",
+                type: "inRange",
+                dateFrom,
+                dateTo,
+              },
+            ],
+            selectColId: [
+              "parentDataId",
+              "actualAmount",
+              "actualDate",
+              "plannedAmount",
+              "plannedDate",
+              "paymentStage",
+              "paymentOwner",
+              "settlementCurrency",
+            ],
+          },
+        );
+
+        const page = response.results || response;
+        if (!Array.isArray(page) || page.length === 0) break;
+        rawPlans.push(...page);
+
+        const total = typeof response.count === "number" ? response.count : undefined;
+        if (page.length < pageSize || (total !== undefined && rawPlans.length >= total)) {
+          break;
+        }
+        startRow += page.length;
+      }
+
+      return rawPlans
+        .map((item: any) => this.transformReceivablePlanData(item))
+        .filter((plan) => plan.plannedAmount > 0 && !!plan.plannedDate);
+    } catch (error) {
+      console.error("Failed to fetch receivable plans by date range:", error);
+      return [];
+    }
   }
 
   // 根据合同ID批量获取应收计划数据
@@ -550,8 +655,9 @@ export class DashboardApiService {
   private transformReceivablePlanData(item: any): ReceivablePlan {
     const actualDate = item.actualDate || "";
     const plannedDate = item.plannedDate || "";
+    const paymentOwnerKeys = this.extractOwnerKeys(item.paymentOwner);
     return {
-      id: item.id,
+      id: String(item.id),
       parentDataId: String(item.parentDataId || ""),
       actualAmount: Number(item.actualAmount) || 0,
       actualDate,
@@ -568,7 +674,9 @@ export class DashboardApiService {
         ? this.getYearMonthFromDate(plannedDate)
         : undefined,
       paymentStage: item.paymentStage || "",
-      paymentOwner: item.paymentOwner?.[0]?.label || "",
+      paymentOwner: paymentOwnerKeys[0] || "",
+      paymentOwnerName: this.extractOwnerName(item.paymentOwner),
+      paymentOwnerKeys,
       currencyCode: this.extractCurrencyCode(item.settlementCurrency),
     };
   }
@@ -770,6 +878,26 @@ export class DashboardApiService {
       return String(item.value);
     }
     return item.label || "";
+  }
+
+  // 提取负责人的全部稳定标识；paymentOwner.value 在真实数据中可能是 email。
+  private extractOwnerKeys(
+    ownerArr?: Array<{
+      id?: string | number;
+      uid?: string | number;
+      value?: string | number;
+      email?: string;
+    }>,
+  ): string[] {
+    const keys = new Set<string>();
+    ownerArr?.forEach((owner) => {
+      [owner.id, owner.value, owner.email, owner.uid].forEach((value) => {
+        if (value !== undefined && value !== null && String(value).trim() !== "") {
+          keys.add(String(value).trim());
+        }
+      });
+    });
+    return [...keys];
   }
 
   // 提取负责人显示名（用于表格展示，直接取 label，不依赖组织树覆盖范围）

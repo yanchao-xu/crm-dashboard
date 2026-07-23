@@ -238,10 +238,17 @@ export function calculateCollectionHealthFromApi(
 
   const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-  // 收集所有需要处理的计划
+  // 合同只提供 rollingMap/明细展示所需的元数据，金额计算以应收计划为准。
+  const contractById = new Map<string, Contract>();
+  contractMap.forEach((contracts, contractCode) => {
+    if (allowedContractNumbers && !allowedContractNumbers.has(contractCode)) return;
+    contracts.forEach((contract) => contractById.set(String(contract.id), contract));
+  });
+
   interface PlanInfo {
     plan: ReceivablePlan;
-    contract: Contract;
+    contractId: string;
+    contractCode: string;
     rate: number;
     status: OverdueStatus;
     overdueAmount: number;
@@ -249,42 +256,49 @@ export function calculateCollectionHealthFromApi(
   }
   const allPlanInfos: PlanInfo[] = [];
 
-  contractMap.forEach((contracts, contractCode) => {
-    if (allowedContractNumbers && !allowedContractNumbers.has(contractCode)) {
-      return;
-    }
+  receivablePlanMap.forEach((plans, mapContractId) => {
+    plans.forEach((plan) => {
+      const contractId = String(plan.parentDataId || mapContractId);
+      const contract = contractById.get(contractId);
 
-    contracts.forEach((contract) => {
-      const plans = receivablePlanMap.get(String(contract.id)) || [];
-      plans.forEach((plan) => {
-        const rate = getRate(plan.currencyCode);
-        const { status, overdueAmount, shouldRoll } = determineOverdueStatus(plan, now);
+      // 仅为旧调用方保留合同编号白名单兼容；正常回款链路不传该参数。
+      if (allowedContractNumbers && !contract) return;
 
-        allPlanInfos.push({ plan, contract, rate, status, overdueAmount, shouldRoll });
+      const rate = getRate(plan.currencyCode);
+      const { status, overdueAmount, shouldRoll } = determineOverdueStatus(plan, now);
 
-        // actual: 按 actualDate 的 yearMonth 归类 actualAmount（保持不变）
-        if (plan.actualYearMonth && plan.actualAmount > 0) {
-          if (monthlyActual[plan.actualYearMonth] !== undefined) {
-            monthlyActual[plan.actualYearMonth] += plan.actualAmount * rate;
-          }
-        }
+      allPlanInfos.push({
+        plan,
+        contractId,
+        contractCode: contract?.contractCode || "",
+        rate,
+        status,
+        overdueAmount,
+        shouldRoll,
       });
+
+      // 实际回款严格按 actualDate 所在年月归类。
+      if (plan.actualYearMonth && plan.actualAmount > 0) {
+        if (monthlyActual[plan.actualYearMonth] !== undefined) {
+          monthlyActual[plan.actualYearMonth] += plan.actualAmount * rate;
+        }
+      }
     });
   });
 
   // Step 1: 归类原生计划 (nativePlan)
-  allPlanInfos.forEach(({ plan, contract, rate, status }) => {
+  allPlanInfos.forEach(({ plan, contractId, contractCode, rate, status }) => {
     const ym = plan.plannedYearMonth;
     if (ym && monthlyNativePlan[ym] !== undefined) {
       monthlyNativePlan[ym] += plan.plannedAmount * rate;
 
-      // 将原生计划合同记录到 rollingMap
+      // 将原生计划应收记录到 rollingMap，供月回款合同下钻。
       const entries = rollingMap.get(ym);
       if (entries) {
         entries.push({
-          contractId: contract.id,
+          contractId,
           planId: plan.id,
-          contractCode: contract.contractCode,
+          contractCode,
           isOverdue: status === "overdue",
           rollingSourceMonth: null,
           overdueAmount: 0,
@@ -299,11 +313,12 @@ export function calculateCollectionHealthFromApi(
   // 直到当前月（含），让用户能看到每月承担的滚动逾期总额
   allPlanInfos
     .filter((p) => p.shouldRoll && p.overdueAmount > 0)
-    .forEach(({ plan, contract, rate, overdueAmount, status }) => {
+    .forEach(({ plan, contractId, contractCode, rate, overdueAmount, status }) => {
       const sourceYM = plan.plannedYearMonth;
       if (!sourceYM) return;
 
       const sourceIndex = fiscalYearMonths.findIndex((m) => m.yearMonth === sourceYM);
+      // 不把上一财年的应收滚入本财年。
       if (sourceIndex < 0) return;
 
       // 从逾期月的下一月开始，到当前月（含）的每个月都加上逾期金额
@@ -316,13 +331,13 @@ export function calculateCollectionHealthFromApi(
           monthlyRolledOverdue[targetYM] += overdueAmount * rate;
         }
 
-        // 记录滚动合同到 rollingMap
+        // 记录滚动应收到 rollingMap
         const entries = rollingMap.get(targetYM);
         if (entries) {
           entries.push({
-            contractId: contract.id,
+            contractId,
             planId: plan.id,
-            contractCode: contract.contractCode,
+            contractCode,
             isOverdue: true,
             rollingSourceMonth: sourceYM,
             overdueAmount: overdueAmount * rate,

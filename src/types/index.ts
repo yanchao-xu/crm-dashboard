@@ -56,7 +56,9 @@ export interface ReceivablePlan {
   plannedMonth?: string; // 解析后的月份 "Jan"~"Dec"
   plannedYearMonth?: string; // "2026-04" 格式，用于跨年财年匹配
   paymentStage: string; // 款项阶段（如 "首款"、"尾款"）
-  paymentOwner: string; // 负责人
+  paymentOwner: string; // 回款负责人主匹配键（用户 id 或 email）
+  paymentOwnerName?: string; // 回款负责人显示名
+  paymentOwnerKeys?: string[]; // 回款负责人全部匹配键（id/email/uid），用于组织筛选
   currencyCode?: string; // 结算币种 code (如 "CNY")，用于汇率匹配
 }
 

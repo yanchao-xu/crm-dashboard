@@ -494,6 +494,85 @@ export function useContractsByFiscalYear(orgStructure: OrgNode, selectedYear: nu
 // 应收计划数据类型：按合同 id 索引
 export type ReceivablePlanMap = Map<string, ReceivablePlan[]>;
 
+/**
+ * 回款模块独立数据源：先按财年 plannedDate 获取应收计划，再通过 parentDataId 反查合同。
+ * 只查询当前财年计划，不包含上一财年滚入的期初逾期。
+ */
+export function useCollectionDataByFiscalYear(
+  orgStructure: OrgNode,
+  selectedYear: number,
+) {
+  const restApi = useOptionalRestApi();
+  const { language } = useLanguage();
+  const [contracts, setContracts] = useState<ContractMap>(new Map());
+  const [receivablePlans, setReceivablePlans] = useState<ReceivablePlanMap>(new Map());
+  const [loading, setLoading] = useState(false);
+  const prevKeyRef = useRef<string>("");
+
+  useEffect(() => {
+    if (!restApi || !orgStructure.id) return;
+
+    const { dateFrom, dateTo } = computeFiscalRange(orgStructure, selectedYear);
+    const key = `${dateFrom}_${dateTo}_${language}`;
+    if (key === prevKeyRef.current) return;
+    prevKeyRef.current = key;
+
+    let mounted = true;
+    const apiService = new DashboardApiService(restApi, language);
+
+    const fetchCollectionData = async () => {
+      setLoading(true);
+      setContracts(new Map());
+      setReceivablePlans(new Map());
+
+      try {
+        const plans = await apiService.getReceivablePlansByDateRange(dateFrom, dateTo);
+        const contractIds = [...new Set(
+          plans.map((plan) => plan.parentDataId).filter(Boolean),
+        )];
+        const relatedContracts = await apiService.getContractsByIds(contractIds);
+
+        if (!mounted) return;
+
+        const planMap: ReceivablePlanMap = new Map();
+        plans.forEach((plan) => {
+          if (!planMap.has(plan.parentDataId)) {
+            planMap.set(plan.parentDataId, []);
+          }
+          planMap.get(plan.parentDataId)!.push(plan);
+        });
+
+        const contractMap: ContractMap = new Map();
+        relatedContracts.forEach((contract) => {
+          if (!contractMap.has(contract.contractCode)) {
+            contractMap.set(contract.contractCode, []);
+          }
+          contractMap.get(contract.contractCode)!.push(contract);
+        });
+
+        setReceivablePlans(planMap);
+        setContracts(contractMap);
+      } catch (error) {
+        console.error("Failed to fetch collection data by fiscal year:", error);
+        if (mounted) {
+          setContracts(new Map());
+          setReceivablePlans(new Map());
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    fetchCollectionData();
+
+    return () => {
+      mounted = false;
+    };
+  }, [restApi, orgStructure, language, selectedYear]);
+
+  return { contracts, receivablePlans, loading };
+}
+
 // 获取应收计划数据（依赖合同数据）
 export function useReceivablePlans(contractMap: ContractMap) {
   const restApi = useOptionalRestApi();

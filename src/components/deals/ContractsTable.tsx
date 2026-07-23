@@ -601,7 +601,7 @@ export function ContractsTable({
                         <TableCell />
                         {/* 负责人 */}
                         <TableCell className="text-xs">
-                          {plan.paymentOwner || "—"}
+                          {plan.paymentOwnerName || plan.paymentOwner || "—"}
                         </TableCell>
                         {/* 状态 */}
                         <TableCell>

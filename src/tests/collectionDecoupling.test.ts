@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getOwnersInOrg, filterDealsByOrg } from "@/utils/orgFilter";
+import { getOwnersInOrg, filterDealsByOrg, filterReceivablePlansByOrg } from "@/utils/orgFilter";
 import { calculateCollectionHealthFromApi } from "@/components/charts/CollectionHealthChart/useCollectionHealthData";
 import { buildContractRows } from "@/components/deals/ContractsTable";
 import type { OrgNode, Deal, Contract, ReceivablePlan } from "@/types";
@@ -136,7 +136,9 @@ function createRealPlan(overrides: Partial<ReceivablePlan> = {}): ReceivablePlan
     plannedMonth: "Jun",
     plannedYearMonth: "2026-06",
     paymentStage: "预付款(30%)",
-    paymentOwner: "胡剑飞",
+    paymentOwner: "jeff.hu@forlandholding.com",
+    paymentOwnerName: "胡剑飞",
+    paymentOwnerKeys: ["297", "jeff.hu@forlandholding.com", "10257"],
     currencyCode: "CNY",
     ...overrides,
   };
@@ -160,23 +162,6 @@ function buildPlanMap(plans: ReceivablePlan[]): ReceivablePlanMap {
     map.get(key)!.push(p);
   });
   return map;
-}
-
-/** 模拟按组织过滤合同的逻辑（与 Index.tsx 中一致） */
-function filterContractMapByOrg(
-  contractMap: ContractMap,
-  selectedOrg: OrgNode | null,
-): ContractMap {
-  if (!selectedOrg) return contractMap;
-  const owners = getOwnersInOrg(selectedOrg);
-  const filtered: ContractMap = new Map();
-  contractMap.forEach((contracts, code) => {
-    const matched = contracts.filter((c) => owners.includes(c.owner));
-    if (matched.length > 0) {
-      filtered.set(code, matched);
-    }
-  });
-  return filtered;
 }
 
 // ─── 一、Email 匹配键改动测试 ────────────────────────────────
@@ -392,7 +377,7 @@ describe("回款健康度 - 独立于商机，按 signingDate 过滤合同", () 
   });
 });
 
-describe("回款健康度 - 组织过滤合同（用 email 匹配 contract.owner）", () => {
+describe("回款健康度 - 按应收 paymentOwner 进行组织过滤", () => {
   const orgTree = createRealOrgTree();
 
   it("选中市场部 → 只有市场部人员负责的合同参与计算", () => {
@@ -426,16 +411,17 @@ describe("回款健康度 - 组织过滤合同（用 email 匹配 contract.owner
       plannedAmount: 20000,
       actualAmount: 0,
       actualDate: "",
+      paymentOwner: "hc.wang@forlandholding.com",
+      paymentOwnerKeys: ["hc.wang@forlandholding.com"],
     });
 
     const contractMap = buildContractMap([c1, c2]);
     const planMap = buildPlanMap([p1, p2]);
 
-    // 模拟 Index.tsx 中的组织过滤逻辑
-    const filteredMap = filterContractMapByOrg(contractMap, marketDept);
+    const filteredPlanMap = filterReceivablePlansByOrg(planMap, marketDept);
 
     const { chartData } = calculateCollectionHealthFromApi(
-      filteredMap, planMap, orgTree, null, undefined, undefined, 2026
+      contractMap, filteredPlanMap, orgTree, null, undefined, undefined, 2026
     );
 
     const may = chartData.find((d) => d.month === "May")!;
@@ -476,24 +462,24 @@ describe("回款健康度 - 组织过滤合同（用 email 匹配 contract.owner
     const contractMap = buildContractMap([c1, c2]);
     const planMap = buildPlanMap([p1, p2]);
 
-    // 不选组织，不过滤
-    const filteredMap = filterContractMapByOrg(contractMap, null);
+    // 不选组织时不筛选应收计划
+    const filteredPlanMap = filterReceivablePlansByOrg(planMap, null);
 
     const { chartData } = calculateCollectionHealthFromApi(
-      filteredMap, planMap, orgTree, null, undefined, undefined, 2026
+      contractMap, filteredPlanMap, orgTree, null, undefined, undefined, 2026
     );
 
     const may = chartData.find((d) => d.month === "May")!;
     expect(may.nativePlan).toBe(30000); // 两个合同都参与
   });
 
-  it("合同 owner 不在任何组织节点中 → 选中任何子组织都不会显示该合同", () => {
+  it("paymentOwner 不在组织树中 → 选中子组织时不参与计算", () => {
     const marketDept = orgTree.children![1];
 
     const c1 = createRealContract({
       id: "c1",
       contractCode: "C001",
-      owner: "outsider@other.com", // 不在组织树中
+      owner: "jeff.hu@forlandholding.com",
     });
 
     const p1 = createRealPlan({
@@ -504,15 +490,16 @@ describe("回款健康度 - 组织过滤合同（用 email 匹配 contract.owner
       plannedAmount: 50000,
       actualAmount: 0,
       actualDate: "",
+      paymentOwner: "outsider@other.com",
+      paymentOwnerKeys: ["outsider@other.com"],
     });
 
     const contractMap = buildContractMap([c1]);
     const planMap = buildPlanMap([p1]);
-
-    const filteredMap = filterContractMapByOrg(contractMap, marketDept);
+    const filteredPlanMap = filterReceivablePlansByOrg(planMap, marketDept);
 
     const { chartData } = calculateCollectionHealthFromApi(
-      filteredMap, planMap, orgTree, null, undefined, undefined, 2026
+      contractMap, filteredPlanMap, orgTree, null, undefined, undefined, 2026
     );
 
     const jun = chartData.find((d) => d.month === "Jun")!;
@@ -747,9 +734,9 @@ describe("真实数据场景 - 基于 testData.md 的合同和应收计划", () 
     expect(jul.rolledOverdue).toBe(5000 + 475);
   });
 
-  it("组织过滤：Admin@fld.com 不在组织树中 → 选市场部时无数据", () => {
+  it("组织过滤：合同 owner 不影响结果，应收 paymentOwner 属于市场部时有数据", () => {
     const marketDept = orgTree.children![1];
-    const contract = createRealContract(); // owner: Admin@fld.com
+    const contract = createRealContract(); // contract owner: Admin@fld.com
 
     const plan = createRealPlan({
       plannedDate: "2026-06-01",
@@ -757,21 +744,18 @@ describe("真实数据场景 - 基于 testData.md 的合同和应收计划", () 
       plannedAmount: 10000,
       actualAmount: 0,
       actualDate: "",
-    });
+    }); // paymentOwner: 胡剑飞（市场部）
 
     const contractMap = buildContractMap([contract]);
     const planMap = buildPlanMap([plan]);
-
-    // 按组织过滤
-    const filteredMap = filterContractMapByOrg(contractMap, marketDept);
+    const filteredPlanMap = filterReceivablePlansByOrg(planMap, marketDept);
 
     const { chartData } = calculateCollectionHealthFromApi(
-      filteredMap, planMap, orgTree, null, undefined, undefined, 2026
+      contractMap, filteredPlanMap, orgTree, null, undefined, undefined, 2026
     );
 
-    // Admin@fld.com 不在市场部，所以被过滤掉
     const jun = chartData.find((d) => d.month === "Jun")!;
-    expect(jun.nativePlan).toBe(0);
+    expect(jun.nativePlan).toBe(10000);
   });
 
   it("组织过滤：胡剑飞的合同 → 选市场部时有数据", () => {
@@ -791,10 +775,10 @@ describe("真实数据场景 - 基于 testData.md 的合同和应收计划", () 
     const contractMap = buildContractMap([contract]);
     const planMap = buildPlanMap([plan]);
 
-    const filteredMap = filterContractMapByOrg(contractMap, marketDept);
+    const filteredPlanMap = filterReceivablePlansByOrg(planMap, marketDept);
 
     const { chartData } = calculateCollectionHealthFromApi(
-      filteredMap, planMap, orgTree, null, undefined, undefined, 2026
+      contractMap, filteredPlanMap, orgTree, null, undefined, undefined, 2026
     );
 
     const jun = chartData.find((d) => d.month === "Jun")!;
@@ -839,5 +823,63 @@ describe("computeFiscalRange - 财年范围计算", () => {
 
     const feb = chartData.find((d) => d.month === "Feb")!;
     expect(feb.nativePlan).toBe(25000);
+  });
+});
+
+
+describe("filterReceivablePlansByOrg - 应收负责人多键匹配", () => {
+  const org: OrgNode = {
+    id: "team-1",
+    name: { zh: "测试团队", en: "Test Team" },
+    type: "team",
+    children: [{
+      id: "person-1",
+      name: { zh: "负责人", en: "Owner" },
+      type: "person",
+      memberId: "297",
+      memberEmail: "owner@example.com",
+    }],
+  };
+
+  it("选择组织后按 email 或用户 id 保留计划，并排除未分配负责人", () => {
+    const plans = buildPlanMap([
+      createRealPlan({
+        id: "email-owner",
+        parentDataId: "c1",
+        paymentOwnerKeys: ["OWNER@EXAMPLE.COM"],
+      }),
+      createRealPlan({
+        id: "id-owner",
+        parentDataId: "c1",
+        paymentOwner: "297",
+        paymentOwnerKeys: ["297", "10257"],
+      }),
+      createRealPlan({
+        id: "unassigned",
+        parentDataId: "c2",
+        paymentOwner: "",
+        paymentOwnerKeys: [],
+      }),
+    ]);
+
+    const filtered = filterReceivablePlansByOrg(plans, org);
+
+    expect([...filtered.keys()]).toEqual(["c1"]);
+    expect(filtered.get("c1")!.map((plan) => plan.id).sort())
+      .toEqual(["email-owner", "id-owner"]);
+  });
+
+  it("未选择组织时保留未分配负责人计划", () => {
+    const plans = buildPlanMap([
+      createRealPlan({ id: "assigned", parentDataId: "c1" }),
+      createRealPlan({
+        id: "unassigned",
+        parentDataId: "c2",
+        paymentOwner: "",
+        paymentOwnerKeys: [],
+      }),
+    ]);
+
+    expect(filterReceivablePlansByOrg(plans, null)).toBe(plans);
   });
 });
