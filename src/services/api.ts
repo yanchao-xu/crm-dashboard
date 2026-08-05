@@ -50,6 +50,7 @@ interface DataDictionaryRawData {
   enable: string;
   handle: string;
   parentHandle: string;
+  sorting?: number | string;
   [key: string]: any;
 }
 
@@ -57,6 +58,7 @@ interface DataDictionaryRawData {
 export interface OpportunityStage {
   code: string;
   name: string; // 直接使用 codeName，已经是当前语言的值
+  sorting?: number; // 数字越小，阶段越靠前
 }
 
 // API 服务类
@@ -233,7 +235,7 @@ export class DashboardApiService {
                 },
               ],
               needCount: false,
-              selectColId: ["code", "codeName"],
+              selectColId: ["code", "codeName", "sorting"],
             }),
           },
         },
@@ -259,14 +261,14 @@ export class DashboardApiService {
             payload: JSON.stringify({
               filterModel: [
                 {
-                  colId: "expectedDealTime",
+                  colId: "createdTime",
                   filterType: "date",
                   type: "inRange",
                   dateFrom: from,
                   dateTo: to,
                 },
               ],
-              selectColId: ["expectedDealTime"],
+              selectColId: ["createdTime"],
             }),
           },
         },
@@ -318,7 +320,10 @@ export class DashboardApiService {
   }
 
   // 根据签约日期范围获取合同数据（用于回款健康度，独立于商机）
-  async getContractsByDateRange(dateFrom: string, dateTo: string): Promise<Contract[]> {
+  async getContractsByDateRange(
+    dateFrom: string,
+    dateTo: string,
+  ): Promise<Contract[]> {
     try {
       const response = await this.restApi.post(
         "/form/api/v3/form-entity-data/contract-management/contract-management-form/list",
@@ -392,7 +397,9 @@ export class DashboardApiService {
         );
         const rawData = response.results || response;
         if (Array.isArray(rawData)) {
-          contracts.push(...rawData.map((item: any) => this.transformContractData(item)));
+          contracts.push(
+            ...rawData.map((item: any) => this.transformContractData(item)),
+          );
         }
       }
       return contracts;
@@ -467,8 +474,12 @@ export class DashboardApiService {
         if (!Array.isArray(page) || page.length === 0) break;
         rawPlans.push(...page);
 
-        const total = typeof response.count === "number" ? response.count : undefined;
-        if (page.length < pageSize || (total !== undefined && rawPlans.length >= total)) {
+        const total =
+          typeof response.count === "number" ? response.count : undefined;
+        if (
+          page.length < pageSize ||
+          (total !== undefined && rawPlans.length >= total)
+        ) {
           break;
         }
         startRow += page.length;
@@ -580,9 +591,10 @@ export class DashboardApiService {
   async getExchangeRates(currencies?: CurrencyItem[]): Promise<ExchangeRate[]> {
     try {
       // 如果没传入币种列表，内部自行获取
-      const currencyList = currencies && currencies.length > 0
-        ? currencies
-        : await this.getCurrencies();
+      const currencyList =
+        currencies && currencies.length > 0
+          ? currencies
+          : await this.getCurrencies();
 
       const response = await this.restApi.post(
         "/form/api/v3/form-entity-data/basic-system-setting/exchange-rate-management-form/list",
@@ -601,8 +613,11 @@ export class DashboardApiService {
 
   // 解析 settlementCurrency 字段的币种 code
   // 优先取 code 字段（新数据），fallback 取 value（可能是 code 也可能是 id）
-  private extractCurrencyCode(settlementCurrency: any[] | undefined): string | undefined {
-    if (!settlementCurrency || settlementCurrency.length === 0) return undefined;
+  private extractCurrencyCode(
+    settlementCurrency: any[] | undefined,
+  ): string | undefined {
+    if (!settlementCurrency || settlementCurrency.length === 0)
+      return undefined;
     const item = settlementCurrency[0];
     if (item.code) return item.code;
     if (item.value != null) return String(item.value);
@@ -611,18 +626,24 @@ export class DashboardApiService {
 
   // 解析汇率表中的币种 value：可能是 id("25887") 也可能是 code("CNY")
   // 通过币种字典统一转成 code
-  private resolveCurrencyCode(value: string | number, currencies: CurrencyItem[]): string | undefined {
+  private resolveCurrencyCode(
+    value: string | number,
+    currencies: CurrencyItem[],
+  ): string | undefined {
     const strValue = String(value);
     // 先当 code 找
-    const byCode = currencies.find(c => c.code === strValue);
+    const byCode = currencies.find((c) => c.code === strValue);
     if (byCode) return byCode.code;
     // 找不到就当 id 找（兼容 id 可能是数字或字符串）
-    const byId = currencies.find(c => String(c.id) === strValue);
+    const byId = currencies.find((c) => String(c.id) === strValue);
     return byId?.code;
   }
 
   // 转换汇率数据
-  private transformExchangeRateData(rawData: any[], currencies: CurrencyItem[]): ExchangeRate[] {
+  private transformExchangeRateData(
+    rawData: any[],
+    currencies: CurrencyItem[],
+  ): ExchangeRate[] {
     if (!Array.isArray(rawData)) {
       return [];
     }
@@ -632,8 +653,11 @@ export class DashboardApiService {
           item.fromCurrency?.[0] && item.toCurrency?.[0] && item.rate,
       )
       .map((item: any) => ({
-        fromCurrencyCode: this.resolveCurrencyCode(item.fromCurrency[0].value, currencies) || "",
-        toCurrencyCode: this.resolveCurrencyCode(item.toCurrency[0].value, currencies) || "",
+        fromCurrencyCode:
+          this.resolveCurrencyCode(item.fromCurrency[0].value, currencies) ||
+          "",
+        toCurrencyCode:
+          this.resolveCurrencyCode(item.toCurrency[0].value, currencies) || "",
         rate: Number(item.rate) || 0,
       }))
       .filter((r) => r.fromCurrencyCode && r.toCurrencyCode);
@@ -780,9 +804,11 @@ export class DashboardApiService {
         children: [],
         memberEmail: item.memberName?.[0]?.email || undefined,
         memberId:
-          item.memberName?.[0]?.value !== undefined && item.memberName?.[0]?.value !== null
+          item.memberName?.[0]?.value !== undefined &&
+          item.memberName?.[0]?.value !== null
             ? String(item.memberName[0].value)
-            : item.memberName?.[0]?.id !== undefined && item.memberName?.[0]?.id !== null
+            : item.memberName?.[0]?.id !== undefined &&
+                item.memberName?.[0]?.id !== null
               ? String(item.memberName[0].id)
               : undefined,
         currencyCode: this.extractCurrencyCode(item.settlementCurrency),
@@ -859,13 +885,36 @@ export class DashboardApiService {
     if (!Array.isArray(rawData)) {
       return [];
     }
-    return rawData.map((item) => {
+
+    const stages = rawData.map((item, index) => {
+      const hasSorting =
+        item.sorting !== undefined &&
+        item.sorting !== null &&
+        String(item.sorting).trim() !== "";
+      const numericSorting = hasSorting ? Number(item.sorting) : Number.NaN;
+      const sorting = Number.isFinite(numericSorting)
+        ? numericSorting
+        : undefined;
       const name = this.getI18nValue(item, "codeName");
       return {
         code: item.code,
         name,
+        sorting,
+        index,
       };
     });
+
+    // 未配置 sorting 时保留接口原始顺序（接口默认按时间排序）。
+    return stages
+      .sort((a, b) => {
+        if (a.sorting !== undefined && b.sorting !== undefined) {
+          return a.sorting - b.sorting;
+        }
+        if (a.sorting !== undefined) return -1;
+        if (b.sorting !== undefined) return 1;
+        return a.index - b.index;
+      })
+      .map(({ index: _index, ...stage }) => stage);
   }
 
   // 提取负责人匹配键（用于组织筛选，统一转字符串，兼容 id 数字/字符串、email 两种 value 格式）
@@ -892,7 +941,11 @@ export class DashboardApiService {
     const keys = new Set<string>();
     ownerArr?.forEach((owner) => {
       [owner.id, owner.value, owner.email, owner.uid].forEach((value) => {
-        if (value !== undefined && value !== null && String(value).trim() !== "") {
+        if (
+          value !== undefined &&
+          value !== null &&
+          String(value).trim() !== ""
+        ) {
           keys.add(String(value).trim());
         }
       });

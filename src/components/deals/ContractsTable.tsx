@@ -372,9 +372,9 @@ export function ContractsTable({
             <TableHead className="text-right">
               {t("dashboard>collection>pendingAmount")}({getCurrencySymbol(currencyCode)})
             </TableHead>
-            <TableHead>
+            {/* <TableHead>
               {t("contract-management|>contract-management|>expiration-date")}
-            </TableHead>
+            </TableHead> */}
             <TableHead>
               {t(
                 "contract-management|>contract-management-form|>contract-manager",
