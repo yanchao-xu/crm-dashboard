@@ -5,6 +5,7 @@ import { X, Info } from "lucide-react";
 export interface FilterTag {
   label: string;
   onRemove?: () => void;
+  variant?: "global" | "inherited" | "selected";
 }
 
 interface ChartCardProps {
@@ -34,6 +35,11 @@ export function ChartCard({
   className = "",
 }: ChartCardProps) {
   const [showTooltip, setShowTooltip] = useState(false);
+  const filterTagColors = {
+    global: "bg-muted/60 text-muted-foreground",
+    inherited: "bg-primary/10 text-primary/80 border border-primary/20",
+    selected: "bg-primary text-primary-foreground shadow-sm",
+  };
   const statusColors = {
     success: "bg-success/20 text-success",
     danger: "bg-danger/20 text-danger",
@@ -46,10 +52,10 @@ export function ChartCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       className={`bot-dashboard-bg glass-card p-6 transition-all ${isActive
-          ? "ring-2 ring-primary shadow-lg shadow-primary/20"
-          : isOtherChartActive
-            ? "opacity-50 hover:opacity-75"
-            : "hover:ring-2 hover:ring-primary/30"
+        ? "ring-2 ring-primary shadow-lg shadow-primary/20"
+        : isOtherChartActive
+          ? "opacity-50 hover:opacity-75"
+          : "hover:ring-2 hover:ring-primary/30"
         } ${className}`}
     >
       <div className="flex items-center justify-between mb-6">
@@ -76,8 +82,8 @@ export function ChartCard({
         <div className="flex items-center gap-2 flex-wrap justify-end">
           {filterTags?.map((tag, i) => (
             <span
-              key={i}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-muted/60 text-muted-foreground"
+              key={`${tag.variant ?? "global"}-${tag.label}-${i}`}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs ${filterTagColors[tag.variant ?? "global"]}`}
             >
               {tag.label}
               {tag.onRemove && (

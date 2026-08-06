@@ -28,14 +28,10 @@ export function FunnelChart({
   const { currencyCode } = useCurrency();
   const { funnelData, stats } = useFunnelChartData(data);
 
-  const isOtherChartActive = !!activeFilter && activeFilter.type !== "funnel";
+  const isOtherChartActive = activeFilter?.type === "collection";
 
   const highlightedStage =
-    activeFilter?.type === "funnel"
-      ? activeFilter.stage
-      : activeFilter?.type === "stagnation"
-        ? activeFilter.stage
-        : null;
+    activeFilter?.type !== "collection" ? activeFilter?.stage : null;
 
   const legendItems = [
     { color: "hsl(142, 76%, 45%)", label: t("dashboard>chart>aboveTarget") },

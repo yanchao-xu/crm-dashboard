@@ -47,11 +47,9 @@ export function StagnationChart({
   const [displayMode, setDisplayMode] = useState<DisplayMode>("amount");
   const { chartData, stats } = useStagnationChartData(data, displayMode);
 
-  const isOtherChartActive = !!(
-    activeFilter && activeFilter.type !== "stagnation"
-  );
+  const isOtherChartActive = activeFilter?.type === "collection";
   const highlightedStatus =
-    activeFilter?.type === "stagnation" ? activeFilter.activityStatus : null;
+    activeFilter?.type !== "collection" ? activeFilter?.activityStatus : null;
   // 创建阶段名称映射函数（stageName 已经是当前语言）
   const getStageName = (stageData: any) => {
     return stageData.stageName || stageData.stage;
