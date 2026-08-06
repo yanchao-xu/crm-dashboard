@@ -14,22 +14,35 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ChartFilterContext } from "@/pages/Index";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { formatCurrency } from "@/components/charts/utils/formatters";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { formatAmountNumber, getCurrencySymbol } from "@/components/charts/utils/formatters";
 import type { OpportunityStage } from "@/services/api";
+import type { ExchangeRateService } from "@/services/exchangeRate";
 
 interface DealsTableProps {
   filterContext?: ChartFilterContext;
   deals?: Deal[];
   stages?: OpportunityStage[];
+  exchangeService?: ExchangeRateService | null;
+  targetCurrencyCode?: string;
 }
 
 export function DealsTable({
   filterContext,
   deals: propDeals,
   stages = [],
+  exchangeService,
+  targetCurrencyCode,
 }: DealsTableProps) {
   const { t, getText, language } = useLanguage();
+  const { currencyCode } = useCurrency();
   const allDeals = propDeals || [];
+
+  // 汇率转换辅助
+  const convertAmount = (amount: number, fromCurrencyCode?: string): number => {
+    if (!exchangeService || !targetCurrencyCode || !fromCurrencyCode) return amount;
+    return exchangeService.convert(amount, fromCurrencyCode, targetCurrencyCode);
+  };
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [filters, setFilters] = useState<FilterState>({
     stages: [],
@@ -87,11 +100,14 @@ export function DealsTable({
 
   const ownerOptions = useMemo(() => {
     const owners = [...new Set(allDeals.map((d) => d.owner))];
-    return owners.map((owner) => ({
-      value: owner,
-      label: owner,
-      count: allDeals.filter((d) => d.owner === owner).length,
-    }));
+    return owners.map((owner) => {
+      const dealWithOwner = allDeals.find((d) => d.owner === owner);
+      return {
+        value: owner,
+        label: dealWithOwner?.ownerName || owner,
+        count: allDeals.filter((d) => d.owner === owner).length,
+      };
+    });
   }, [allDeals]);
 
   // Filter deals based on chart context and manual filters
@@ -187,10 +203,10 @@ export function DealsTable({
                   {t("dashboard>deals>deal")}
                 </TableHead>
                 <TableHead className="text-muted-foreground font-mono text-xs">
-                  {t("dashboard>deals>expectedTransactionAmount")}
+                  {t("dashboard>deals>expectedTransactionAmount")}({getCurrencySymbol(currencyCode)})
                 </TableHead>
                 <TableHead className="text-muted-foreground font-mono text-xs">
-                  {t("dashboard>deals>businessAmount")}
+                  {t("dashboard>deals>businessAmount")}({getCurrencySymbol(currencyCode)})
                 </TableHead>
                 <TableHead className="text-muted-foreground font-mono text-xs">
                   {t("dashboard>deals>stage")}
@@ -219,14 +235,13 @@ export function DealsTable({
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                     onClick={() => setSelectedDeal(isSelected ? null : deal)}
-                    className={`cursor-pointer transition-colors border-border ${
-                      isSelected ? "bg-primary/10" : "hover:bg-secondary/50"
-                    }`}
+                    className={`cursor-pointer transition-colors border-border ${isSelected ? "bg-primary/10" : "hover:bg-secondary/50"
+                      }`}
                   >
                     <TableCell>
                       <div>
                         <a
-                          href={`/ui/opportunity-management/form/opportunity-management-form/${deal.id}/view`}
+                          href={`/ui/opportunity-management/form/opportunity-management-form/layout/edit/${deal.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="font-medium text-sm text-primary hover:underline"
@@ -241,12 +256,12 @@ export function DealsTable({
                     </TableCell>
                     <TableCell>
                       <span className="font-mono text-sm">
-                        {formatCurrency(deal.value, language)}
+                        {formatAmountNumber(convertAmount(deal.value, deal.currencyCode))}
                       </span>
                     </TableCell>
                     <TableCell>
                       <span className="font-mono text-sm">
-                        {formatCurrency(deal.businessAmount || 0, language)}
+                        {formatAmountNumber(convertAmount(deal.businessAmount || 0, deal.currencyCode))}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -263,13 +278,12 @@ export function DealsTable({
                       <div className="flex items-center gap-2">
                         <div className="w-12 h-1.5 rounded-full bg-secondary overflow-hidden">
                           <div
-                            className={`h-full rounded-full transition-all ${
-                              deal.probability >= 70
-                                ? "bg-success"
-                                : deal.probability >= 40
-                                  ? "bg-warning"
-                                  : "bg-danger"
-                            }`}
+                            className={`h-full rounded-full transition-all ${deal.probability >= 70
+                              ? "bg-success"
+                              : deal.probability >= 40
+                                ? "bg-warning"
+                                : "bg-danger"
+                              }`}
                             style={{ width: `${deal.probability}%` }}
                           />
                         </div>
@@ -280,7 +294,7 @@ export function DealsTable({
                     </TableCell>
                     <TableCell>
                       <span className="text-sm text-muted-foreground">
-                        {deal.owner}
+                        {deal.ownerName || deal.owner}
                       </span>
                     </TableCell>
                   </motion.tr>

@@ -16,9 +16,50 @@ export interface Deal {
   stage: string;
   lastActivityDays: number;
   probability: number;
-  owner: string;
+  owner: string; // 负责人匹配键（id 或 email，用于组织筛选）
+  ownerName?: string; // 负责人显示名（直接来自 label，与组织树是否覆盖无关）
   productLine?: string[];
   createdMonth?: string;
+  createdYearMonth?: string; // "2026-04" 格式，用于跨年财年匹配
+  contractNumber?: string;
+  currencyCode?: string; // 结算币种 code (如 "CNY")，用于汇率匹配
+}
+
+// 合同相关类型
+export interface Contract {
+  id: string;
+  contractCode: string;
+  contractName: string; // 合同名称
+  customer: string; // 客户（甲方名称）
+  owner: string; // 负责人匹配键（id 或 email，用于组织筛选）
+  ownerName?: string; // 负责人显示名（直接来自 label，与组织树是否覆盖无关）
+  totalAmountWithTax: number;
+  signingDate: string;
+  expiryDate: string; // 到期日期
+  signingMonth?: string; // 解析后的月份 "Jan"~"Dec"
+  signingYearMonth?: string; // "2026-04" 格式，用于跨年财年匹配
+  dealId?: string; // 关联的商机ID
+  stage?: string; // 继承自商机的阶段
+  currencyCode?: string; // 结算币种 code (如 "CNY")，用于汇率匹配
+}
+
+// 应收计划相关类型
+export interface ReceivablePlan {
+  id: string;
+  parentDataId: string; // 关联的合同ID
+  actualAmount: number; // 实际回款金额
+  actualDate: string; // 实际回款日期
+  actualMonth?: string; // 解析后的月份 "Jan"~"Dec"
+  actualYearMonth?: string; // "2026-04" 格式，用于跨年财年匹配
+  plannedAmount: number; // 计划应收金额
+  plannedDate: string; // 计划应收日期
+  plannedMonth?: string; // 解析后的月份 "Jan"~"Dec"
+  plannedYearMonth?: string; // "2026-04" 格式，用于跨年财年匹配
+  paymentStage: string; // 款项阶段（如 "首款"、"尾款"）
+  paymentOwner: string; // 回款负责人主匹配键（用户 id 或 email）
+  paymentOwnerName?: string; // 回款负责人显示名
+  paymentOwnerKeys?: string[]; // 回款负责人全部匹配键（id/email/uid），用于组织筛选
+  currencyCode?: string; // 结算币种 code (如 "CNY")，用于汇率匹配
 }
 
 // 图表数据类型
@@ -70,9 +111,10 @@ export interface OrgNode {
   name: BilingualText;
   type: "company" | "district" | "team" | "person"; //todo 来自于数据字典
   conversionSettings?: ConversionSettings;
-  quota?: number;
-  fiscalStart?: string;
   children?: OrgNode[];
+  memberEmail?: string; // person 节点关联的用户 email（来自 memberName[0].email）
+  memberId?: string; // person 节点关联的用户 id（来自 memberName[0].value/id，统一转字符串）
+  currencyCode?: string; // 结算币种 code (如 "CNY")，用于汇率匹配（目标值的币种）
   janJanuary?: number;
   febFebruary?: number;
   marMarch?: number;
@@ -93,6 +135,20 @@ export interface OrgNode {
   negotiationToLoss?: number;
   theStartDateOfTheFiscalYear?: string;
   theEndDateOfTheFiscalYear?: string;
+}
+
+// 汇率相关类型
+export interface ExchangeRate {
+  fromCurrencyCode: string; // 币种 code (如 "JPY")
+  toCurrencyCode: string;   // 币种 code (如 "CNY")
+  rate: number;             // fromCurrency / toCurrency 的汇率
+}
+
+// 币种相关类型
+export interface CurrencyItem {
+  id: string;    // 数据字典 id
+  code: string;  // 币种 code (如 "CNY")，用于汇率匹配
+  name: string;  // 已按当前语言解析好的展示名
 }
 
 // 产品相关类型

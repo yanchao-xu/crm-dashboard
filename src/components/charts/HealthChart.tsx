@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { ChartFilterContext } from "@/pages/Index";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import type { StackedHealthDataPoint } from "@/types";
 import { ChartCard, FilterTag } from "./common/ChartCard";
 import { StatCard } from "./common/StatCard";
@@ -27,6 +28,7 @@ interface HealthChartProps {
   isActive?: boolean;
   activeFilter?: ChartFilterContext;
   filterTags?: FilterTag[];
+  fiscalMonths?: string[];
 }
 
 export function HealthChart({
@@ -36,12 +38,14 @@ export function HealthChart({
   isActive,
   activeFilter,
   filterTags,
+  fiscalMonths,
 }: HealthChartProps) {
   const { t, language } = useLanguage();
+  const { currencyCode } = useCurrency();
 
   // 提取阶段代码列表
   const stageCodes = stages.map((s) => s.code);
-  const { healthData, stats, stageKeys } = useHealthChartData(data, stageCodes);
+  const { healthData, stats, stageKeys } = useHealthChartData(data, stageCodes, fiscalMonths);
 
   const handleClick = (data: any) => {
     if (data && data.activeLabel && onSegmentClick) {
@@ -76,6 +80,10 @@ export function HealthChart({
     "hsl(280, 100%, 70%)",
     "hsl(330, 85%, 65%)",
     "hsl(142, 76%, 45%)",
+    "hsl(190, 85%, 50%)",
+    "hsl(350, 80%, 55%)",
+    "hsl(160, 70%, 45%)",
+    "hsl(270, 60%, 55%)",
   ];
   const getStageColor = (index: number) => {
     return defaultColors[index % defaultColors.length];
@@ -99,18 +107,21 @@ export function HealthChart({
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard
           label={t("dashboard>chart>current")}
-          value={formatCurrency(stats.latestActual, language)}
+          value={formatCurrency(stats.latestActual, currencyCode)}
           valueColor="text-chart-actual"
+          infoText={t("dashboard>chart>currentInfo")}
         />
         <StatCard
           label={t("dashboard>chart>target")}
-          value={formatCurrency(stats.latestTarget, language)}
+          value={formatCurrency(stats.latestTarget, currencyCode)}
           valueColor="text-chart-target"
+          infoText={t("dashboard>chart>targetInfo")}
         />
         <StatCard
           label={t("dashboard>chart>attainment")}
           value={`${stats.attainment}%`}
           valueColor={stats.isHealthy ? "text-success" : "text-danger"}
+          infoText={t("dashboard>chart>attainmentInfo")}
         />
       </div>
 
@@ -135,10 +146,10 @@ export function HealthChart({
             <YAxis
               {...axisConfig}
               tick={{ fill: chartTheme.tick, fontSize: axisConfig.fontSize }}
-              tickFormatter={(value) => formatCurrency(value, language)}
+              tickFormatter={(value) => formatCurrency(value, currencyCode)}
             />
             <Tooltip
-              content={<HealthChartTooltip t={t} language={language} />}
+              content={<HealthChartTooltip t={t} currencyCode={currencyCode} />}
             />
 
             {stageKeys.map((stageKey, index) => (

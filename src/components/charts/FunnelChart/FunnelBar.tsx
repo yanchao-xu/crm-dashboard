@@ -12,6 +12,7 @@ interface FunnelBarProps {
     isHighlighted?: boolean;
     t: (key: string, params?: Record<string, string | number>) => string;
     language: Language;
+    currencyCode?: string;
 }
 
 export function FunnelBar({
@@ -23,6 +24,7 @@ export function FunnelBar({
     isHighlighted,
     t,
     language,
+    currencyCode,
 }: FunnelBarProps) {
     const widthPercent = (stage.count / maxCount) * 100;
     const conversionGap = stage.actualConversion - stage.targetConversion;
@@ -69,7 +71,7 @@ export function FunnelBar({
                         >
                             <div className="absolute inset-0 flex items-center justify-center">
                                 <span className="text-sm font-mono font-semibold text-primary-foreground drop-shadow">
-                                    {formatCurrency(stage.value, language)}
+                                    {formatCurrency(stage.value, currencyCode)}
                                 </span>
                             </div>
                         </motion.div>

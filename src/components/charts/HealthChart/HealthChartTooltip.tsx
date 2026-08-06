@@ -1,11 +1,11 @@
-import { formatCurrency, type Language } from "../utils/formatters";
+import { formatCurrency } from "../utils/formatters";
 
 interface HealthChartTooltipProps {
   active?: boolean;
   payload?: any[];
   label?: string;
   t: (key: string, params?: Record<string, string | number>) => string;
-  language: Language;
+  currencyCode?: string;
 }
 
 export function HealthChartTooltip({
@@ -13,7 +13,7 @@ export function HealthChartTooltip({
   payload,
   label,
   t,
-  language,
+  currencyCode,
 }: HealthChartTooltipProps) {
   if (!active || !payload || payload.length === 0) {
     return null;
@@ -44,7 +44,7 @@ export function HealthChartTooltip({
               {entry.name || entry.dataKey}:
             </span>
             <span className="font-mono text-xs">
-              {formatCurrency(entry.value, language)}
+              {formatCurrency(entry.value, currencyCode)}
             </span>
           </div>
         ))}
@@ -56,7 +56,7 @@ export function HealthChartTooltip({
             {t("dashboard>chart>total")}:
           </span>
           <span className="font-mono text-sm font-semibold">
-            {formatCurrency(actual, language)}
+            {formatCurrency(actual, currencyCode)}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -65,7 +65,7 @@ export function HealthChartTooltip({
             {t("dashboard>chart>target")}:
           </span>
           <span className="font-mono text-sm">
-            {formatCurrency(target, language)}
+            {formatCurrency(target, currencyCode)}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -76,7 +76,7 @@ export function HealthChartTooltip({
             className={`font-mono text-sm font-semibold ${isHealthy ? "text-success" : "text-danger"}`}
           >
             {gap >= 0 ? "+" : ""}
-            {formatCurrency(gap, language)}
+            {formatCurrency(gap, currencyCode)}
           </span>
         </div>
       </div>
