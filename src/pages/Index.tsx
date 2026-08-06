@@ -57,6 +57,7 @@ import {
   type AmountMode,
 } from "@/components/filters/AmountModeFilter";
 import { CurrencyFilter } from "@/components/filters/CurrencyFilter";
+import { transitionChartFilter } from "./chartFilterState";
 
 export type ChartFilterContext = {
   type: "health" | "funnel" | "stagnation" | "collection";
@@ -195,9 +196,9 @@ const Index = () => {
     selectedYear,
   ]);
 
-  // 点击柱子后过滤 deals（月或季度标签）
+  // 健康度选择的月份/季度会作为后续图表的第一级筛选条件
   const monthFilteredDeals = useMemo(() => {
-    if (chartFilter?.type === "health" && chartFilter.month) {
+    if (chartFilter?.type !== "collection" && chartFilter?.month) {
       const clickedLabel = chartFilter.month;
       const orgForFiscal = selectedOrg || (orgStructure.id ? orgStructure : null);
       const fiscalYearMonths = getFiscalYearMonths(orgForFiscal, selectedYear);
@@ -222,7 +223,7 @@ const Index = () => {
   // 销售漏斗数据
   // target conversion 来自选中的组织节点，未选中时使用根节点
   const selectedMonths = useMemo((): string[] | undefined => {
-    if (!chartFilter?.month || chartFilter.type !== "health") return undefined;
+    if (!chartFilter?.month || chartFilter.type === "collection") return undefined;
     const clickedLabel = chartFilter.month;
     const orgForFiscal = selectedOrg || (orgStructure.id ? orgStructure : null);
     const fiscalYearMonths = getFiscalYearMonths(orgForFiscal, selectedYear);
@@ -272,13 +273,26 @@ const Index = () => {
     selectedCurrencyCode,
   ]);
 
-  // 商机停滞分析数据
+  // 商机阶段是停滞分析的第二级筛选条件；漏斗本身仍保留全部阶段。
+  const stageFilteredDeals = useMemo(() => {
+    if (chartFilter?.type !== "collection" && chartFilter?.stage) {
+      return monthFilteredDeals.filter((deal) => deal.stage === chartFilter.stage);
+    }
+    return monthFilteredDeals;
+  }, [monthFilteredDeals, chartFilter]);
+
+  // 商机停滞分析数据：应用月份/季度 + 漏斗阶段，但保留全部停滞状态。
   const filteredStagnationData = useMemo(() => {
+    const selectedStage =
+      chartFilter?.type !== "collection" ? chartFilter?.stage : undefined;
+    const amountBaseDeals = selectedStage
+      ? filteredDeals.filter((deal) => deal.stage === selectedStage)
+      : filteredDeals;
     const dealsForAmount = (amountMode === "contractAmount" || amountMode === "receivableAmount")
-      ? filteredDeals
-      : monthFilteredDeals;
-    return calculateStagnationData(
-      monthFilteredDeals,
+      ? amountBaseDeals
+      : stageFilteredDeals;
+    const result = calculateStagnationData(
+      stageFilteredDeals,
       opportunityStages,
       amountMode,
       contractMap,
@@ -288,7 +302,10 @@ const Index = () => {
       exchangeService,
       selectedCurrencyCode,
     );
-  }, [monthFilteredDeals, filteredDeals, opportunityStages, amountMode, contractMap, receivablePlanMap, selectedMonths, exchangeService, selectedCurrencyCode]);
+    return selectedStage
+      ? result.filter((item) => item.stage === selectedStage)
+      : result;
+  }, [stageFilteredDeals, filteredDeals, chartFilter, opportunityStages, amountMode, contractMap, receivablePlanMap, selectedMonths, exchangeService, selectedCurrencyCode]);
 
   // 回款健康度图表数据：应收计划为主数据，合同仅用于明细展示
   const { chartData: collectionHealthData, rollingMap } = useMemo(() => {
@@ -323,6 +340,46 @@ const Index = () => {
     return opportunityStages.find((s) => s.code === code)?.name ?? code;
   };
 
+  const handleHealthClick = useCallback((month: string) => {
+    setChartFilter((previous) =>
+      transitionChartFilter(previous, { kind: "selectMonth", month }),
+    );
+  }, []);
+
+  const handleFunnelClick = useCallback((stage: string) => {
+    setChartFilter((previous) =>
+      transitionChartFilter(previous, { kind: "selectStage", stage }),
+    );
+  }, []);
+
+  const handleStagnationClick = useCallback((stage: string | undefined, activityStatus: string) => {
+    setChartFilter((previous) =>
+      transitionChartFilter(previous, {
+        kind: "selectStatus",
+        stage,
+        activityStatus,
+      }),
+    );
+  }, []);
+
+  const clearMonthFilter = useCallback(() => {
+    setChartFilter((previous) =>
+      transitionChartFilter(previous, { kind: "removeMonth" }),
+    );
+  }, []);
+
+  const clearStageFilter = useCallback(() => {
+    setChartFilter((previous) =>
+      transitionChartFilter(previous, { kind: "removeStage" }),
+    );
+  }, []);
+
+  const clearActivityStatusFilter = useCallback(() => {
+    setChartFilter((previous) =>
+      transitionChartFilter(previous, { kind: "removeStatus" }),
+    );
+  }, []);
+
   // 构建每个图表的筛选条件标签
   const currentYear = String(selectedYear);
 
@@ -351,68 +408,68 @@ const Index = () => {
 
   const healthFilterTags = useMemo((): FilterTag[] => {
     const tags = buildCommonTags();
-    if (chartFilter?.type === "health" && chartFilter.month) {
+    if (chartFilter?.type !== "collection" && chartFilter?.month) {
       tags.push({
         label: chartFilter.month,
-        onRemove: () => setChartFilter(null),
+        variant: "selected",
+        onRemove: clearMonthFilter,
       });
     }
     return tags;
-  }, [buildCommonTags, chartFilter]);
+  }, [buildCommonTags, chartFilter, clearMonthFilter]);
 
   const funnelFilterTags = useMemo((): FilterTag[] => {
     const tags = buildCommonTags();
-    if (chartFilter?.type === "health" && chartFilter.month) {
+    if (chartFilter?.type !== "collection" && chartFilter?.month) {
       tags.push({
         label: chartFilter.month,
-        onRemove: () => setChartFilter(null),
+        variant: "inherited",
+        onRemove: clearMonthFilter,
       });
     }
-    if (chartFilter?.type === "funnel" && chartFilter.stage) {
+    if (chartFilter?.type !== "collection" && chartFilter?.stage) {
       tags.push({
-        label: `${t("dashboard>filter>stage")}: ${getStageName(chartFilter.stage)}`,
-        onRemove: () => setChartFilter(null),
+        label: getStageName(chartFilter.stage),
+        variant: "selected",
+        onRemove: clearStageFilter,
       });
     }
     return tags;
-  }, [buildCommonTags, chartFilter, t, opportunityStages]);
+  }, [buildCommonTags, chartFilter, opportunityStages, clearMonthFilter, clearStageFilter]);
 
   const stagnationFilterTags = useMemo((): FilterTag[] => {
     const tags = buildCommonTags();
-    if (chartFilter?.type === "health" && chartFilter.month) {
+    if (chartFilter?.type !== "collection" && chartFilter?.month) {
       tags.push({
         label: chartFilter.month,
-        onRemove: () => setChartFilter(null),
+        variant: "inherited",
+        onRemove: clearMonthFilter,
       });
     }
-    if (chartFilter?.type === "stagnation") {
-      if (chartFilter.stage) {
-        tags.push({
-          label: `${t("dashboard>filter>stage")}: ${getStageName(chartFilter.stage)}`,
-          onRemove: () => {
-            if (chartFilter.activityStatus) {
-              setChartFilter({ ...chartFilter, stage: undefined });
-            } else {
-              setChartFilter(null);
-            }
-          },
-        });
-      }
-      if (chartFilter.activityStatus) {
-        tags.push({
-          label: t(`dashboard>status>${chartFilter.activityStatus}`),
-          onRemove: () => {
-            if (chartFilter.stage) {
-              setChartFilter({ ...chartFilter, activityStatus: undefined });
-            } else {
-              setChartFilter(null);
-            }
-          },
-        });
-      }
+    if (chartFilter?.type !== "collection" && chartFilter?.stage) {
+      tags.push({
+        label: getStageName(chartFilter.stage),
+        variant: "inherited",
+        onRemove: clearStageFilter,
+      });
+    }
+    if (chartFilter?.type !== "collection" && chartFilter?.activityStatus) {
+      tags.push({
+        label: t(`dashboard>status>${chartFilter.activityStatus}`),
+        variant: "selected",
+        onRemove: clearActivityStatusFilter,
+      });
     }
     return tags;
-  }, [buildCommonTags, chartFilter, t, opportunityStages]);
+  }, [
+    buildCommonTags,
+    chartFilter,
+    t,
+    opportunityStages,
+    clearMonthFilter,
+    clearStageFilter,
+    clearActivityStatusFilter,
+  ]);
 
   const getFilterTitle = () => {
     if (!chartFilter) return "";
@@ -554,20 +611,16 @@ const Index = () => {
               <HealthChart
                 data={filteredStackedHealthData}
                 stages={opportunityStages}
-                onSegmentClick={(month) =>
-                  setChartFilter({ type: "health", month })
-                }
-                isActive={chartFilter?.type === "health"}
+                onSegmentClick={handleHealthClick}
+                isActive={!!(chartFilter?.type !== "collection" && chartFilter?.month)}
                 activeFilter={chartFilter}
                 filterTags={healthFilterTags}
                 fiscalMonths={fiscalMonths}
               />
               <FunnelChart
                 data={filteredFunnelData}
-                onStageClick={(stage) =>
-                  setChartFilter({ type: "funnel", stage })
-                }
-                isActive={chartFilter?.type === "funnel"}
+                onStageClick={handleFunnelClick}
+                isActive={!!(chartFilter?.type !== "collection" && chartFilter?.stage)}
                 activeFilter={chartFilter}
                 filterTags={funnelFilterTags}
               />
@@ -617,14 +670,10 @@ const Index = () => {
             {/* Stagnation Chart - Full Width */}
             <StagnationChart
               data={filteredStagnationData}
-              onBarClick={(stage, status) =>
-                setChartFilter({
-                  type: "stagnation",
-                  stage,
-                  activityStatus: status,
-                })
-              }
-              isActive={chartFilter?.type === "stagnation"}
+              onBarClick={handleStagnationClick}
+              isActive={!!(
+                chartFilter?.type !== "collection" && chartFilter?.activityStatus
+              )}
               activeFilter={chartFilter}
               filterTags={stagnationFilterTags}
             />

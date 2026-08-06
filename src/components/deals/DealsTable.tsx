@@ -113,21 +113,15 @@ export function DealsTable({
   // Filter deals based on chart context and manual filters
   const filteredDeals = useMemo(() => {
     return allDeals.filter((deal) => {
-      // Apply chart filter context first
-      if (filterContext) {
-        if (filterContext.type === "funnel" && filterContext.stage) {
-          if (deal.stage !== filterContext.stage) return false;
+      // Apply the complete drill-down context. Month filtering is already
+      // applied by the parent through allDeals; stage and status are combined here.
+      if (filterContext?.type !== "collection") {
+        if (filterContext?.stage && deal.stage !== filterContext.stage) {
+          return false;
         }
-        if (filterContext.type === "stagnation") {
-          // Filter by activity status if specified
-          if (filterContext.activityStatus) {
-            const status = getActivityStatus(deal.lastActivityDays);
-            if (status.key !== filterContext.activityStatus) return false;
-          }
-          // Filter by stage only if specified and not empty
-          if (filterContext.stage && filterContext.stage.trim() !== "") {
-            if (deal.stage !== filterContext.stage) return false;
-          }
+        if (filterContext?.activityStatus) {
+          const status = getActivityStatus(deal.lastActivityDays);
+          if (status.key !== filterContext.activityStatus) return false;
         }
       }
 

@@ -8,6 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  Cell,
 } from "recharts";
 import { ChartFilterContext } from "@/pages/Index";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -53,7 +54,9 @@ export function HealthChart({
     }
   };
 
-  const isOtherChartActive = !!(activeFilter && activeFilter.type !== "health");
+  const isOtherChartActive = activeFilter?.type === "collection";
+  const selectedMonth =
+    activeFilter?.type !== "collection" ? activeFilter?.month : undefined;
 
   // 动态生成阶段标签映射（name 已经是当前语言）
   const stageLabels: Record<string, string> = {};
@@ -162,7 +165,17 @@ export function HealthChart({
                 radius={
                   index === stageKeys.length - 1 ? [8, 8, 0, 0] : [0, 0, 0, 0]
                 }
-              />
+              >
+                {healthData.map((entry, entryIndex) => (
+                  <Cell
+                    key={`${stageKey}-${entry.month}-${entryIndex}`}
+                    fill={getStageColor(index)}
+                    opacity={
+                      selectedMonth && selectedMonth !== entry.month ? 0.3 : 1
+                    }
+                  />
+                ))}
+              </Bar>
             ))}
 
             <Line
