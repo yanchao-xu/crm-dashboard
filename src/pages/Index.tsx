@@ -763,7 +763,7 @@ const Index = () => {
                       filterContext={chartFilter}
                       exchangeService={exchangeService}
                       targetCurrencyCode={selectedCurrencyCode}
-                      selectedOrg={selectedOrg}
+                      selectedOrg={selectedOrg || orgStructure}
                       rollingMap={rollingMap}
                       hiddenSeries={hiddenSeries}
                     />

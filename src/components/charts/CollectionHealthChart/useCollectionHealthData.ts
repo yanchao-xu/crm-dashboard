@@ -132,80 +132,49 @@ function getFiscalYearMonths(orgNode: OrgNode | null, selectedYear?: number): Fi
 
 // ─── 逾期判定辅助函数 ───────────────────────────────────────
 
-/** 获取某月最后一天 */
-function getEndOfMonth(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
-}
-
-/** 判断两个日期是否为同一年月 */
-function isSameMonth(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
-}
-
-/** 逾期判定 */
-function determineOverdueStatus(plan: ReceivablePlan, now: Date): {
-  status: OverdueStatus;
-  overdueAmount: number;
-  shouldRoll: boolean;
-} {
-  // 无计划日期，视为正常
-  if (!plan.plannedDate) {
-    return { status: "normal", overdueAmount: 0, shouldRoll: false };
-  }
+/** 当前状态判定；滚动金额按各月月初余额单独计算。 */
+function determineOverdueStatus(plan: ReceivablePlan, now: Date): OverdueStatus {
+  if (!plan.plannedDate) return "normal";
 
   const plannedDate = new Date(plan.plannedDate);
-  if (isNaN(plannedDate.getTime())) {
-    return { status: "normal", overdueAmount: 0, shouldRoll: false };
-  }
+  if (isNaN(plannedDate.getTime())) return "normal";
 
-  const remainingAmount = Math.max(plan.plannedAmount - plan.actualAmount, 0);
+  if (plan.actualAmount >= plan.plannedAmount) return "completed";
 
-  // 已全额回款
-  if (plan.actualAmount >= plan.plannedAmount) {
-    return { status: "completed", overdueAmount: 0, shouldRoll: false };
-  }
-
-  // 未到期：计划日期 >= 当前日期
   if (plannedDate >= now) {
     const daysUntilDue = Math.floor(
-      (plannedDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      (plannedDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
     );
-    if (daysUntilDue <= 14 && plan.actualAmount === 0) {
-      return { status: "dueSoon", overdueAmount: 0, shouldRoll: false };
-    }
-    return { status: "normal", overdueAmount: 0, shouldRoll: false };
+    return daysUntilDue <= 14 && plan.actualAmount === 0 ? "dueSoon" : "normal";
   }
 
-  // 已逾期：当前日期 > 计划日期
-  const plannedEndOfMonth = getEndOfMonth(plannedDate);
+  return "overdue";
+}
 
-  // 同月回款 → 不滚动
-  if (plan.actualDate) {
-    const actualDate = new Date(plan.actualDate);
-    if (!isNaN(actualDate.getTime()) && isSameMonth(actualDate, plannedDate)) {
-      return { status: "overdue", overdueAmount: remainingAmount, shouldRoll: false };
-    }
+/**
+ * 计算一笔计划在目标月份月初的逾期余额。
+ * actualAmount 视为在 actualYearMonth 一次发生：回款当月仍展示月初余额，
+ * 从下个月起才扣除该笔回款，避免回款在当月目标和待收中被重复扣减。
+ */
+function getOpeningOverdueAmount(plan: ReceivablePlan, targetYearMonth: string): number {
+  const plannedAmount = Math.max(plan.plannedAmount, 0);
+  if (plan.actualAmount <= 0) return plannedAmount;
+
+  const actualYearMonth = plan.actualYearMonth || plan.actualDate?.slice(0, 7);
+  if (!actualYearMonth) {
+    return Math.max(plannedAmount - plan.actualAmount, 0);
   }
 
-  // 月底已过且未全额回款 → 需要滚动
-  if (now > plannedEndOfMonth && remainingAmount > 0) {
-    return { status: "overdue", overdueAmount: remainingAmount, shouldRoll: true };
-  }
-
-  // 当月内逾期但当月未结束 → 不滚动
-  return { status: "overdue", overdueAmount: remainingAmount, shouldRoll: false };
+  const paidBeforeTargetMonth = actualYearMonth < targetYearMonth;
+  return Math.max(
+    plannedAmount - (paidBeforeTargetMonth ? plan.actualAmount : 0),
+    0,
+  );
 }
 
 // ─── 主计算函数 ───────────────────────────────────────
 
-/**
- * 根据合同和应收计划数据，计算回款健康度图表数据（含滚动逾期逻辑）
- *
- * 改造点：
- * - target 柱拆为 nativePlan（蓝色）+ rolledOverdue（橙色）
- * - target = nativePlan + rolledOverdue（向后兼容）
- * - 新增 rollingMap 供 ContractsTable 使用
- */
+/** 根据应收计划计算月初滚动逾期、当月原生计划与实际回款。 */
 export function calculateCollectionHealthFromApi(
   contractMap: ContractMap,
   receivablePlanMap: ReceivablePlanMap,
@@ -217,8 +186,6 @@ export function calculateCollectionHealthFromApi(
 ): CollectionHealthResult {
   const fiscalYearMonths = getFiscalYearMonths(selectedOrg, selectedYear);
   const now = new Date();
-
-  // 初始化每月数据
   const monthlyNativePlan: Record<string, number> = {};
   const monthlyRolledOverdue: Record<string, number> = {};
   const monthlyActual: Record<string, number> = {};
@@ -235,10 +202,8 @@ export function calculateCollectionHealthFromApi(
     if (!exchangeService || !targetCurrencyCode || !currencyCode) return 1;
     return exchangeService.getRate(currencyCode, targetCurrencyCode);
   };
-
   const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-  // 合同只提供 rollingMap/明细展示所需的元数据，金额计算以应收计划为准。
   const contractById = new Map<string, Contract>();
   contractMap.forEach((contracts, contractCode) => {
     if (allowedContractNumbers && !allowedContractNumbers.has(contractCode)) return;
@@ -251,8 +216,6 @@ export function calculateCollectionHealthFromApi(
     contractCode: string;
     rate: number;
     status: OverdueStatus;
-    overdueAmount: number;
-    shouldRoll: boolean;
   }
   const allPlanInfos: PlanInfo[] = [];
 
@@ -260,24 +223,18 @@ export function calculateCollectionHealthFromApi(
     plans.forEach((plan) => {
       const contractId = String(plan.parentDataId || mapContractId);
       const contract = contractById.get(contractId);
-
-      // 仅为旧调用方保留合同编号白名单兼容；正常回款链路不传该参数。
       if (allowedContractNumbers && !contract) return;
 
       const rate = getRate(plan.currencyCode);
-      const { status, overdueAmount, shouldRoll } = determineOverdueStatus(plan, now);
-
       allPlanInfos.push({
         plan,
         contractId,
         contractCode: contract?.contractCode || "",
         rate,
-        status,
-        overdueAmount,
-        shouldRoll,
+        status: determineOverdueStatus(plan, now),
       });
 
-      // 实际回款严格按 actualDate 所在年月归类。
+      // 当前接口每条计划只有一组 actualAmount/actualDate，按该回款月份一次归集。
       if (plan.actualYearMonth && plan.actualAmount > 0) {
         if (monthlyActual[plan.actualYearMonth] !== undefined) {
           monthlyActual[plan.actualYearMonth] += plan.actualAmount * rate;
@@ -286,99 +243,97 @@ export function calculateCollectionHealthFromApi(
     });
   });
 
-  // Step 1: 归类原生计划 (nativePlan)
+  // Step 1: 当月原生计划。
   allPlanInfos.forEach(({ plan, contractId, contractCode, rate, status }) => {
     const ym = plan.plannedYearMonth;
     if (ym && monthlyNativePlan[ym] !== undefined) {
       monthlyNativePlan[ym] += plan.plannedAmount * rate;
-
-      // 将原生计划应收记录到 rollingMap，供月回款合同下钻。
-      const entries = rollingMap.get(ym);
-      if (entries) {
-        entries.push({
-          contractId,
-          planId: plan.id,
-          contractCode,
-          isOverdue: status === "overdue",
-          rollingSourceMonth: null,
-          overdueAmount: 0,
-          status,
-        });
-      }
+      rollingMap.get(ym)?.push({
+        contractId,
+        planId: plan.id,
+        contractCode,
+        isOverdue: status === "overdue",
+        rollingSourceMonth: null,
+        overdueAmount: 0,
+        status,
+      });
     }
   });
 
-  // Step 2: 计算滚动逾期
-  // 逐月展示滚动轨迹：逾期金额从源月的下一月开始，每个经过的月份都累加该笔逾期
-  // 直到当前月（含），让用户能看到每月承担的滚动逾期总额
-  allPlanInfos
-    .filter((p) => p.shouldRoll && p.overdueAmount > 0)
-    .forEach(({ plan, contractId, contractCode, rate, overdueAmount, status }) => {
-      const sourceYM = plan.plannedYearMonth;
-      if (!sourceYM) return;
+  // Step 2: 每月橙色柱表示该月月初从以前月份结转的逾期余额。
+  allPlanInfos.forEach(({ plan, contractId, contractCode, rate, status }) => {
+    const sourceYM = plan.plannedYearMonth;
+    if (!sourceYM) return;
 
-      const sourceIndex = fiscalYearMonths.findIndex((m) => m.yearMonth === sourceYM);
-      // 不把上一财年的应收滚入本财年。
-      if (sourceIndex < 0) return;
+    const sourceIndex = fiscalYearMonths.findIndex((m) => m.yearMonth === sourceYM);
+    if (sourceIndex < 0) return; // 不包含上一财年的期初逾期。
 
-      // 从逾期月的下一月开始，到当前月（含）的每个月都加上逾期金额
-      for (let i = sourceIndex + 1; i < fiscalYearMonths.length; i++) {
-        const targetYM = fiscalYearMonths[i].yearMonth;
-        // 只滚动到当前月（不滚动到未来月份）
-        if (targetYM > currentYM) break;
+    for (let i = sourceIndex + 1; i < fiscalYearMonths.length; i++) {
+      const targetYM = fiscalYearMonths[i].yearMonth;
+      if (targetYM > currentYM) break;
 
-        if (monthlyRolledOverdue[targetYM] !== undefined) {
-          monthlyRolledOverdue[targetYM] += overdueAmount * rate;
-        }
+      const openingAmount = getOpeningOverdueAmount(plan, targetYM);
+      if (openingAmount <= 0) continue;
 
-        // 记录滚动应收到 rollingMap
-        const entries = rollingMap.get(targetYM);
-        if (entries) {
-          entries.push({
-            contractId,
-            planId: plan.id,
-            contractCode,
-            isOverdue: true,
-            rollingSourceMonth: sourceYM,
-            overdueAmount: overdueAmount * rate,
-            status,
-          });
-        }
-      }
-    });
+      const convertedOpeningAmount = openingAmount * rate;
+      monthlyRolledOverdue[targetYM] += convertedOpeningAmount;
+      rollingMap.get(targetYM)?.push({
+        contractId,
+        planId: plan.id,
+        contractCode,
+        isOverdue: true,
+        rollingSourceMonth: sourceYM,
+        overdueAmount: convertedOpeningAmount,
+        status: "overdue",
+      });
+    }
+  });
 
-  // 构建输出
   const chartData = fiscalYearMonths.map(({ label, yearMonth }) => {
     const nativePlan = Math.round(monthlyNativePlan[yearMonth]);
     const rolledOverdue = Math.round(monthlyRolledOverdue[yearMonth]);
+    const actual = Math.round(monthlyActual[yearMonth]);
     return {
       month: label,
       nativePlan,
       rolledOverdue,
-      target: nativePlan + rolledOverdue, // 向后兼容
-      actual: Math.round(monthlyActual[yearMonth]),
+      target: nativePlan + rolledOverdue,
+      actual,
     };
   });
 
   return { chartData, rollingMap };
 }
 
-/**
- * Hook: 计算回款健康度图表的统计摘要
- * totalTarget / totalActual 为 12 个月的累加汇总
- */
+export interface CollectionHealthMetrics {
+  target: number;
+  pending: number;
+  rate: number;
+  isHealthy: boolean;
+}
+
+/** 统一月度与汇总卡片使用的应收、待收、回款率公式。 */
+export function calculateCollectionHealthMetrics(
+  nativePlan: number,
+  openingRolledOverdue: number,
+  actual: number,
+): CollectionHealthMetrics {
+  const target = nativePlan + openingRolledOverdue;
+  return {
+    target,
+    pending: Math.max(target - actual, 0),
+    rate: target > 0 ? Math.round((actual / target) * 100) : 0,
+    isHealthy: actual >= target * 0.9,
+  };
+}
+
+/** 统计期间只计一次期初逾期，避免逐月重复累计同一笔结转。 */
 export function useCollectionHealthData(data: CollectionHealthDataPoint[], fiscalMonths?: string[]) {
   return useMemo(() => {
-    const MONTH_ABBRS = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-    ];
-    const currentMonthAbbr = MONTH_ABBRS[new Date().getMonth()];
-
-    // 找到截止位置
+    const currentMonthAbbr = ALL_MONTHS[new Date().getMonth()];
     let sliceEnd = data.length;
-
     const monthIndex = data.findIndex((d) => d.month === currentMonthAbbr);
+
     if (monthIndex >= 0) {
       sliceEnd = monthIndex + 1;
     } else {
@@ -386,41 +341,39 @@ export function useCollectionHealthData(data: CollectionHealthDataPoint[], fisca
       if (isQuarterMode && fiscalMonths && fiscalMonths.length === 12) {
         const posInFiscal = fiscalMonths.indexOf(currentMonthAbbr);
         if (posInFiscal >= 0) {
-          const quarterIndex = Math.floor(posInFiscal / 3);
-          sliceEnd = Math.min(quarterIndex + 1, data.length);
+          sliceEnd = Math.min(Math.floor(posInFiscal / 3) + 1, data.length);
         }
       } else if (isQuarterMode) {
-        const currentMonthIndex = new Date().getMonth();
-        const quarterIndex = Math.floor(currentMonthIndex / 3);
-        sliceEnd = Math.min(quarterIndex + 1, data.length);
+        sliceEnd = Math.min(Math.floor(new Date().getMonth() / 3) + 1, data.length);
       }
     }
 
     const dataUpToCurrent = data.slice(0, sliceEnd);
-
-    const totalTarget = dataUpToCurrent.reduce((sum, d) => sum + d.target, 0);
+    const totalNativePlan = dataUpToCurrent.reduce(
+      (sum, d) => sum + (d.nativePlan || 0),
+      0,
+    );
+    const totalRolledOverdue = dataUpToCurrent[0]?.rolledOverdue || 0;
     const totalActual = dataUpToCurrent.reduce((sum, d) => sum + d.actual, 0);
-    const totalNativePlan = dataUpToCurrent.reduce((sum, d) => sum + (d.nativePlan || 0), 0);
-    const totalRolledOverdue = dataUpToCurrent.reduce((sum, d) => sum + (d.rolledOverdue || 0), 0);
-    const totalPending = Math.max(totalTarget - totalActual, 0);
-    const rate = totalTarget > 0 ? Math.round((totalActual / totalTarget) * 100) : 0;
-    const isHealthy = totalActual >= totalTarget * 0.9;
+    const metrics = calculateCollectionHealthMetrics(
+      totalNativePlan,
+      totalRolledOverdue,
+      totalActual,
+    );
 
     return {
-      totalTarget,
+      totalTarget: metrics.target,
       totalActual,
       totalNativePlan,
       totalRolledOverdue,
-      totalPending,
-      rate,
-      isHealthy,
+      totalPending: metrics.pending,
+      rate: metrics.rate,
+      isHealthy: metrics.isHealthy,
     };
   }, [data, fiscalMonths]);
 }
 
-/**
- * 按季度聚合回款健康度月度数据
- */
+/** 每季度只取首月的期初逾期，加上季度内原生计划，避免重复累计结转。 */
 export function aggregateCollectionHealthByQuarter(
   monthlyData: CollectionHealthDataPoint[],
   orgNode: OrgNode | null,
@@ -431,21 +384,24 @@ export function aggregateCollectionHealthByQuarter(
   for (let i = 0; i < fiscalMonths.length; i += 3) {
     const qMonths = fiscalMonths.slice(i, i + 3);
     if (qMonths.length > 0) {
-      quarters.push({
-        label: `Q${quarters.length + 1}`,
-        months: qMonths,
-      });
+      quarters.push({ label: `Q${quarters.length + 1}`, months: qMonths });
     }
   }
 
   return quarters.map((q) => {
     const qMonthData = monthlyData.filter((d) => q.months.includes(d.month));
+    const nativePlan = qMonthData.reduce(
+      (sum, d) => sum + (d.nativePlan || 0),
+      0,
+    );
+    const rolledOverdue = qMonthData[0]?.rolledOverdue || 0;
+    const actual = qMonthData.reduce((sum, d) => sum + d.actual, 0);
     return {
       month: q.label,
-      nativePlan: qMonthData.reduce((sum, d) => sum + (d.nativePlan || 0), 0),
-      rolledOverdue: qMonthData.reduce((sum, d) => sum + (d.rolledOverdue || 0), 0),
-      target: qMonthData.reduce((sum, d) => sum + d.target, 0),
-      actual: qMonthData.reduce((sum, d) => sum + d.actual, 0),
+      nativePlan,
+      rolledOverdue,
+      target: nativePlan + rolledOverdue,
+      actual,
     };
   });
 }

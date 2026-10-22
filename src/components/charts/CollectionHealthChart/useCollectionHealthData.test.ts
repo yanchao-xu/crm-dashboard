@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   calculateCollectionHealthFromApi,
+  calculateCollectionHealthMetrics,
   type CollectionHealthDataPoint,
   type MonthlyRollingMap,
 } from "./useCollectionHealthData";
@@ -561,8 +562,7 @@ describe("calculateCollectionHealthFromApi - 真实场景：截图数据复现",
     expect(jul.rolledOverdue).toBe(8475);
   });
 
-  it("6月逾期+部分回款(7月收到8000/8475) → 6月无滚动, 7月有滚动余额475", () => {
-    // 模拟截图中的第1笔：预付款 计划6/4，实际7/6收到8000
+  it("6月逾期、7月部分回款 → 7月保留月初余额，8月结转剩余余额", () => {
     const contract = createContract({ id: "c1", contractCode: "C001" });
     const plan = createPlan({
       id: "p-prepay",
@@ -577,26 +577,32 @@ describe("calculateCollectionHealthFromApi - 真实场景：截图数据复现",
       actualMonth: "Jul",
     });
 
-    const contractMap = buildContractMap([contract]);
-    const planMap = buildReceivablePlanMap([plan]);
-
     const { chartData } = calculateCollectionHealthFromApi(
-      contractMap, planMap, org, null
+      buildContractMap([contract]),
+      buildReceivablePlanMap([plan]),
+      org,
+      null,
     );
 
-    // 原生计划在6月
-    const jun = chartData.find((d) => d.month === "Jun")!;
-    expect(jun.nativePlan).toBe(8475);
-
-    // 逾期余额 = 8475 - 8000 = 475，滚动到7月
     const jul = chartData.find((d) => d.month === "Jul")!;
-    expect(jul.rolledOverdue).toBe(475);
+    expect(jul).toMatchObject({
+      nativePlan: 0,
+      rolledOverdue: 8475,
+      target: 8475,
+      actual: 8000,
+    });
+    expect(calculateCollectionHealthMetrics(
+      jul.nativePlan,
+      jul.rolledOverdue,
+      jul.actual,
+    )).toMatchObject({ pending: 475, rate: 94 });
+
+    const aug = chartData.find((d) => d.month === "Aug")!;
+    expect(aug).toMatchObject({ rolledOverdue: 475, target: 475, actual: 0 });
   });
 
-  it("完整截图场景：两笔逾期合并后6月和7月都有滚动", () => {
+  it("完整截图场景：回款当月使用月初逾期，下月使用回款后余额", () => {
     const contract = createContract({ id: "c1", contractCode: "C001" });
-
-    // 第1笔: 预付款 计划6/4，7/6回款8000（未全额）
     const plan1 = createPlan({
       id: "p1",
       parentDataId: "c1",
@@ -609,8 +615,6 @@ describe("calculateCollectionHealthFromApi - 真实场景：截图数据复现",
       actualYearMonth: "2026-07",
       actualMonth: "Jul",
     });
-
-    // 第2笔: 发货款 计划5/1，未回款
     const plan2 = createPlan({
       id: "p2",
       parentDataId: "c1",
@@ -622,21 +626,73 @@ describe("calculateCollectionHealthFromApi - 真实场景：截图数据复现",
       actualDate: "",
     });
 
-    const contractMap = buildContractMap([contract]);
-    const planMap = buildReceivablePlanMap([plan1, plan2]);
-
     const { chartData } = calculateCollectionHealthFromApi(
-      contractMap, planMap, org, null
+      buildContractMap([contract]),
+      buildReceivablePlanMap([plan1, plan2]),
+      org,
+      null,
     );
 
-    // 6月: 第2笔的逾期滚动 8475（从5月滚来）
-    const jun = chartData.find((d) => d.month === "Jun")!;
-    expect(jun.rolledOverdue).toBe(8475);
-    expect(jun.nativePlan).toBe(8475); // 第1笔的原生计划
+    expect(chartData.find((d) => d.month === "Jun")!).toMatchObject({
+      nativePlan: 8475,
+      rolledOverdue: 8475,
+    });
+    expect(chartData.find((d) => d.month === "Jul")!).toMatchObject({
+      rolledOverdue: 16950,
+      actual: 8000,
+      target: 16950,
+    });
+    expect(chartData.find((d) => d.month === "Aug")!).toMatchObject({
+      rolledOverdue: 8950,
+      target: 8950,
+    });
+  });
 
-    // 7月: 第2笔继续滚动 8475 + 第1笔逾期余额 475 = 8950
+  it("最终公式：7月滚入6万、回款2万 → 回款率33%、待收4万，8月滚入4万", () => {
+    const contract = createContract({ id: "c1", contractCode: "C001" });
+    const plan = createPlan({
+      id: "p-final-formula",
+      parentDataId: "c1",
+      plannedDate: "2026-06-10",
+      plannedYearMonth: "2026-06",
+      plannedMonth: "Jun",
+      plannedAmount: 60000,
+      actualAmount: 20000,
+      actualDate: "2026-07-15",
+      actualYearMonth: "2026-07",
+      actualMonth: "Jul",
+    });
+
+    const { chartData } = calculateCollectionHealthFromApi(
+      buildContractMap([contract]),
+      buildReceivablePlanMap([plan]),
+      org,
+      null,
+    );
+
     const jul = chartData.find((d) => d.month === "Jul")!;
-    expect(jul.rolledOverdue).toBe(8475 + 475);
+    expect(jul).toMatchObject({
+      nativePlan: 0,
+      rolledOverdue: 60000,
+      actual: 20000,
+      target: 60000,
+    });
+    expect(calculateCollectionHealthMetrics(
+      jul.nativePlan,
+      jul.rolledOverdue,
+      jul.actual,
+    )).toEqual({
+      target: 60000,
+      pending: 40000,
+      rate: 33,
+      isHealthy: false,
+    });
+
+    expect(chartData.find((d) => d.month === "Aug")!).toMatchObject({
+      rolledOverdue: 40000,
+      actual: 0,
+      target: 40000,
+    });
   });
 });
 

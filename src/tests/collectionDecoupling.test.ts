@@ -727,11 +727,14 @@ describe("真实数据场景 - 基于 testData.md 的合同和应收计划", () 
     expect(jun.nativePlan).toBe(8475);
     expect(jun.rolledOverdue).toBe(5000);
 
-    // 7月: 实收 = 8000 (预付款7/6回款)
+    // 7月: 实收 = 8000；月初滚动仍是发货款5000 + 预付款8475
     const jul = chartData.find((d) => d.month === "Jul")!;
     expect(jul.actual).toBe(8000);
-    // 7月滚动: 发货款继续滚动 5000 + 预付款余额 475
-    expect(jul.rolledOverdue).toBe(5000 + 475);
+    expect(jul.rolledOverdue).toBe(5000 + 8475);
+
+    // 8月才结转7月回款后的预付款余额475
+    const aug = chartData.find((d) => d.month === "Aug")!;
+    expect(aug.rolledOverdue).toBe(5000 + 475);
   });
 
   it("组织过滤：合同 owner 不影响结果，应收 paymentOwner 属于市场部时有数据", () => {

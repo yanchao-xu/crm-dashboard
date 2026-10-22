@@ -1,4 +1,5 @@
 import { formatCurrency } from "../utils/formatters";
+import { calculateCollectionHealthMetrics } from "./useCollectionHealthData";
 
 const nativePlanColor = "hsl(217, 91%, 60%)";
 const rolledOverdueColor = "hsl(25, 95%, 53%)";
@@ -24,10 +25,11 @@ export function CollectionHealthTooltip({
     const nativePlan = payload.find((p: any) => p.dataKey === "nativePlan")?.value || 0;
     const rolledOverdue = payload.find((p: any) => p.dataKey === "rolledOverdue")?.value || 0;
     const actual = payload.find((p: any) => p.dataKey === "actual")?.value || 0;
-    const target = nativePlan + rolledOverdue;
-    const rate = target > 0 ? Math.round((actual / target) * 100) : 0;
-    const pending = Math.max(target - actual, 0);
-    const isHealthy = actual >= target * 0.9;
+    const { target, rate, pending, isHealthy } = calculateCollectionHealthMetrics(
+        nativePlan,
+        rolledOverdue,
+        actual,
+    );
 
     return (
         <div className="glass-card p-3 border border-border min-w-[220px]">

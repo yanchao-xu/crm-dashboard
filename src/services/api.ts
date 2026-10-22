@@ -437,53 +437,34 @@ export class DashboardApiService {
     dateFrom: string,
     dateTo: string,
   ): Promise<ReceivablePlan[]> {
-    const rawPlans: any[] = [];
-    const pageSize = 1000;
-    let startRow = 0;
-
     try {
-      while (true) {
-        const response = await this.restApi.post(
-          "/form/api/v3/form-entity-data/contract-management/receivable-plan-form/list",
-          {
-            startRow,
-            endRow: startRow + pageSize,
-            filterModel: [
-              {
-                colId: "plannedDate",
-                filterType: "date",
-                type: "inRange",
-                dateFrom,
-                dateTo,
-              },
-            ],
-            selectColId: [
-              "parentDataId",
-              "actualAmount",
-              "actualDate",
-              "plannedAmount",
-              "plannedDate",
-              "paymentStage",
-              "paymentOwner",
-              "settlementCurrency",
-            ],
-          },
-        );
+      const response = await this.restApi.post(
+        "/form/api/v3/form-entity-data/contract-management/receivable-plan-form/list",
+        {
+          filterModel: [
+            {
+              colId: "plannedDate",
+              filterType: "date",
+              type: "inRange",
+              dateFrom,
+              dateTo,
+            },
+          ],
+          selectColId: [
+            "parentDataId",
+            "actualAmount",
+            "actualDate",
+            "plannedAmount",
+            "plannedDate",
+            "paymentStage",
+            "paymentOwner",
+            "settlementCurrency",
+          ],
+        },
+      );
 
-        const page = response.results || response;
-        if (!Array.isArray(page) || page.length === 0) break;
-        rawPlans.push(...page);
-
-        const total =
-          typeof response.count === "number" ? response.count : undefined;
-        if (
-          page.length < pageSize ||
-          (total !== undefined && rawPlans.length >= total)
-        ) {
-          break;
-        }
-        startRow += page.length;
-      }
+      const rawPlans = response.results || response;
+      if (!Array.isArray(rawPlans)) return [];
 
       return rawPlans
         .map((item: any) => this.transformReceivablePlanData(item))
