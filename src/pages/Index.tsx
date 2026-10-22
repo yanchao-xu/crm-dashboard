@@ -335,6 +335,15 @@ const Index = () => {
         .filter((cn): cn is string => !!cn && cn.trim() !== ""),
     );
   }, [filteredDeals]);
+  // 看板筛选变化后需要重置商机表格内部筛选的维度：
+  // 组织 / 产品线会改变表格数据集（阶段、负责人选项随之变化），旧筛选条件可能已失效。
+  // 年份和周期切换会把 chartFilter 置空，表格直接卸载，无需额外处理。
+  // 币种和金额口径只影响金额展示/图表口径，表格筛选仍然有效，因此不重置。
+  const tableFilterResetKey = useMemo(
+    () => `${selectedOrg?.id ?? "all"}|${[...selectedProducts].sort().join(",")}`,
+    [selectedOrg, selectedProducts],
+  );
+
   const getStageName = (code?: string) => {
     if (!code) return "";
     return opportunityStages.find((s) => s.code === code)?.name ?? code;
@@ -661,6 +670,7 @@ const Index = () => {
                         stages={opportunityStages}
                         exchangeService={exchangeService}
                         targetCurrencyCode={selectedCurrencyCode}
+                        filterResetKey={tableFilterResetKey}
                       />
                     </div>
                   </motion.div>
@@ -711,6 +721,7 @@ const Index = () => {
                       stages={opportunityStages}
                       exchangeService={exchangeService}
                       targetCurrencyCode={selectedCurrencyCode}
+                      filterResetKey={tableFilterResetKey}
                     />
                   </div>
                 </motion.div>

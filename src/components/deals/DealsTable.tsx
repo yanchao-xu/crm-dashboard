@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import type { Deal } from "@/types";
 import { DealFilters, FilterState } from "./DealFilters";
@@ -19,12 +19,27 @@ import { formatAmountNumber, getCurrencySymbol } from "@/components/charts/utils
 import type { OpportunityStage } from "@/services/api";
 import type { ExchangeRateService } from "@/services/exchangeRate";
 
+const createDefaultFilters = (): FilterState => ({
+  stages: [],
+  owners: [],
+  activityStatus: [],
+  probabilityRange: [0, 100],
+  valueRange: [0, 1000000],
+  searchQuery: "",
+});
+
 interface DealsTableProps {
   filterContext?: ChartFilterContext;
   deals?: Deal[];
   stages?: OpportunityStage[];
   exchangeService?: ExchangeRateService | null;
   targetCurrencyCode?: string;
+  /**
+   * 当该值变化时，清空表格内部的筛选条件与行选中状态。
+   * 用于看板顶部筛选（组织 / 产品线）切换后数据集发生变化的场景，
+   * 此时旧的阶段 / 负责人等筛选项可能已不存在。
+   */
+  filterResetKey?: string;
 }
 
 export function DealsTable({
@@ -33,6 +48,7 @@ export function DealsTable({
   stages = [],
   exchangeService,
   targetCurrencyCode,
+  filterResetKey,
 }: DealsTableProps) {
   const { t, getText, language } = useLanguage();
   const { currencyCode } = useCurrency();
@@ -44,14 +60,14 @@ export function DealsTable({
     return exchangeService.convert(amount, fromCurrencyCode, targetCurrencyCode);
   };
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
-  const [filters, setFilters] = useState<FilterState>({
-    stages: [],
-    owners: [],
-    activityStatus: [],
-    probabilityRange: [0, 100],
-    valueRange: [0, 1000000],
-    searchQuery: "",
-  });
+  const [filters, setFilters] = useState<FilterState>(createDefaultFilters);
+
+  // 看板筛选切换导致数据集变化时，重置表格自身的筛选条件
+  useEffect(() => {
+    if (filterResetKey === undefined) return;
+    setFilters(createDefaultFilters());
+    setSelectedDeal(null);
+  }, [filterResetKey]);
 
   // 构建 stage code 到 name 的映射
   const stageTranslations = useMemo(() => {
