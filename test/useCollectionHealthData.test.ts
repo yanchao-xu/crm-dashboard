@@ -217,20 +217,22 @@ describe("真实场景复现", () => {
     expect(chartData.find((d) => d.month === "Jul")!.rolledOverdue).toBe(8475);
   });
 
-  it("6月逾期+部分回款 → 7月滚动余额475", () => {
+  it("6月逾期+7月部分回款 → 7月月初8475，8月结转475", () => {
     const contract = createContract({ id: "c1", contractCode: "C001" });
     const plan = createPlan({ id: "p-p", parentDataId: "c1", plannedDate: "2026-06-04", plannedYearMonth: "2026-06", plannedMonth: "Jun", plannedAmount: 8475, actualAmount: 8000, actualDate: "2026-07-06", actualYearMonth: "2026-07", actualMonth: "Jul" });
     const { chartData } = calculateCollectionHealthFromApi(buildContractMap([contract]), buildReceivablePlanMap([plan]), org, null);
     expect(chartData.find((d) => d.month === "Jun")!.nativePlan).toBe(8475);
-    expect(chartData.find((d) => d.month === "Jul")!.rolledOverdue).toBe(475);
+    expect(chartData.find((d) => d.month === "Jul")!.rolledOverdue).toBe(8475);
+    expect(chartData.find((d) => d.month === "Aug")!.rolledOverdue).toBe(475);
   });
 
-  it("两笔合并: 6月 rolledOverdue=8475, 7月 rolledOverdue=8950", () => {
+  it("两笔合并: 6月滚动8475，7月月初滚动16950，8月滚动8950", () => {
     const contract = createContract({ id: "c1", contractCode: "C001" });
     const p1 = createPlan({ id: "p1", parentDataId: "c1", plannedDate: "2026-06-04", plannedYearMonth: "2026-06", plannedMonth: "Jun", plannedAmount: 8475, actualAmount: 8000, actualDate: "2026-07-06", actualYearMonth: "2026-07", actualMonth: "Jul" });
     const p2 = createPlan({ id: "p2", parentDataId: "c1", plannedDate: "2026-05-01", plannedYearMonth: "2026-05", plannedMonth: "May", plannedAmount: 8475, actualAmount: 0, actualDate: "" });
     const { chartData } = calculateCollectionHealthFromApi(buildContractMap([contract]), buildReceivablePlanMap([p1, p2]), org, null);
     expect(chartData.find((d) => d.month === "Jun")!.rolledOverdue).toBe(8475);
-    expect(chartData.find((d) => d.month === "Jul")!.rolledOverdue).toBe(8475 + 475);
+    expect(chartData.find((d) => d.month === "Jul")!.rolledOverdue).toBe(8475 + 8475);
+    expect(chartData.find((d) => d.month === "Aug")!.rolledOverdue).toBe(8475 + 475);
   });
 });

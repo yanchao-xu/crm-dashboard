@@ -191,8 +191,8 @@ export const translations: Translations = {
   "dashboard>collection>rollingSource": { zh: "滚动来源", en: "Rolling Source" },
   "dashboard>collection>rollingFrom": { zh: "来自 {month}", en: "From {month}" },
   "dashboard>collection>chartTooltip": {
-    zh: "数据范围：仅包含 plannedDate 位于当前财年的应收计划，不包含上一财年期初逾期。\n\n计算逻辑：\n蓝色柱（当月原生计划）：plannedAmount 按 plannedDate 所在月汇总\n橙色柱（滚动逾期）：本财年内前期逾期未回款金额逐月滚入（逾期金额 = plannedAmount - actualAmount）\n紫色柱（实际回款）：actualAmount 按 actualDate 所在月汇总\n\n逾期判定：当前日期 > plannedDate 且未全额回款",
-    en: "Scope: Receivable plans whose plannedDate is within the current fiscal year; prior-year opening overdue is excluded.\n\nCalculation:\nBlue (Native Plan): plannedAmount grouped by plannedDate month\nOrange (Rolled Overdue): Current-fiscal-year overdue carried forward monthly (plannedAmount - actualAmount)\nPurple (Actual): actualAmount grouped by actualDate month\n\nOverdue: current date > plannedDate and not fully collected",
+    zh: "数据范围：仅包含 plannedDate 位于当前财年的应收计划，不包含上一财年期初逾期。\n\n计算逻辑：\n蓝色柱（当月原生计划）：plannedAmount 按 plannedDate 所在月汇总\n橙色柱（滚动逾期）：当月月初由前月结转的逾期余额；当月回款不反向修改月初金额，未收余额从下月起继续滚动\n紫色柱（实际回款）：actualAmount 按 actualDate 所在月汇总\n\n应收金额 = 当月原生计划 + 月初滚动逾期；待收金额 = 应收金额 - 实际回款；回款率 = 实际回款 ÷ 应收金额",
+    en: "Scope: Receivable plans whose plannedDate is within the current fiscal year; prior-year opening overdue is excluded.\n\nCalculation:\nBlue (Native Plan): plannedAmount grouped by plannedDate month\nOrange (Rolled Overdue): overdue balance carried in at the start of the month; collections do not rewrite that month's opening balance, and the remaining balance carries forward from the next month\nPurple (Actual): actualAmount grouped by actualDate month\n\nTarget = native plan + opening rolled overdue; pending = target - actual; collection rate = actual / target",
   },
   "dashboard>filter>collectionMonth": {
     zh: "{month} 月回款合同",
